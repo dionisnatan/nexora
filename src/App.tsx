@@ -30,7 +30,9 @@ import {
   BarChart3,
   MoreVertical,
   Calendar,
-  Layers
+  Layers,
+  Menu,
+  X
 } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './lib/supabase';
@@ -157,14 +159,14 @@ const StatCard = ({ icon: Icon, label, value, subtext, color }: { icon: any, lab
 
 const DashboardView = ({ onAction, onNavigate }: { onAction: (msg: string) => void; onNavigate: (view: View) => void }) => (
   <div className="space-y-8 animate-in fade-in duration-500">
-    <div className="flex items-center justify-between">
+    <div className="flex flex-col sm:items-center sm:flex-row justify-between gap-4">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-500">Bem-vindo de volta 👋</p>
       </div>
       <button
         onClick={() => onNavigate('produtos')}
-        className="bg-[#5551FF] text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium hover:bg-[#4440FF] transition-colors shadow-sm"
+        className="w-full sm:w-auto bg-[#5551FF] text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-medium hover:bg-[#4440FF] transition-colors shadow-sm"
       >
         <Plus size={18} />
         Novo produto
@@ -268,13 +270,13 @@ const DashboardView = ({ onAction, onNavigate }: { onAction: (msg: string) => vo
         <div className="space-y-4">
           {recentOrders.map((order) => (
             <div key={order.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-[#5551FF] font-bold text-sm">
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-[#5551FF] font-bold text-sm shrink-0">
                   {order.name.charAt(0).toUpperCase()}
                 </div>
-                <div>
-                  <h4 className="text-sm font-bold text-gray-900">{order.name}</h4>
-                  <p className="text-xs text-gray-400">{order.email} • {order.date}</p>
+                <div className="min-w-0">
+                  <h4 className="text-sm font-bold text-gray-900 truncate">{order.name}</h4>
+                  <p className="text-xs text-gray-400 truncate">{order.email} • {order.date}</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
@@ -477,7 +479,7 @@ const AppearanceView = ({ onAction, session }: { onAction: (msg: string) => void
         <p className="text-gray-500">Personalize o visual da sua loja</p>
       </div>
 
-      <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm space-y-6">
+      <div className="bg-white p-4 sm:p-8 rounded-2xl border border-gray-100 shadow-sm space-y-6">
         <div className="flex items-center gap-2 text-[#5551FF] font-bold text-sm mb-2">
           <Palette size={18} />
           Escolher template
@@ -549,7 +551,7 @@ const AppearanceView = ({ onAction, session }: { onAction: (msg: string) => void
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm space-y-6">
+        <div className="bg-white p-4 sm:p-8 rounded-2xl border border-gray-100 shadow-sm space-y-6">
           <div className="flex items-center gap-2 text-[#5551FF] font-bold text-sm mb-2">
             <Palette size={18} />
             Cores da marca
@@ -596,7 +598,7 @@ const AppearanceView = ({ onAction, session }: { onAction: (msg: string) => void
           </div>
         </div>
 
-        <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm space-y-6">
+        <div className="bg-white p-4 sm:p-8 rounded-2xl border border-gray-100 shadow-sm space-y-6">
           <div className="flex items-center gap-2 text-[#5551FF] font-bold text-sm mb-2">
             <LayoutDashboard size={18} />
             Estilo do Site
@@ -817,8 +819,8 @@ const MinhaLojaView = ({ onAction, session }: { onAction: (msg: string) => void,
             <Store size={18} />
             Identidade visual
           </div>
-          <div className="flex items-center gap-8">
-            <div className="w-24 h-24 rounded-3xl bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center text-gray-300 overflow-hidden relative">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-8">
+            <div className="w-24 h-24 rounded-3xl bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center text-gray-300 overflow-hidden relative shrink-0">
               {store.logo_url ? (
                 <img src={store.logo_url} alt="Logo" className="w-full h-full object-cover" />
               ) : (
@@ -1826,9 +1828,9 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
       </div>
 
       {currentSubscription && currentSubscription.status === 'active' && (
-        <div className="max-w-4xl mx-auto bg-emerald-50 border border-emerald-100 p-6 rounded-3xl flex items-center justify-between">
+        <div className="max-w-4xl mx-auto bg-emerald-50 border border-emerald-100 p-6 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-500 shadow-sm shadow-emerald-100">
+            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-500 shadow-sm shadow-emerald-100 shrink-0">
               <Check size={24} strokeWidth={3} />
             </div>
             <div>
@@ -1836,7 +1838,7 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
               <h4 className="text-xl font-bold text-gray-900">Plano {currentSubscription.plan_name}</h4>
             </div>
           </div>
-          <div className="text-right">
+          <div className="sm:text-right">
             <p className="text-xs text-gray-400 uppercase font-bold tracking-widest">Próxima renovação</p>
             <p className="text-sm font-bold text-gray-900">{new Date(currentSubscription.renewal_date).toLocaleDateString()}</p>
           </div>
@@ -2076,6 +2078,7 @@ export default function App() {
   const [storeSlug, setStoreSlug] = useState<string | null>(null);
   const [customDomain, setCustomDomain] = useState<string>('');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
 
   const notifications = [
@@ -2265,15 +2268,40 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-[#F9FAFB] font-sans text-gray-900">
+    <div className="flex h-screen bg-[#F9FAFB] font-sans text-gray-900 overflow-hidden">
       <Toast message={toast.message} visible={toast.visible} onHide={() => setToast(prev => ({ ...prev, visible: false }))} />
+
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-100 flex flex-col shrink-0">
-        <div className="p-6 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#5551FF] rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
-            <Zap size={24} fill="currentColor" />
+      <aside className={cn(
+        "fixed inset-y-0 left-0 bg-white border-r border-gray-100 flex flex-col shrink-0 z-50 transition-transform duration-300 lg:translate-x-0 lg:static lg:block w-72",
+        isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        <div className="p-6 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#5551FF] rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+              <Zap size={24} fill="currentColor" />
+            </div>
+            <span className="text-xl font-black tracking-tight text-gray-900">NEXORA</span>
           </div>
-          <span className="text-xl font-black tracking-tight text-gray-900">NEXORA</span>
+          <button 
+            onClick={() => setIsSidebarOpen(false)}
+            className="p-2 text-gray-400 hover:text-gray-900 lg:hidden"
+          >
+            <X size={20} />
+          </button>
         </div>
 
         <div className="px-4 mb-8">
@@ -2295,23 +2323,22 @@ export default function App() {
         <nav className="flex-1 px-4 space-y-1">
           {userProfile?.role === 'admin' || session?.user?.email === 'dionesnatan54@gmail.com' ? (
             <>
-              <p className="px-4 text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-3 mt-6">Painel Admin</p>
-              <SidebarItem icon={LayoutDashboard} label="Admin Dashboard" active={currentView === 'admin-dashboard'} onClick={() => setCurrentView('admin-dashboard')} />
-              <SidebarItem icon={User} label="Usuários" active={currentView === 'admin-users'} onClick={() => setCurrentView('admin-users')} />
-              <SidebarItem icon={Store} label="Lojas do Sistema" active={currentView === 'admin-stores'} onClick={() => setCurrentView('admin-stores')} />
-              <SidebarItem icon={ShieldCheck} label="Controle de Acesso" active={currentView === 'admin-access'} onClick={() => setCurrentView('admin-access')} />
-              <SidebarItem icon={CreditCard} label="Assinantes" active={currentView === 'admin-assinaturas'} onClick={() => setCurrentView('admin-assinaturas')} />
+              <SidebarItem icon={LayoutDashboard} label="Admin Dashboard" active={currentView === 'admin-dashboard'} onClick={() => { setCurrentView('admin-dashboard'); setIsSidebarOpen(false); }} />
+              <SidebarItem icon={User} label="Usuários" active={currentView === 'admin-users'} onClick={() => { setCurrentView('admin-users'); setIsSidebarOpen(false); }} />
+              <SidebarItem icon={Store} label="Lojas do Sistema" active={currentView === 'admin-stores'} onClick={() => { setCurrentView('admin-stores'); setIsSidebarOpen(false); }} />
+              <SidebarItem icon={ShieldCheck} label="Controle de Acesso" active={currentView === 'admin-access'} onClick={() => { setCurrentView('admin-access'); setIsSidebarOpen(false); }} />
+              <SidebarItem icon={CreditCard} label="Assinantes" active={currentView === 'admin-assinaturas'} onClick={() => { setCurrentView('admin-assinaturas'); setIsSidebarOpen(false); }} />
             </>
           ) : (
             <>
               <p className="px-4 text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-3">Menu</p>
-              <SidebarItem icon={LayoutDashboard} label="Dashboard" active={currentView === 'dashboard'} onClick={() => setCurrentView('dashboard')} />
-              <SidebarItem icon={Package} label="Produtos" active={currentView === 'produtos'} onClick={() => setCurrentView('produtos')} />
-              <SidebarItem icon={ShoppingBag} label="Pedidos" active={currentView === 'pedidos'} onClick={() => setCurrentView('pedidos')} />
-              <SidebarItem icon={Palette} label="Aparência da loja" active={currentView === 'aparencia'} onClick={() => setCurrentView('aparencia')} />
-              <SidebarItem icon={Globe} label="Domínio" active={currentView === 'dominio'} onClick={() => setCurrentView('dominio')} />
-              <SidebarItem icon={Store} label="Minha loja" active={currentView === 'minha-loja'} onClick={() => setCurrentView('minha-loja')} />
-              <SidebarItem icon={CreditCard} label="Meu Plano" active={currentView === 'plano'} onClick={() => setCurrentView('plano')} />
+              <SidebarItem icon={LayoutDashboard} label="Dashboard" active={currentView === 'dashboard'} onClick={() => { setCurrentView('dashboard'); setIsSidebarOpen(false); }} />
+              <SidebarItem icon={Package} label="Produtos" active={currentView === 'produtos'} onClick={() => { setCurrentView('produtos'); setIsSidebarOpen(false); }} />
+              <SidebarItem icon={ShoppingBag} label="Pedidos" active={currentView === 'pedidos'} onClick={() => { setCurrentView('pedidos'); setIsSidebarOpen(false); }} />
+              <SidebarItem icon={Palette} label="Aparência da loja" active={currentView === 'aparencia'} onClick={() => { setCurrentView('aparencia'); setIsSidebarOpen(false); }} />
+              <SidebarItem icon={Globe} label="Domínio" active={currentView === 'dominio'} onClick={() => { setCurrentView('dominio'); setIsSidebarOpen(false); }} />
+              <SidebarItem icon={Store} label="Minha loja" active={currentView === 'minha-loja'} onClick={() => { setCurrentView('minha-loja'); setIsSidebarOpen(false); }} />
+              <SidebarItem icon={CreditCard} label="Meu Plano" active={currentView === 'plano'} onClick={() => { setCurrentView('plano'); setIsSidebarOpen(false); }} />
             </>
           )}
         </nav>
@@ -2328,11 +2355,19 @@ export default function App() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Navbar */}
-        <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-8 shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-400">{storeData?.name || 'Painel de Controle'}</span>
+        <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 sm:px-8 shrink-0">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 -ml-2 text-gray-400 hover:text-gray-900 lg:hidden"
+            >
+              <Menu size={20} />
+            </button>
+            <span className="text-sm font-bold text-gray-900 lg:text-gray-400 lg:font-medium truncate max-w-[150px] sm:max-w-none">
+              {storeData?.name || 'Painel de Controle'}
+            </span>
           </div>
           <div className="flex items-center gap-6">
             <button
@@ -2437,7 +2472,7 @@ export default function App() {
 
         {/* Scrollable View */}
         <div className="flex-1 overflow-y-auto bg-[#F9FAFB]">
-          <div className="max-w-7xl mx-auto p-8">
+          <div className="max-w-7xl mx-auto p-4 sm:p-8">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentView}
@@ -2479,13 +2514,13 @@ export default function App() {
                         <h1 className="text-2xl font-bold text-gray-900">Pedidos</h1>
                         <p className="text-gray-500">{filteredOrders.length} pedido(s) no total</p>
                       </div>
-                      <div className="flex gap-2 mb-6">
+                      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 custom-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
                         {['Todos', 'Pendente', 'Pago', 'Enviado', 'Entregue', 'Cancelado'].map((tab) => (
                           <button
                             key={tab}
                             onClick={() => setOrderTab(tab)}
                             className={cn(
-                              "px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                              "px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap",
                               orderTab === tab ? "bg-[#5551FF] text-white" : "bg-white text-gray-500 border border-gray-100 hover:bg-gray-50"
                             )}
                           >
@@ -2498,13 +2533,13 @@ export default function App() {
                           <div className="space-y-4 w-full">
                             {filteredOrders.map((order) => (
                               <div key={order.id} className="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
-                                <div className="flex items-center gap-4">
-                                  <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-[#5551FF] font-bold text-sm">
+                                <div className="flex items-center gap-4 min-w-0">
+                                  <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-[#5551FF] font-bold text-sm shrink-0">
                                     {order.name.charAt(0).toUpperCase()}
                                   </div>
-                                  <div>
-                                    <h4 className="text-sm font-bold text-gray-900">{order.name}</h4>
-                                    <p className="text-xs text-gray-400">{order.email} • {order.date}</p>
+                                  <div className="min-w-0">
+                                    <h4 className="text-sm font-bold text-gray-900 truncate">{order.name}</h4>
+                                    <p className="text-xs text-gray-400 truncate">{order.email} • {order.date}</p>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-4">

@@ -849,7 +849,7 @@ export const ProductsView = ({ onAction, session }: { onAction: (msg: string) =>
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Produtos</h1>
           <p className="text-gray-500">{products.length} produto(s) cadastrado(s)</p>
@@ -857,7 +857,7 @@ export const ProductsView = ({ onAction, session }: { onAction: (msg: string) =>
         <div className="flex items-center gap-3">
           <button 
             onClick={() => setIsManagingCategories(true)}
-            className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg flex items-center gap-2 font-medium hover:bg-gray-50 transition-colors shadow-sm"
+            className="flex-1 sm:flex-initial px-4 py-2 border border-gray-200 text-gray-600 rounded-lg flex items-center justify-center gap-2 font-medium hover:bg-gray-50 transition-colors shadow-sm text-sm"
           >
             Categorias
           </button>
@@ -869,7 +869,7 @@ export const ProductsView = ({ onAction, session }: { onAction: (msg: string) =>
                 setIsAdding(true);
               }
             }}
-            className="bg-[#5551FF] text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium hover:bg-[#4440FF] transition-colors shadow-sm"
+            className="flex-1 sm:flex-initial bg-[#5551FF] text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-medium hover:bg-[#4440FF] transition-colors shadow-sm text-sm"
           >
             <Plus size={18} />
             Adicionar
@@ -877,7 +877,7 @@ export const ProductsView = ({ onAction, session }: { onAction: (msg: string) =>
         </div>
       </div>
       
-      <div className="flex gap-4">
+      <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input 
@@ -885,39 +885,41 @@ export const ProductsView = ({ onAction, session }: { onAction: (msg: string) =>
             placeholder="Buscar produto ou SKU..." 
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5551FF]/20 transition-all"
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5551FF]/20 transition-all font-medium"
           />
         </div>
-             <div className="relative">
-          <select 
-            value={categoryFilter}
-            onChange={e => setCategoryFilter(e.target.value)}
-            className="appearance-none bg-white border border-gray-100 pl-4 pr-10 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors focus:ring-2 focus:ring-[#5551FF]/20 cursor-pointer"
-          >
-            <option value="">Todas Categorias</option>
-            {categories.map(cat => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
-        </div>
-        <div className="relative">
-          <select 
-            value={sortOption}
-            onChange={e => setSortOption(e.target.value)}
-            className="appearance-none bg-white border border-gray-100 pl-4 pr-10 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors focus:ring-2 focus:ring-[#5551FF]/20 cursor-pointer"
-          >
-            <option value="name-az">Nome A-Z</option>
-            <option value="name-za">Nome Z-A</option>
-            <option value="price-high">Preço Maior</option>
-            <option value="price-low">Preço Menor</option>
-            <option value="stock-high">Estoque</option>
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+        <div className="flex gap-2 sm:gap-4">
+          <div className="relative flex-1 sm:flex-initial">
+            <select 
+              value={categoryFilter}
+              onChange={e => setCategoryFilter(e.target.value)}
+              className="w-full appearance-none bg-white border border-gray-100 pl-4 pr-10 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors focus:ring-2 focus:ring-[#5551FF]/20 cursor-pointer"
+            >
+              <option value="">Todas Categorias</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+          </div>
+          <div className="relative flex-1 sm:flex-initial">
+            <select 
+              value={sortOption}
+              onChange={e => setSortOption(e.target.value)}
+              className="w-full appearance-none bg-white border border-gray-100 pl-4 pr-10 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors focus:ring-2 focus:ring-[#5551FF]/20 cursor-pointer"
+            >
+              <option value="name-az">Nome A-Z</option>
+              <option value="name-za">Nome Z-A</option>
+              <option value="price-high">Preço Maior</option>
+              <option value="price-low">Preço Menor</option>
+              <option value="stock-high">Estoque</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm min-h-[400px]">
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden min-h-[400px]">
         {products.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-12 h-full text-center space-y-4">
             <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-300">
@@ -937,15 +939,16 @@ export const ProductsView = ({ onAction, session }: { onAction: (msg: string) =>
             </button>
           </div>
         ) : (
-          <div className="w-full">
-            <div className="grid grid-cols-[auto_1fr_auto_auto_auto_auto] items-center gap-6 px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
-              <div className="w-12 text-center">Imagem</div>
-              <div>Produto</div>
-              <div className="text-right w-24">Preço</div>
-              <div className="text-right w-16">Estoque</div>
-              <div className="text-center w-20">Status</div>
-              <div className="text-right w-20">Ações</div>
-            </div>
+          <div className="w-full overflow-x-auto custom-scrollbar">
+            <div className="min-w-[800px] lg:min-w-full">
+              <div className="grid grid-cols-[auto_1fr_auto_auto_auto_auto] items-center gap-6 px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 bg-gray-50/30">
+                <div className="w-12 text-center">Imagem</div>
+                <div>Produto</div>
+                <div className="text-right w-24">Preço</div>
+                <div className="text-right w-16">Estoque</div>
+                <div className="text-center w-20">Status</div>
+                <div className="text-right w-20">Ações</div>
+              </div>
             <div className="divide-y divide-gray-50">
               {filteredProducts.map(prod => (
                 <div key={prod.id} className="grid grid-cols-[auto_1fr_auto_auto_auto_auto] items-center gap-6 px-6 py-4 hover:bg-gray-50/50 transition-colors group">
@@ -956,9 +959,9 @@ export const ProductsView = ({ onAction, session }: { onAction: (msg: string) =>
                       <ImageIcon size={20} className="text-gray-300" />
                     )}
                   </div>
-                  <div className="flex flex-col">
-                    <span className="font-bold text-slate-800 text-sm">{prod.name}</span>
-                    <span className="text-xs text-gray-400 flex items-center gap-1">
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-bold text-slate-800 text-sm truncate">{prod.name}</span>
+                    <span className="text-xs text-gray-400 flex items-center gap-1 truncate">
                       <Package size={12}/> {prod.categories?.name || 'Sem Categoria'}
                     </span>
                   </div>
@@ -974,11 +977,11 @@ export const ProductsView = ({ onAction, session }: { onAction: (msg: string) =>
                       {prod.is_active ? 'Ativo' : 'Inativo'}
                     </span>
                   </div>
-                  <div className="text-right flex items-center justify-end gap-2 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => handleEditProduct(prod)} className="p-1 hover:text-[#5551FF] transition-colors" title="Editar">
+                  <div className="text-right flex items-center justify-end gap-2 text-gray-400 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => handleEditProduct(prod)} className="p-2 hover:text-[#5551FF] transition-colors" title="Editar">
                       <Edit size={16} />
                     </button>
-                    <button onClick={() => handleDeleteProduct(prod.id)} className="p-1 hover:text-red-500 transition-colors" title="Excluir">
+                    <button onClick={() => handleDeleteProduct(prod.id)} className="p-2 hover:text-red-500 transition-colors" title="Excluir">
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -986,8 +989,9 @@ export const ProductsView = ({ onAction, session }: { onAction: (msg: string) =>
               ))}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+    </div>
 
       {/* Delete Confirmation Modal */}
       {productToDelete && (
