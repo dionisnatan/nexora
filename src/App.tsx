@@ -32,11 +32,15 @@ import {
   Calendar,
   Layers,
   Menu,
-  X
+  X,
+  BookOpen,
+  AlertCircle,
+  Edit3
 } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './lib/supabase';
 import { ProductsView } from './views/ProductsView';
+import { CatalogView } from './views/CatalogView';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   AreaChart,
@@ -60,7 +64,7 @@ function cn(...inputs: ClassValue[]) {
 
 // --- Types ---
 
-type View = 'dashboard' | 'produtos' | 'pedidos' | 'aparencia' | 'dominio' | 'minha-loja' | 'plano' | 'checkout' | 'admin-assinaturas' | 'admin-dashboard' | 'admin-users' | 'admin-stores' | 'admin-access';
+type View = 'dashboard' | 'produtos' | 'pedidos' | 'aparencia' | 'dominio' | 'minha-loja' | 'plano' | 'checkout' | 'admin-assinaturas' | 'admin-dashboard' | 'admin-users' | 'admin-stores' | 'admin-access' | 'catalogo' | 'minhas-lojas';
 
 interface UserProfile {
   id: string;
@@ -157,7 +161,7 @@ const StatCard = ({ icon: Icon, label, value, subtext, color }: { icon: any, lab
 
 // --- Views ---
 
-const DashboardView = ({ onAction, onNavigate }: { onAction: (msg: string) => void; onNavigate: (view: View) => void }) => (
+const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: string) => void; onNavigate: (view: View) => void; storeId: string | null }) => (
   <div className="space-y-8 animate-in fade-in duration-500">
     <div className="flex flex-col sm:items-center sm:flex-row justify-between gap-4">
       <div>
@@ -340,7 +344,7 @@ const DashboardView = ({ onAction, onNavigate }: { onAction: (msg: string) => vo
   </div>
 );
 
-const AppearanceView = ({ onAction, session }: { onAction: (msg: string) => void, session: any }) => {
+const AppearanceView = ({ onAction, session, storeId }: { onAction: (msg: string) => void, session: any, storeId: string | null }) => {
   const [loading, setLoading] = useState(true);
   const [activeTemplate, setActiveTemplate] = useState('Modern Shop');
   const [themeColor, setThemeColor] = useState('#6366f1');
@@ -359,10 +363,14 @@ const AppearanceView = ({ onAction, session }: { onAction: (msg: string) => void
     if (!session?.user?.id) return;
 
     const fetchStore = async () => {
+      if (!storeId) {
+        setLoading(false);
+        return;
+      }
       const { data } = await supabase
         .from('stores')
         .select('*')
-        .eq('user_id', session.user.id)
+        .eq('id', storeId)
         .single();
 
       if (data) {
@@ -746,7 +754,7 @@ const AppearanceView = ({ onAction, session }: { onAction: (msg: string) => void
   );
 };
 
-const MinhaLojaView = ({ onAction, session }: { onAction: (msg: string) => void, session: any }) => {
+const MinhaLojaView = ({ onAction, session, storeId }: { onAction: (msg: string) => void, session: any, storeId: string | null }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [store, setStore] = useState<any>({
@@ -774,10 +782,14 @@ const MinhaLojaView = ({ onAction, session }: { onAction: (msg: string) => void,
     if (!session?.user?.id) return;
 
     const fetchStore = async () => {
+      if (!storeId) {
+        setLoading(false);
+        return;
+      }
       const { data, error } = await supabase
         .from('stores')
         .select('*')
-        .eq('user_id', session.user.id)
+        .eq('id', storeId)
         .single();
 
       if (data) {
@@ -787,14 +799,15 @@ const MinhaLojaView = ({ onAction, session }: { onAction: (msg: string) => void,
     };
 
     fetchStore();
-  }, [session]);
+  }, [session, storeId]);
 
   const handleSave = async () => {
+    if (!storeId) return;
     setSaving(true);
     try {
       const { error } = await supabase
         .from('stores')
-        .upsert({ ...store, user_id: session.user.id }, { onConflict: 'user_id' });
+        .upsert({ ...store, id: storeId, user_id: session.user.id });
       if (error) throw error;
       onAction("Loja salva com sucesso!");
     } catch (err: any) {
@@ -1574,7 +1587,8 @@ const AdminAccessControl = ({ onAction }: { onAction: (msg: string) => void }) =
           user_id: userProfile.id,
           plan_name: formData.plan,
           price: 0, // Manual grant is free
-          billing_cycle: 'manual',
+          billing_cycle: 'monthly',
+          payment_gateway: 'manual',
           status: 'active',
           renewal_date: expiryDate.toISOString()
         }, { onConflict: 'user_id' });
@@ -1627,9 +1641,10 @@ const AdminAccessControl = ({ onAction }: { onAction: (msg: string) => void }) =
                   onChange={e => setFormData({ ...formData, plan: e.target.value })}
                   className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-50 transition-all font-bold appearance-none bg-no-repeat"
                 >
-                  <option value="Básico">Plano Básico</option>
-                  <option value="Profissional">Plano Profissional</option>
-                  <option value="Premium">Plano Premium</option>
+                  <option value="free">FREE</option>
+                  <option value="pro">PRO – R$39,90</option>
+                  <option value="loja">LOJA – R$99,90</option>
+                  <option value="ultra">ULTRA – R$139</option>
                 </select>
               </div>
             </div>
@@ -1779,21 +1794,50 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
 
   const plans = [
     {
-      name: 'Básico',
-      priceMonthly: 49.90,
-      priceYearly: 490.00,
-      features: ['Até 10 produtos', '1 template elegante', 'Sua vitrine personalizada', 'Suporte'],
+      name: 'FREE',
+      planKey: 'free',
+      priceMonthly: 0,
+      priceYearly: 0,
+      features: ['Até 10 produtos', '1 catálogo digital', 'Link público do catálogo', 'Sem loja online'],
       color: 'bg-white',
-      kiwifyLink: 'https://pay.kiwify.com.br/bKuzC2f'
+      kiwifyLink: null,
+      maxStores: 0,
+      icon: '🎁'
     },
     {
-      name: 'Profissional',
-      priceMonthly: 109.90,
-      priceYearly: 1090.00,
-      features: ['Produtos ilimitados', 'Todos os templates', 'Domínio próprio', 'Relatórios avançados', 'Suporte prioritário (WhatsApp)'],
+      name: 'PRO',
+      planKey: 'pro',
+      priceMonthly: 39.90,
+      priceYearly: 399.00,
+      features: ['Produtos ilimitados', 'Catálogo profissional', '2 lojas online', 'Todos os templates', 'Suporte'],
+      color: 'bg-white',
+      badge: 'POPULAR',
+      kiwifyLink: 'https://pay.kiwify.com.br/5U7m01m',
+      maxStores: 2,
+      icon: '🚀'
+    },
+    {
+      name: 'LOJA',
+      planKey: 'loja',
+      priceMonthly: 99.90,
+      priceYearly: 999.00,
+      features: ['Loja online completa', 'Checkout integrado', 'Catálogo ilimitado', 'Domínio próprio', 'Relatórios avançados'],
       color: 'bg-white',
       badge: 'MAIS VENDIDO',
-      kiwifyLink: 'https://pay.kiwify.com.br/5U7m01m'
+      kiwifyLink: 'https://pay.kiwify.com.br/bKuzC2f',
+      maxStores: 1,
+      icon: '🏪'
+    },
+    {
+      name: 'ULTRA',
+      planKey: 'ultra',
+      priceMonthly: 139.00,
+      priceYearly: 1390.00,
+      features: ['Multi-lojas (até 5)', 'Loja online completa', 'Automações inteligentes', 'Inteligência Artificial (em breve)', 'Suporte prioritário VIP'],
+      color: 'bg-gray-900',
+      kiwifyLink: '#',
+      maxStores: 5,
+      icon: '⚡'
     }
   ];
 
@@ -1845,62 +1889,80 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
         {plans.map((plan) => {
-          const isActive = currentSubscription?.plan_name === plan.name;
+          const isActive = currentSubscription?.plan_name?.toLowerCase() === plan.planKey || currentSubscription?.plan_name === plan.name;
           const price = activeTab === 'monthly' ? plan.priceMonthly : plan.priceYearly;
+          const isUltra = plan.planKey === 'ultra';
+          const isFree = plan.planKey === 'free';
 
           return (
             <div key={plan.name} className={cn(
-              "p-10 rounded-[3rem] border-2 transition-all duration-500 flex flex-col h-full relative group",
-              isActive ? 'border-[#5551FF] shadow-2xl shadow-indigo-100' : 'border-gray-50 hover:border-indigo-100 hover:shadow-2xl hover:shadow-gray-100',
-              plan.color
+              "p-7 rounded-3xl border-2 transition-all duration-500 flex flex-col h-full relative group",
+              isActive ? 'border-[#5551FF] shadow-2xl shadow-indigo-100' : isUltra ? 'border-transparent' : 'border-gray-50 hover:border-indigo-100 hover:shadow-xl hover:shadow-gray-100',
+              isUltra ? 'bg-gray-900 text-white' : plan.color
             )}>
               {plan.badge && (
-                <div className="absolute -top-3 left-10 bg-[#5551FF] text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-[0.2em] shadow-lg">
+                <div className={cn("absolute -top-3 left-6 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-[0.2em] shadow-lg",
+                  plan.badge === 'POPULAR' ? 'bg-[#5551FF]' : 'bg-emerald-500'
+                )}>
                   {plan.badge}
                 </div>
               )}
-
-              <div className="space-y-6 mb-12">
-                <h3 className="text-xl font-black italic uppercase tracking-tight">{plan.name}</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-sm font-bold opacity-60">R$</span>
-                  <span className="text-5xl font-black italic tracking-tighter">{price.toFixed(2).replace('.', ',')}</span>
-                  <span className="text-xs font-bold opacity-40 uppercase ml-1">/ {activeTab === 'monthly' ? 'mês' : 'ano'}</span>
+              {isActive && (
+                <div className="absolute -top-3 right-6 bg-emerald-500 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-[0.2em] shadow-lg flex items-center gap-1">
+                  <Check size={8} strokeWidth={4} /> Ativo
                 </div>
-                <p className="text-xs font-medium opacity-60">Ideal para quem está {plan.name === 'Básico' ? 'começando' : plan.name === 'Profissional' ? 'escalando' : 'no topo'}.</p>
+              )}
+
+              <div className="mb-5">
+                <span className="text-2xl">{plan.icon}</span>
+                <h3 className={cn("text-lg font-black uppercase tracking-tight mt-2", isUltra ? 'text-white' : 'text-gray-900')}>{plan.name}</h3>
+                <div className="flex items-baseline gap-1 mt-2">
+                  {!isFree && <span className={cn("text-xs font-bold opacity-60", isUltra ? 'text-gray-400' : '')}>R$</span>}
+                  <span className={cn("text-4xl font-black italic tracking-tighter", isUltra ? 'text-white' : 'text-gray-900')}>
+                    {isFree ? 'Grátis' : price.toFixed(2).replace('.', ',')}
+                  </span>
+                  {!isFree && <span className={cn("text-[10px] font-bold opacity-40 uppercase ml-1", isUltra ? 'text-gray-400' : '')}>/{activeTab === 'monthly' ? 'mês' : 'ano'}</span>}
+                </div>
               </div>
 
-              <div className="space-y-5 mb-12 flex-1">
+              <div className="space-y-3 mb-8 flex-1">
                 {plan.features.map(f => (
-                  <div key={f} className="flex items-center gap-3 text-sm font-bold opacity-80 decoration-indigo-500/30">
-                    <div className="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
-                      <Check size={12} className="text-emerald-500" strokeWidth={4} />
+                  <div key={f} className="flex items-start gap-2 text-xs font-medium">
+                    <div className={cn("w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                      isUltra ? 'bg-white/20' : 'bg-emerald-500/10'
+                    )}>
+                      <Check size={10} className={isUltra ? 'text-white' : 'text-emerald-500'} strokeWidth={4} />
                     </div>
-                    {f}
+                    <span className={isUltra ? 'text-gray-300' : 'text-gray-600'}>{f}</span>
                   </div>
                 ))}
               </div>
 
               <button
                 onClick={() => {
-                  const emailParam = session?.user?.email ? `&email=${encodeURIComponent(session.user.email)}` : '';
-                  const userIdParam = session?.user?.id ? `&user_id=${session.user.id}` : '';
-                  window.open(`${plan.kiwifyLink}?utm_source=nexora${emailParam}${userIdParam}`, '_blank');
-                  onAction(`Redirecionando para o checkout do plano ${plan.name}...`);
+                  if (isFree || isActive) return;
+                  if (plan.kiwifyLink && plan.kiwifyLink !== '#') {
+                    const emailParam = session?.user?.email ? `&email=${encodeURIComponent(session.user.email)}` : '';
+                    const userIdParam = session?.user?.id ? `&user_id=${session.user.id}` : '';
+                    window.open(`${plan.kiwifyLink}?utm_source=nexora${emailParam}${userIdParam}`, '_blank');
+                    onAction(`Redirecionando para o checkout do plano ${plan.name}...`);
+                  } else {
+                    onAction('Em breve disponível!');
+                  }
                 }}
-                disabled={isActive}
+                disabled={isActive || isFree}
                 className={cn(
-                  "w-full h-16 rounded-2xl font-black uppercase tracking-[0.2em] text-xs transition-all flex items-center justify-center gap-2 group/btn active:scale-95",
-                  isActive
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : plan.name === 'Premium'
-                      ? "bg-white text-indigo-950 hover:bg-gray-100"
+                  "w-full py-3.5 rounded-2xl font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 group/btn active:scale-95",
+                  isActive || isFree
+                    ? isUltra ? "bg-white/10 text-white/40 cursor-not-allowed" : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : isUltra
+                      ? "bg-white text-gray-900 hover:bg-gray-100 shadow-xl"
                       : "bg-[#111827] text-white hover:bg-black shadow-xl shadow-gray-200"
                 )}>
-                {isActive ? 'Ativado' : 'Assinar Agora'}
-                {!isActive && <ChevronDown className="-rotate-90 group-hover/btn:translate-x-1 transition-transform" size={16} />}
+                {isActive ? 'Plano Atual' : isFree ? 'Plano Atual' : 'Assinar Agora'}
+                {!isActive && !isFree && <ChevronDown className="-rotate-90 group-hover/btn:translate-x-1 transition-transform" size={14} />}
               </button>
             </div>
           );
@@ -1945,6 +2007,142 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
   );
 };
 
+// --- Minhas Lojas View ---
+
+const MinhasLojasView = ({ session, onAction, stores, activeStoreId, onSelectStore, onUpdateStores, userProfile }: { session: any, onAction: (msg: string) => void, stores: any[], activeStoreId: string | null, onSelectStore: (id: string) => void, onUpdateStores: () => void, userProfile: any }) => {
+  const [loading, setLoading] = useState(false);
+  const [showNewModal, setShowNewModal] = useState(false);
+  const [newStoreName, setNewStoreName] = useState('');
+
+  const getMaxStores = () => {
+    const plan = userProfile?.plan || 'free';
+    if (plan === 'free') return 0; // Wait, plan features list 0 for free but the instructions say free has 0 online store, only catalog. Let's return 0. (Actually free can't open online store).
+    if (plan === 'pro') return 2;
+    if (plan === 'loja') return 1;
+    if (plan === 'ultra') return 5;
+    return 1; // Default
+  };
+
+  const maxStores = getMaxStores();
+
+  const handleCreateStore = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (stores.length >= maxStores) {
+      alert(`Seu plano permite até ${maxStores} loja(s). Faça upgrade para criar mais.`);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const slug = newStoreName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 6);
+      const { error } = await supabase.from('stores').insert([{
+        user_id: session.user.id,
+        name: newStoreName,
+        slug: slug,
+        theme_color: '#5551FF',
+        template: 'Modern Shop',
+        is_primary: stores.length === 0
+      }]);
+
+      if (error) throw error;
+      onAction('Loja criada com sucesso!');
+      setShowNewModal(false);
+      setNewStoreName('');
+      onUpdateStores();
+    } catch (err: any) {
+      alert('Erro: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Minhas Lojas</h1>
+          <p className="text-gray-500">Gerencie todas as suas lojas (Limite: {stores.length}/{maxStores})</p>
+        </div>
+        <button
+          onClick={() => {
+            if (stores.length >= maxStores) {
+              alert(`Seu plano permite até ${maxStores} loja(s). Faça upgrade na aba "Meu Plano" para criar mais lojas.`);
+            } else {
+              setShowNewModal(true);
+            }
+          }}
+          className="flex items-center gap-2 px-4 py-2 bg-[#5551FF] text-white rounded-xl text-sm font-bold hover:bg-[#4440FF] transition-colors"
+        >
+          <Plus size={16} /> Nova Loja
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {stores.map(store => (
+          <div key={store.id} className={cn("bg-white p-6 rounded-3xl border-2 transition-all", activeStoreId === store.id ? "border-[#5551FF] shadow-lg shadow-indigo-100" : "border-gray-100 shadow-sm")}>
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden border border-gray-100 shrink-0">
+                  {store.logo_url ? <img src={store.logo_url} alt="Logo" className="w-full h-full object-cover" /> : <Store size={20} className="text-gray-400" />}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    {store.name}
+                    {activeStoreId === store.id && <span className="bg-[#5551FF] text-white text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider">Ativa</span>}
+                  </h3>
+                  <p className="text-xs text-gray-400">/{store.slug}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 pt-4 border-t border-gray-50">
+              <button
+                onClick={() => onSelectStore(store.id)}
+                disabled={activeStoreId === store.id}
+                className={cn("flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2", activeStoreId === store.id ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-indigo-50 text-[#5551FF] hover:bg-indigo-100")}
+              >
+                {activeStoreId === store.id ? <><Check size={14} /> Selecionada</> : 'Selecionar Lojas'}
+              </button>
+              <button onClick={() => window.open(store.custom_domain ? `https://${store.custom_domain}` : `/loja/${store.slug}`, '_blank')} className="p-2.5 text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors">
+                <ExternalLink size={16} />
+              </button>
+            </div>
+          </div>
+        ))}
+        {stores.length === 0 && (
+          <div className="col-span-1 md:col-span-2 py-12 text-center bg-white border border-gray-100 rounded-3xl">
+            <Store size={32} className="mx-auto text-gray-300 mb-3" />
+            <p className="text-gray-500 font-bold">Nenhuma loja criada</p>
+            <p className="text-sm text-gray-400">Crie sua primeira loja para começar a vender.</p>
+          </div>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {showNewModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="bg-white rounded-3xl w-full max-w-md p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold">Criar Nova Loja</h3>
+                <button onClick={() => setShowNewModal(false)} className="p-2 text-gray-400 hover:text-gray-900 rounded-xl bg-gray-50"><X size={16} /></button>
+              </div>
+              <form onSubmit={handleCreateStore} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nome da Loja</label>
+                  <input type="text" required value={newStoreName} onChange={e => setNewStoreName(e.target.value)} placeholder="Ex: Minha Loja" className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                </div>
+                <button type="submit" disabled={loading || !newStoreName} className="w-full py-3 bg-[#5551FF] text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#4440FF] disabled:opacity-50">
+                  {loading ? 'Criando...' : <><Plus size={16}/> Criar Loja</>}
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 // --- Auth View ---
 
 const AuthView = () => {
@@ -1968,18 +2166,8 @@ const AuthView = () => {
         if (error) throw error;
 
         if (data.user) {
-          // Auto-create a default store for the new user
-          const { error: storeError } = await supabase
-            .from('stores')
-            .insert([{
-              user_id: data.user.id,
-              name: 'Minha Loja',
-              slug: `loja-${Math.random().toString(36).substring(2, 7)}`,
-              theme_color: '#5551FF',
-              template: 'Modern Shop'
-            }]);
-
-          if (storeError) console.error('Erro ao criar loja inicial:', storeError);
+          // No longer auto-creating store for FREE users.
+          // They will only have access to the Catalog until they upgrade or create a store manually (if plan allows).
         }
 
         alert('Conta criada com sucesso! Faça login para começar.');
@@ -2074,6 +2262,8 @@ export default function App() {
   const [toast, setToast] = useState<{ message: string, visible: boolean }>({ message: '', visible: false });
   const [orderTab, setOrderTab] = useState('Todos');
   const [storeData, setStoreData] = useState<any>(null);
+  const [storesList, setStoresList] = useState<any[]>([]);
+  const [activeStoreId, setActiveStoreId] = useState<string | null>(localStorage.getItem('nexora_active_store_id'));
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [storeSlug, setStoreSlug] = useState<string | null>(null);
   const [customDomain, setCustomDomain] = useState<string>('');
@@ -2107,6 +2297,13 @@ export default function App() {
     const path = window.location.pathname;
     if (path.startsWith('/loja/')) {
       const slug = path.split('/loja/')[1];
+      if (slug) {
+        setStoreSlug(slug);
+        setIsInitializing(false);
+        return;
+      }
+    } else if (path.startsWith('/catalogo/')) {
+      const slug = path.split('/catalogo/')[1];
       if (slug) {
         setStoreSlug(slug);
         setIsInitializing(false);
@@ -2201,28 +2398,30 @@ export default function App() {
       .from('stores')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .order('is_primary', { ascending: false });
 
-    if (data) {
-      setStoreData(data);
-      if (data.custom_domain) setCustomDomain(data.custom_domain);
-    } else if (error && error.code === 'PGRST116') {
-      // No store found, let's try to create one on the fly if user is logged in
-      const { data: newStore, error: insertError } = await supabase
-        .from('stores')
-        .insert([{
-          user_id: userId,
-          name: 'Minha Loja',
-          slug: `loja-${Math.random().toString(36).substring(2, 7)}`,
-          theme_color: '#5551FF',
-          template: 'Modern Shop'
-        }])
-        .select()
-        .single();
-
-      if (newStore) setStoreData(newStore);
+    if (data && data.length > 0) {
+      setStoresList(data);
+      if (!activeStoreId || !data.find(s => s.id === activeStoreId)) {
+        const defaultStoreId = data[0].id;
+        setActiveStoreId(defaultStoreId);
+        localStorage.setItem('nexora_active_store_id', defaultStoreId);
+        setStoreData(data[0]);
+        if (data[0].custom_domain) setCustomDomain(data[0].custom_domain);
+      }
+    } else {
+      setStoresList([]);
+      setStoreData(null);
     }
   };
+
+  useEffect(() => {
+    if (storesList.length > 0 && activeStoreId) {
+      const active = storesList.find(s => s.id === activeStoreId) || storesList[0];
+      setStoreData(active);
+      if (active.custom_domain) setCustomDomain(active.custom_domain);
+    }
+  }, [activeStoreId, storesList]);
 
   const notify = (message: string) => {
     setToast({ message, visible: true });
@@ -2234,7 +2433,8 @@ export default function App() {
   }
 
   if (storeSlug) {
-    return <StorefrontView slug={storeSlug} />;
+    const isCatalog = window.location.pathname.startsWith('/catalogo/');
+    return <StorefrontView slug={storeSlug} isCatalog={isCatalog} />;
   }
 
   if (!session) {
@@ -2333,11 +2533,26 @@ export default function App() {
             <>
               <p className="px-4 text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-3">Menu</p>
               <SidebarItem icon={LayoutDashboard} label="Dashboard" active={currentView === 'dashboard'} onClick={() => { setCurrentView('dashboard'); setIsSidebarOpen(false); }} />
-              <SidebarItem icon={Package} label="Produtos" active={currentView === 'produtos'} onClick={() => { setCurrentView('produtos'); setIsSidebarOpen(false); }} />
-              <SidebarItem icon={ShoppingBag} label="Pedidos" active={currentView === 'pedidos'} onClick={() => { setCurrentView('pedidos'); setIsSidebarOpen(false); }} />
-              <SidebarItem icon={Palette} label="Aparência da loja" active={currentView === 'aparencia'} onClick={() => { setCurrentView('aparencia'); setIsSidebarOpen(false); }} />
-              <SidebarItem icon={Globe} label="Domínio" active={currentView === 'dominio'} onClick={() => { setCurrentView('dominio'); setIsSidebarOpen(false); }} />
-              <SidebarItem icon={Store} label="Minha loja" active={currentView === 'minha-loja'} onClick={() => { setCurrentView('minha-loja'); setIsSidebarOpen(false); }} />
+              
+              {/* Only show Store options if user is not on FREE plan or has a store */}
+              {userProfile?.plan !== 'free' && (
+                <>
+                  <SidebarItem icon={Package} label="Produtos" active={currentView === 'produtos'} onClick={() => { setCurrentView('produtos'); setIsSidebarOpen(false); }} />
+                  <SidebarItem icon={ShoppingBag} label="Pedidos" active={currentView === 'pedidos'} onClick={() => { setCurrentView('pedidos'); setIsSidebarOpen(false); }} />
+                </>
+              )}
+
+              <SidebarItem icon={BookOpen} label="Catálogo" active={currentView === 'catalogo'} onClick={() => { setCurrentView('catalogo'); setIsSidebarOpen(false); }} />
+              
+              {userProfile?.plan !== 'free' && (
+                <>
+                  <SidebarItem icon={Palette} label="Aparência da loja" active={currentView === 'aparencia'} onClick={() => { setCurrentView('aparencia'); setIsSidebarOpen(false); }} />
+                  <SidebarItem icon={Globe} label="Domínio" active={currentView === 'dominio'} onClick={() => { setCurrentView('dominio'); setIsSidebarOpen(false); }} />
+                  <SidebarItem icon={Layers} label="Minhas lojas" active={currentView === 'minhas-lojas'} onClick={() => { setCurrentView('minhas-lojas'); setIsSidebarOpen(false); }} />
+                  <SidebarItem icon={Store} label="Loja ativa (Editar)" active={currentView === 'minha-loja'} onClick={() => { setCurrentView('minha-loja'); setIsSidebarOpen(false); }} />
+                </>
+              )}
+
               <SidebarItem icon={CreditCard} label="Meu Plano" active={currentView === 'plano'} onClick={() => { setCurrentView('plano'); setIsSidebarOpen(false); }} />
             </>
           )}
@@ -2481,12 +2696,27 @@ export default function App() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
               >
-                {currentView === 'dashboard' && <DashboardView onAction={notify} onNavigate={setCurrentView} />}
+                {currentView === 'dashboard' && <DashboardView onAction={notify} onNavigate={setCurrentView} storeId={activeStoreId} />}
                 {currentView === 'admin-dashboard' && <AdminGlobalDashboard onAction={notify} />}
                 {currentView === 'admin-users' && <AdminUserList onAction={notify} />}
                 {currentView === 'admin-stores' && <AdminStoreList onAction={notify} />}
                 {currentView === 'admin-access' && <AdminAccessControl onAction={notify} />}
-                {currentView === 'aparencia' && <AppearanceView onAction={notify} session={session} />}
+                {currentView === 'catalogo' && <CatalogView session={session} onAction={notify} userProfile={userProfile} />}
+                {currentView === 'minhas-lojas' && (
+                  <MinhasLojasView
+                    session={session}
+                    onAction={notify}
+                    stores={storesList}
+                    activeStoreId={activeStoreId}
+                    onSelectStore={(id) => {
+                      setActiveStoreId(id);
+                      localStorage.setItem('nexora_active_store_id', id);
+                    }}
+                    onUpdateStores={() => fetchStoreData(session.user.id)}
+                    userProfile={userProfile}
+                  />
+                )}
+                {currentView === 'aparencia' && <AppearanceView onAction={notify} session={session} storeId={activeStoreId} />}
                 {currentView === 'plano' && (
                   <PlanView
                     onAction={notify}
@@ -2569,7 +2799,7 @@ export default function App() {
                     </div>
                   );
                 })()}
-                {currentView === 'produtos' && <ProductsView onAction={notify} session={session} />}
+                {currentView === 'produtos' && <ProductsView onAction={notify} session={session} storeId={activeStoreId} />}
                 {currentView === 'dominio' && (
                   <div className="max-w-2xl mx-auto space-y-12 py-12">
                     <div className="text-center space-y-2">
@@ -2653,7 +2883,7 @@ export default function App() {
                     </div>
                   </div>
                 )}
-                {currentView === 'minha-loja' && <MinhaLojaView onAction={notify} session={session} />}
+                {currentView === 'minha-loja' && <MinhaLojaView onAction={notify} session={session} storeId={activeStoreId} />}
               </motion.div>
             </AnimatePresence>
           </div>

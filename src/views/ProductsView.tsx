@@ -34,11 +34,10 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const ProductsView = ({ onAction, session }: { onAction: (msg: string) => void, session: any }) => {
+export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: string) => void, session: any, storeId: string | null }) => {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
-  const [storeId, setStoreId] = useState<string | null>(null);
   
   // form state
   const [isAdding, setIsAdding] = useState(false);
@@ -92,42 +91,37 @@ export const ProductsView = ({ onAction, session }: { onAction: (msg: string) =>
   };
 
   useEffect(() => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id || !storeId) {
+      setLoading(false);
+      return;
+    }
 
-    const fetchStoreAndProducts = async () => {
-      // Get store first
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('user_id', session.user.id)
-        .single();
-
-      if (store) {
-        setStoreId(store.id);
+    const fetchCategoriesAndProducts = async () => {
+      setLoading(true);
+      
+      // Fetch Categories
+      const { data: cats } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('store_id', storeId)
+        .order('name');
+      
+      if (cats) setCategories(cats);
+      
+      // Then get products
+      const { data: prods } = await supabase
+        .from('products')
+        .select('*, categories(name)')
+        .eq('store_id', storeId)
+        .order('created_at', { ascending: false });
         
-        // Fetch Categories
-        const { data: cats } = await supabase
-          .from('categories')
-          .select('*')
-          .eq('store_id', store.id)
-          .order('name');
-        
-        if (cats) setCategories(cats);
-        
-        // Then get products
-        const { data: prods } = await supabase
-          .from('products')
-          .select('*, categories(name)')
-          .eq('store_id', store.id)
-          .order('created_at', { ascending: false });
-          
-        if (prods) setProducts(prods);
-      }
+      if (prods) setProducts(prods);
+      
       setLoading(false);
     };
 
-    fetchStoreAndProducts();
-  }, [session]);
+    fetchCategoriesAndProducts();
+  }, [session, storeId]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);

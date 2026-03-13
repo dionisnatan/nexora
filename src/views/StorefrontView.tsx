@@ -22,7 +22,7 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const StorefrontView = ({ slug }: { slug: string }) => {
+export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCatalog?: boolean }) => {
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategorias] = useState<any[]>([]);
@@ -79,6 +79,8 @@ export const StorefrontView = ({ slug }: { slug: string }) => {
   });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [notification, setNotification] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
+  const [catalogProductDetails, setCatalogProductDetails] = useState<any>(null);
+  const [catalogImageIndex, setCatalogImageIndex] = useState(0);
 
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setNotification({ message, type });
@@ -333,38 +335,49 @@ export const StorefrontView = ({ slug }: { slug: string }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: storeData, error: storeError } = await supabase
-          .from('stores')
-          .select('*')
-          .eq('slug', slug)
-          .single();
+        let storeData;
+        if (isCatalog) {
+          const { data, error } = await supabase
+            .from('catalogs')
+            .select('*')
+            .eq('slug', slug)
+            .single();
 
-        if (storeError || !storeData) {
-          throw new Error('Loja não encontrada');
+          if (error || !data) throw new Error('Catálogo não encontrado');
+          
+          storeData = { ...data, name: data.title };
+
+          const { data: prods } = await supabase
+              .from('catalog_products')
+              .select('*')
+              .eq('catalog_id', data.id)
+              .eq('is_active', true)
+              .order('created_at', { ascending: false });
+          setProducts(prods || []);
+          setCategorias([]);
+        } else {
+          const { data, error } = await supabase
+            .from('stores')
+            .select('*')
+            .eq('slug', slug)
+            .single();
+
+          if (error || !data) throw new Error('Loja não encontrada');
+
+          storeData = data;
+          
+          const { data: cats } = await supabase.from('categories').select('*').eq('store_id', storeData.id).order('name');
+          setCategorias(cats || []);
+
+          const { data: prods } = await supabase
+            .from('products')
+            .select('*, categories(name), product_variations(*)')
+            .eq('store_id', storeData.id)
+            .eq('is_active', true)
+            .order('created_at', { ascending: false });
+          setProducts(prods || []);
         }
-
         setStore(storeData);
-
-        // Fetch Categorias
-        const { data: cats, error: catsError } = await supabase
-          .from('categories')
-          .select('*')
-          .eq('store_id', storeData.id)
-          .order('name');
-
-        if (catsError) throw catsError;
-        setCategorias(cats || []);
-
-        // Fetch Products with categories and variations join
-        const { data: prods, error: prodsError } = await supabase
-          .from('products')
-          .select('*, categories(name), product_variations(*)')
-          .eq('store_id', storeData.id)
-          .eq('is_active', true)
-          .order('created_at', { ascending: false });
-
-        if (prodsError) throw prodsError;
-        setProducts(prods || []);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -1773,23 +1786,23 @@ export const StorefrontView = ({ slug }: { slug: string }) => {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="bg-white w-full max-w-6xl md:h-[90vh] rounded-[3rem] overflow-hidden shadow-[0_50px_100px_rgba(0,0,0,0.25)] flex flex-col md:flex-row relative z-50 overflow-y-auto md:overflow-hidden"
+            className="bg-white w-full max-w-6xl h-[95vh] md:h-[90vh] rounded-[2.5rem] md:rounded-[3rem] overflow-hidden shadow-[0_50px_100px_rgba(0,0,0,0.25)] flex flex-col md:flex-row relative z-50 transition-all"
           >
             {/* Top Toolbar */}
-            <div className="absolute top-6 right-6 z-20 flex items-center gap-3">
+            <div className="absolute top-3 right-6 z-[60] flex items-center gap-3">
               <button
                 onClick={() => handleShareProduct(selectedProduct)}
-                className="p-3 bg-gray-100 hover:bg-gray-200 rounded-2xl transition-all text-gray-500 hover:text-gray-900 group"
+                className="p-3 bg-white/80 hover:bg-white rounded-2xl transition-all text-gray-500 hover:text-gray-900 shadow-sm backdrop-blur-sm group"
               >
                 <Share2 size={20} className="group-hover:rotate-12 transition-transform" />
               </button>
               <button
                 onClick={() => toggleFavorite(selectedProduct)}
                 className={cn(
-                  "p-3 rounded-2xl transition-all group",
+                  "p-3 rounded-2xl transition-all shadow-sm backdrop-blur-sm group",
                   favorites.some(f => f.id === selectedProduct.id)
-                    ? "bg-red-50 text-red-500 hover:bg-red-100"
-                    : "bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-red-500"
+                    ? "bg-red-50/80 text-red-500 hover:bg-red-100"
+                    : "bg-white/80 text-gray-500 hover:bg-white hover:text-red-500"
                 )}
               >
                 <Heart
@@ -1809,7 +1822,7 @@ export const StorefrontView = ({ slug }: { slug: string }) => {
             </div>
 
             {/* Left: Visuals Section */}
-            <div className="md:w-[55%] bg-gray-50 p-6 md:p-12 flex flex-col gap-6 border-b md:border-b-0 md:border-r border-gray-100 overflow-y-auto custom-scrollbar">
+            <div className="h-[40vh] md:h-auto md:w-[55%] bg-gray-50 p-4 md:p-8 flex flex-col gap-4 border-b md:border-b-0 md:border-r border-gray-100 overflow-y-auto custom-scrollbar shrink-0">
               {/* Categorias Breadcrumb */}
               <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#f70]">
                 <span>Início</span>
@@ -1888,10 +1901,9 @@ export const StorefrontView = ({ slug }: { slug: string }) => {
               </div>
             </div>
 
-            {/* Right: Actions Section */}
-            <div className="md:w-[45%] flex flex-col bg-white h-full relative">
+            <div className="flex-1 md:w-[45%] flex flex-col bg-white h-0 md:h-full relative overflow-hidden">
               {/* Scrollable Content Area */}
-              <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar relative">
+              <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar relative">
                 {/* Limited Offer Banner */}
                 <div className="mb-6 p-3 bg-[#0b0b0b] rounded-xl flex items-center justify-between text-white relative overflow-hidden group shrink-0">
                   <div className="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent" />
@@ -1916,7 +1928,45 @@ export const StorefrontView = ({ slug }: { slug: string }) => {
                   </div>
                 </div>
 
-                <div className="space-y-6 pb-6">
+                <div className="space-y-4 pb-4">
+                  {/* High-End Price Box - Floating/Sticky at Top */}
+                  <div className="sticky top-0 z-30 -mx-1 px-1 py-3 bg-white/80 backdrop-blur-md rounded-2xl shadow-md border border-gray-100 mb-6 p-4 rounded-[1.5rem] space-y-2 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                      <CreditCard size={100} />
+                    </div>
+
+                    <div className="space-y-1">
+                      {(selectedProduct.compare_at_price || selectedVariation?.compare_at_price) && (
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest line-through">
+                        De: R$ {Number(selectedVariation?.compare_at_price || selectedProduct.compare_at_price).toFixed(2).replace('.', ',')}
+                        </p>
+                      )}
+                      <p className="text-3xl font-black text-gray-900 tracking-tighter italic leading-none">R$ {finalPrice.toFixed(2).replace('.', ',')}</p>
+                    </div>
+
+                    <div className="h-px bg-gray-200/50" />
+
+                    <div className="space-y-4">
+                      {paymentMethod === 'pix' ? (
+                        <div className="flex items-center gap-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+                          <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-black text-xs italic shrink-0 shadow-sm shadow-emerald-200/50">PIX</div>
+                          <div>
+                            <p className="text-2xl font-black text-emerald-600 tracking-tight">R$ {pixPrice.toFixed(2).replace('.', ',')}</p>
+                            <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest">À vista com {Number(selectedProduct.pix_discount_percent || 10)}% de desconto adicional</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-4 p-4 bg-orange-50 rounded-2xl border border-orange-100">
+                          <div className="w-12 h-12 rounded-xl bg-orange-100 text-[#f70] flex items-center justify-center shrink-0 shadow-sm shadow-orange-200/50"><CreditCard size={20} /></div>
+                          <div>
+                            <p className="text-2xl font-black text-gray-900 tracking-tight italic">12x de R$ {(finalPrice / 12).toFixed(2).replace('.', ',')}</p>
+                            <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Parcelamento sem juros no cartão</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Title & Stats */}
                   <div className="space-y-3">
                     <h2 className="text-xl font-black text-gray-900 leading-tight uppercase tracking-tight italic">{selectedProduct.name}</h2>
@@ -2041,52 +2091,7 @@ export const StorefrontView = ({ slug }: { slug: string }) => {
                     </div>
                   </div>
 
-                  {/* High-End Price Box */}
-                  <div className="p-6 rounded-[2rem] bg-gray-50 border border-gray-100 space-y-3 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                      <CreditCard size={100} />
-                    </div>
-
-                    <div className="space-y-1">
-                      {(selectedProduct.compare_at_price || selectedVariation?.compare_at_price) && (
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest line-through">
-                          De: R$ {Number(selectedVariation?.compare_at_price || selectedProduct.compare_at_price).toFixed(2).replace('.', ',')}
-                        </p>
-                      )}
-                      <p className="text-4xl font-black text-gray-900 tracking-tighter italic">R$ {finalPrice.toFixed(2).replace('.', ',')}</p>
-                    </div>
-
-                    <div className="h-px bg-gray-200/50" />
-
-                    <div className="space-y-4">
-                      {paymentMethod === 'pix' ? (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="flex items-center gap-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-100"
-                        >
-                          <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-black text-xs italic shrink-0 shadow-sm shadow-emerald-200/50">PIX</div>
-                          <div>
-                            <p className="text-2xl font-black text-emerald-600 tracking-tight">R$ {pixPrice.toFixed(2).replace('.', ',')}</p>
-                            <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest">À vista com {Number(selectedProduct.pix_discount_percent || 10)}% de desconto adicional</p>
-                          </div>
-                        </motion.div>
-                      ) : (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="flex items-center gap-4 p-4 bg-orange-50 rounded-2xl border border-orange-100"
-                        >
-                          <div className="w-12 h-12 rounded-xl bg-orange-100 text-[#f70] flex items-center justify-center shrink-0 shadow-sm shadow-orange-200/50"><CreditCard size={20} /></div>
-                          <div>
-                            <p className="text-2xl font-black text-gray-900 tracking-tight italic">12x de R$ {(finalPrice / 12).toFixed(2).replace('.', ',')}</p>
-                            <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Parcelamento sem juros no cartão</p>
-                          </div>
-                        </motion.div>
-                      )}
-                    </div>
-
-                    <div className="pt-2">
+                  <div className="pt-2">
                       <button
                         onClick={() => setShowInstallments(!showInstallments)}
                         className="w-full text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-[#f70] transition-colors flex items-center justify-center gap-2 group/parc py-3 rounded-xl hover:bg-orange-50/50"
@@ -2122,10 +2127,9 @@ export const StorefrontView = ({ slug }: { slug: string }) => {
                         )}
                       </AnimatePresence>
                     </div>
-                  </div>
 
-                  {/* Escolha como pagar Section */}
-                  <div className="p-6 rounded-[2rem] bg-gray-50/50 border-2 border-dashed border-gray-200/60">
+                {/* Escolha como pagar Section */}
+                  <div className="p-4 rounded-[1.5rem] bg-gray-50/50 border-2 border-dashed border-gray-200/60">
                     <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2 font-black">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#f70] animate-pulse" />
                       Escolha como pagar
@@ -2176,7 +2180,7 @@ export const StorefrontView = ({ slug }: { slug: string }) => {
               </div>
 
               {/* Fixed Footer with Purchase CTA */}
-              <div className="p-8 pt-4 bg-white border-t border-gray-100 md:p-12 md:pt-6 shrink-0 relative z-20 space-y-4">
+              <div className="p-4 md:p-6 bg-white border-t border-gray-100 shrink-0 relative z-40 space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <button
                     onClick={() => addToCart(selectedProduct, selectedVariation)}
@@ -2316,13 +2320,13 @@ export const StorefrontView = ({ slug }: { slug: string }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="bg-[#0b0b0b] w-full max-w-5xl rounded-[2rem] border border-white/10 shadow-[0_0_100px_rgba(255,255,255,0.05)] flex flex-col md:flex-row relative z-50 overflow-hidden"
+            className="bg-[#0b0b0b] w-full max-w-5xl h-[95vh] md:h-[90vh] rounded-[2rem] border border-white/10 shadow-[0_0_100px_rgba(255,255,255,0.05)] flex flex-col md:flex-row relative z-50 transition-all"
           >
-            <button onClick={() => setSelectedProduct(null)} className="absolute top-6 right-6 z-20 p-3 text-gray-400 hover:text-white bg-white/5 rounded-full backdrop-blur-md transition-colors border border-white/10">
+            <button onClick={() => setSelectedProduct(null)} className="absolute top-3 right-6 z-20 p-3 text-gray-400 hover:text-white bg-white/5 rounded-full backdrop-blur-md transition-colors border border-white/10">
               <X size={20} />
             </button>
             <div 
-              className="md:w-1/2 p-12 bg-gradient-to-br from-[#111] to-[#050505] flex items-center justify-center relative border-r border-white/5 overflow-hidden group cursor-zoom-in"
+              className="h-[40vh] md:h-auto md:w-1/2 p-6 md:p-12 bg-gradient-to-br from-[#111] to-[#050505] flex items-center justify-center relative border-r border-white/5 overflow-hidden group cursor-zoom-in shrink-0"
               onMouseMove={handleMouseMove}
               onMouseLeave={() => setZoomState({ ...zoomState, active: false })}
               onClick={() => setShowLightbox(true)}
@@ -2341,8 +2345,8 @@ export const StorefrontView = ({ slug }: { slug: string }) => {
                 className="w-full drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)] scale-105 relative z-10" 
               />
             </div>
-            <div className="md:w-1/2 p-12 flex flex-col justify-between">
-              <div className="space-y-6">
+            <div className="flex-1 md:w-1/2 flex flex-col bg-[#0b0b0b] h-0 md:h-full relative overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar relative space-y-6">
                 <span className="text-[9px] font-black uppercase tracking-[0.4em] text-gray-500 line-through decoration-white/20">SELECAO PREMIUM</span>
                 <h2 className="text-4xl md:text-5xl font-light text-white tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>{selectedProduct.name}</h2>
                 <div className="w-12 h-px bg-[var(--theme-primary)]" />
@@ -2366,22 +2370,22 @@ export const StorefrontView = ({ slug }: { slug: string }) => {
                   </div>
                 )}
 
-                <div className="pt-6">
-                  <p className="text-gray-500 uppercase tracking-widest text-[9px] font-bold mb-2">Valor Total</p>
-                  <p className="text-5xl font-light text-white tracking-tighter" style={{ fontFamily: "'Playfair Display', serif" }}>R$ {finalPrice.toFixed(2).replace('.', ',')}</p>
+                <div className="sticky top-0 z-30 -mx-1 px-1 py-4 bg-[#0b0b0b]/90 backdrop-blur-md border-b border-white/5 mb-4">
+                  <p className="text-gray-500 uppercase tracking-widest text-[9px] font-bold mb-1">Valor Total</p>
+                  <p className="text-4xl font-light text-white tracking-tighter leading-none" style={{ fontFamily: "'Playfair Display', serif" }}>R$ {finalPrice.toFixed(2).replace('.', ',')}</p>
                 </div>
               </div>
 
-              <div className="mt-12 space-y-4">
+              <div className="p-6 bg-black border-t border-white/5 shrink-0 relative z-40 space-y-4">
                 <div className="flex gap-2">
-                  <button onClick={() => setPaymentMethod('pix')} className={cn("flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded border transition-all", paymentMethod === 'pix' ? 'border-white text-white bg-white/10' : 'border-white/10 text-gray-500 hover:border-white/30')}>Pix -{Number(selectedProduct.pix_discount_percent || 10)}%</button>
-                  <button onClick={() => setPaymentMethod('card')} className={cn("flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded border transition-all", paymentMethod === 'card' ? 'border-white text-white bg-white/10' : 'border-white/10 text-gray-500 hover:border-white/30')}>Cartao de Credito</button>
+                  <button onClick={() => setPaymentMethod('pix')} className={cn("flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded border transition-all", paymentMethod === 'pix' ? 'border-[var(--theme-primary)] text-[var(--theme-primary)] bg-[var(--theme-primary)]/10' : 'border-white/10 text-gray-500 hover:border-white/30')}>Pix -{Number(selectedProduct.pix_discount_percent || 10)}%</button>
+                  <button onClick={() => setPaymentMethod('card')} className={cn("flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded border transition-all", paymentMethod === 'card' ? 'border-white text-white bg-white/10' : 'border-white/10 text-gray-500 hover:border-white/30')}>Cartao</button>
                 </div>
-                <button onClick={() => handleDirectPurchase(finalPrice, paymentMethod)} className="w-full h-16 bg-white hover:bg-gray-200 text-black rounded font-black uppercase tracking-[0.3em] text-[10px] transition-all flex items-center justify-center gap-4 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:scale-[1.02]">
-                  Complete Order <ChevronRight size={14} />
+                <button onClick={() => handleDirectPurchase(finalPrice, paymentMethod)} className="w-full h-16 bg-white hover:bg-gray-200 text-black rounded font-black uppercase tracking-[0.3em] text-[10px] transition-all flex items-center justify-center gap-4 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                  Confirmar Agora <ChevronRight size={14} />
                 </button>
-                <button onClick={() => addToCart(selectedProduct, selectedVariation)} className="w-full text-center text-[10px] font-black tracking-[0.2em] uppercase text-gray-500 hover:text-white transition-colors pt-4 flex items-center justify-center gap-2">
-                  <ShoppingBag size={12} /> Adicionar ao Carrinho instead
+                <button onClick={() => addToCart(selectedProduct, selectedVariation)} className="w-full text-center text-[8px] font-black tracking-[0.2em] uppercase text-gray-500 hover:text-white transition-colors flex items-center justify-center gap-2">
+                  <ShoppingBag size={12} /> Adicionar ao Carrinho
                 </button>
               </div>
             </div>
@@ -2409,9 +2413,9 @@ export const StorefrontView = ({ slug }: { slug: string }) => {
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 30 }}
-            className="bg-[#0f172a] w-full max-w-5xl rounded-3xl border border-blue-500/30 shadow-[0_0_50px_rgba(59,130,246,0.2)] flex flex-col md:flex-row relative z-50 overflow-hidden"
+            className="bg-[#0f172a] w-full max-w-5xl h-[95vh] md:h-[90vh] rounded-3xl border border-blue-500/30 shadow-[0_0_50px_rgba(59,130,246,0.2)] flex flex-col md:flex-row relative z-50 overflow-hidden"
           >
-            <button onClick={() => setSelectedProduct(null)} className="absolute top-6 right-6 z-20 p-2 text-blue-400 hover:text-white bg-blue-500/10 rounded-xl transition-all border border-blue-500/20">
+            <button onClick={() => setSelectedProduct(null)} className="absolute top-3 right-6 z-20 p-2 text-blue-400 hover:text-white bg-blue-500/10 rounded-xl transition-all border border-blue-500/20">
               <X size={20} />
             </button>
             <div 
@@ -2438,8 +2442,9 @@ export const StorefrontView = ({ slug }: { slug: string }) => {
                 <span className="px-3 py-1 bg-fuchsia-500/20 text-fuchsia-400 text-[10px] font-black uppercase tracking-widest border border-fuchsia-500/30 rounded-lg">Qualidade Premium</span>
               </div>
             </div>
-            <div className="md:w-1/2 p-10 flex flex-col justify-between bg-slate-900/50 backdrop-blur-sm overflow-y-auto max-h-[90vh] custom-scrollbar">
-              <div className="space-y-6">
+            <div className="flex-1 md:w-1/2 flex flex-col bg-slate-900/50 backdrop-blur-sm relative overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar relative">
+                <div className="space-y-6">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
@@ -2472,12 +2477,13 @@ export const StorefrontView = ({ slug }: { slug: string }) => {
                   </div>
                 )}
 
-                <div className="p-6 bg-[#020617] rounded-2xl border border-blue-500/20">
+                <div className="sticky top-0 z-30 -mx-1 px-1 py-4 bg-[#020617]/90 backdrop-blur-md rounded-2xl border border-blue-500/20 mb-4">
                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Valor Final</p>
                   <div className="flex items-baseline gap-2">
                     <span className="text-4xl font-black text-white tracking-tighter">R$ {finalPrice.toFixed(2).replace('.', ',')}</span>
-                    <span className="text-blue-400 text-xs font-black uppercase">Subir Nivel</span>
+                    <span className="text-blue-400 text-xs font-black uppercase leading-none">Subir Nível</span>
                   </div>
+                </div>
                   <div className="mt-4 pt-4 border-t border-slate-800 flex justify-between items-center">
                     <div className="flex flex-col">
                       <span className="text-[10px] font-black text-emerald-400 uppercase">Desconto Pix</span>
@@ -2506,7 +2512,7 @@ export const StorefrontView = ({ slug }: { slug: string }) => {
                 </div>
               </div>
 
-              <div className="mt-8 space-y-3">
+              <div className="mt-8 space-y-3 px-6 md:px-8 pb-8">
                 <div className="flex gap-2">
                   <button onClick={() => setPaymentMethod('pix')} className={cn("flex-1 py-3 text-[10px] font-black uppercase rounded-lg border transition-all", paymentMethod === 'pix' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600')}>Pix</button>
                   <button onClick={() => setPaymentMethod('card')} className={cn("flex-1 py-3 text-[10px] font-black uppercase rounded-lg border transition-all", paymentMethod === 'card' ? 'bg-blue-500/10 border-blue-500 text-blue-400' : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600')}>Card</button>
@@ -2753,6 +2759,209 @@ export const StorefrontView = ({ slug }: { slug: string }) => {
             Tentar Novamente
           </button>
         </div>
+      </div>
+    );
+  }
+
+  if (isCatalog) {
+    return (
+      <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
+        <div className="max-w-md mx-auto min-h-screen bg-white shadow-2xl relative">
+          <div className="p-8 text-center" style={{ backgroundColor: (store.theme_color || '#5551FF') + '15' }}>
+            {store.logo_url ? (
+               <img src={store.logo_url} alt="Logo" className="w-20 h-20 rounded-2xl object-cover mx-auto mb-4 shadow-lg" />
+            ) : (
+               <div className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center text-white shadow-lg" style={{ backgroundColor: store.theme_color || '#5551FF' }}>
+                 <Store size={32} />
+               </div>
+            )}
+            <h1 className="text-2xl font-black text-gray-900">{store.name || 'Meu Catálogo'}</h1>
+            {store.description && <p className="text-sm text-gray-500 mt-2">{store.description}</p>}
+            <div className="flex items-center justify-center gap-3 mt-4">
+               {store.whatsapp && (
+                 <a href={`https://wa.me/${store.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-full hover:bg-green-100 transition-colors">
+                   <MessageCircle size={14} /> WhatsApp
+                 </a>
+               )}
+               {store.instagram_url && (
+                 <a href={store.instagram_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-pink-600 bg-pink-50 px-3 py-1.5 rounded-full hover:bg-pink-100 transition-colors">
+                   <Instagram size={14} /> Instagram
+                 </a>
+               )}
+            </div>
+          </div>
+          <div className="p-6">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Produtos</p>
+            {products.length === 0 ? (
+              <div className="py-12 text-center text-gray-400">
+                <Store size={32} className="mx-auto mb-3 opacity-50" />
+                <p className="font-bold text-xs uppercase tracking-widest">Nenhum produto disponível</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                {products.map(p => (
+                  <div key={p.id} onClick={() => { setCatalogProductDetails(p); setCatalogImageIndex(0); }} className="rounded-2xl overflow-hidden border border-gray-100 bg-white shadow-sm flex flex-col group hover:shadow-md transition-shadow cursor-pointer">
+                    <div className="aspect-square bg-gray-50 overflow-hidden relative">
+                      {p.image_url ? (
+                        <img src={p.image_url.split(',')[0]} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-200"><Store size={24} /></div>
+                      )}
+                    </div>
+                    <div className="p-3 flex-1 flex flex-col">
+                      <p className="text-[11px] font-bold text-gray-900 line-clamp-2 leading-tight flex-1">{p.name}</p>
+                      <div className="mt-2 text-left">
+                        {(p.compare_at_price) && (
+                           <p className="text-[9px] font-bold text-gray-400 line-through mb-0.5">R$ {Number(p.compare_at_price).toFixed(2).replace('.', ',')}</p>
+                        )}
+                        <p className="text-xs font-black" style={{ color: store.theme_color || '#5551FF' }}>
+                           R$ {Number(p.price).toFixed(2).replace('.', ',')}
+                        </p>
+                      </div>
+                    </div>
+                    <div 
+                      className="w-full py-3 text-[9px] font-black uppercase tracking-widest text-white text-center hover:opacity-90 transition-opacity" 
+                      style={{ backgroundColor: store.theme_color || '#5551FF' }}
+                    >
+                      Ver Detalhes
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="p-6 text-center text-[9px] font-bold text-gray-300 uppercase tracking-widest pb-12">
+             Powered by Nexora
+          </div>
+        </div>
+
+        {/* Modal de Produto do Catálogo */}
+        <AnimatePresence>
+          {catalogProductDetails && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setCatalogProductDetails(null)}
+              className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm"
+            >
+              <motion.div
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                onClick={e => e.stopPropagation()}
+                className="bg-white w-full max-w-md sm:rounded-3xl rounded-t-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+              >
+                <div className="relative aspect-square bg-gray-100 shrink-0">
+                  <button onClick={() => setCatalogProductDetails(null)} className="absolute top-4 right-4 z-10 p-2 bg-white/50 backdrop-blur-md rounded-full text-gray-900 hover:bg-white transition-colors">
+                    <X size={20} />
+                  </button>
+                  
+                  {catalogProductDetails.image_url ? (
+                    <>
+                       <div className="w-full h-full flex items-center justify-center overflow-hidden touch-none select-none relative">
+                         <AnimatePresence mode="wait">
+                           <motion.img 
+                             key={catalogImageIndex}
+                             src={catalogProductDetails.image_url.split(',')[catalogImageIndex]} 
+                             alt={catalogProductDetails.name} 
+                             className="w-full h-full object-cover absolute inset-0" 
+                             initial={{ opacity: 0, x: 50 }}
+                             animate={{ opacity: 1, x: 0 }}
+                             exit={{ opacity: 0, x: -50 }}
+                             transition={{ duration: 0.2 }}
+                             drag="x"
+                             dragConstraints={{ left: 0, right: 0 }}
+                             dragElastic={0.6}
+                             onDragEnd={(_e, { offset, velocity }) => {
+                               const images = catalogProductDetails.image_url.split(',');
+                               const swipe = offset.x;
+                               const threshold = 70;
+                               if (swipe < -threshold || (swipe < -20 && velocity.x < -100)) {
+                                 setCatalogImageIndex((catalogImageIndex + 1) % images.length);
+                               } else if (swipe > threshold || (swipe > 20 && velocity.x > 100)) {
+                                 setCatalogImageIndex((catalogImageIndex - 1 + images.length) % images.length);
+                               }
+                             }}
+                           />
+                         </AnimatePresence>
+                         {catalogProductDetails.image_url.split(',').length > 1 && (
+                           <>
+                             <button
+                               onClick={(e) => { e.stopPropagation(); setCatalogImageIndex((catalogImageIndex - 1 + catalogProductDetails.image_url.split(',').length) % catalogProductDetails.image_url.split(',').length); }}
+                               className="absolute left-2 z-20 p-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full text-white transition-colors"
+                             >
+                               <ChevronLeft size={20} />
+                             </button>
+                             <button
+                               onClick={(e) => { e.stopPropagation(); setCatalogImageIndex((catalogImageIndex + 1) % catalogProductDetails.image_url.split(',').length); }}
+                               className="absolute right-2 z-20 p-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full text-white transition-colors"
+                             >
+                               <ChevronRight size={20} />
+                             </button>
+                           </>
+                         )}
+                       </div>
+                       {catalogProductDetails.image_url.split(',').length > 1 && (
+                         <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 z-10">
+                           {catalogProductDetails.image_url.split(',').map((_: any, idx: number) => (
+                             <button
+                               key={idx}
+                               onClick={() => setCatalogImageIndex(idx)}
+                               className={cn(
+                                 "h-1.5 rounded-full transition-all",
+                                 catalogImageIndex === idx ? "w-6" : "w-1.5 opacity-50 text-white"
+                               )}
+                               style={{ backgroundColor: catalogImageIndex === idx ? (store.theme_color || '#5551FF') : 'white' }}
+                             />
+                           ))}
+                         </div>
+                       )}
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-300">
+                      <Store size={48} />
+                    </div>
+                  )}
+                </div>
+                
+                <div className="p-6 overflow-y-auto flex-1 bg-white">
+                  <h2 className="text-xl font-black text-gray-900 leading-tight mb-2">{catalogProductDetails.name}</h2>
+                  <div className="flex items-end gap-2 mb-6">
+                    <p className="text-2xl font-black" style={{ color: store.theme_color || '#5551FF' }}>
+                      R$ {Number(catalogProductDetails.price).toFixed(2).replace('.', ',')}
+                    </p>
+                    {catalogProductDetails.compare_at_price && (
+                      <p className="text-sm font-bold text-gray-400 line-through mb-1">
+                        R$ {Number(catalogProductDetails.compare_at_price).toFixed(2).replace('.', ',')}
+                      </p>
+                    )}
+                  </div>
+                  
+                  {catalogProductDetails.description && (
+                    <div className="mb-6">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Descrição</p>
+                      <p className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">{catalogProductDetails.description}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4 bg-white border-t border-gray-100 shrink-0">
+                  <a
+                    href={`https://wa.me/${store.whatsapp?.replace(/\D/g, '') || ''}?text=Olá,%20gostaria%20de%20comprar%20o%20produto:%20${encodeURIComponent(catalogProductDetails.name)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full py-4 rounded-xl flex items-center justify-center gap-2 text-white font-black uppercase tracking-widest text-xs hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: store.theme_color || '#5551FF' }}
+                  >
+                    <MessageCircle size={18} /> Comprar Agora
+                  </a>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     );
   }
@@ -3537,3 +3746,4 @@ export const StorefrontView = ({ slug }: { slug: string }) => {
 };
 
 export default StorefrontView;
+
