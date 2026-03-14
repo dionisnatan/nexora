@@ -35,7 +35,8 @@ import {
   X,
   BookOpen,
   AlertCircle,
-  Edit3
+  Edit3,
+  Clock
 } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './lib/supabase';
@@ -1809,8 +1810,7 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
       features: ['Até 10 produtos', '1 catálogo digital', 'Link público do catálogo', 'Sem loja online'],
       color: 'bg-white',
       kiwifyLink: null,
-      maxStores: 0,
-      icon: '🎁'
+      maxStores: 0
     },
     {
       name: 'PRO',
@@ -1821,8 +1821,7 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
       color: 'bg-white',
       badge: 'POPULAR',
       kiwifyLink: 'https://pay.kiwify.com.br/5U7m01m',
-      maxStores: 2,
-      icon: '🚀'
+      maxStores: 2
     },
     {
       name: 'LOJA',
@@ -1833,8 +1832,7 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
       color: 'bg-white',
       badge: 'MAIS VENDIDO',
       kiwifyLink: 'https://pay.kiwify.com.br/bKuzC2f',
-      maxStores: 1,
-      icon: '🏪'
+      maxStores: 1
     },
     {
       name: 'ULTRA',
@@ -1844,8 +1842,7 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
       features: ['Multi-lojas (até 5)', 'Loja online completa', 'Automações inteligentes', 'Inteligência Artificial (em breve)', 'Suporte prioritário VIP'],
       color: 'bg-gray-900',
       kiwifyLink: '#',
-      maxStores: 5,
-      icon: '⚡'
+      maxStores: 5
     }
   ];
 
@@ -1897,84 +1894,85 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-        {plans.map((plan) => {
-          const isActive = currentSubscription?.plan_name?.toLowerCase() === plan.planKey || currentSubscription?.plan_name === plan.name;
-          const price = activeTab === 'monthly' ? plan.priceMonthly : plan.priceYearly;
-          const isUltra = plan.planKey === 'ultra';
-          const isFree = plan.planKey === 'free';
+      <div className="bg-white/40 backdrop-blur-3xl border border-white/60 p-4 md:p-6 rounded-[2.5rem] max-w-6xl mx-auto shadow-xl shadow-gray-200/50">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {plans.map((plan) => {
+            const isActive = currentSubscription?.plan_name?.toLowerCase() === plan.planKey || currentSubscription?.plan_name === plan.name;
+            const price = activeTab === 'monthly' ? plan.priceMonthly : plan.priceYearly;
+            const isUltra = plan.planKey === 'ultra';
+            const isFree = plan.planKey === 'free';
 
-          return (
-            <div key={plan.name} className={cn(
-              "p-7 rounded-3xl border-2 transition-all duration-500 flex flex-col h-full relative group",
-              isActive ? 'border-[#5551FF] shadow-2xl shadow-indigo-100' : isUltra ? 'border-transparent' : 'border-gray-50 hover:border-indigo-100 hover:shadow-xl hover:shadow-gray-100',
-              isUltra ? 'bg-gray-900 text-white' : plan.color
-            )}>
-              {plan.badge && (
-                <div className={cn("absolute -top-3 left-6 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-[0.2em] shadow-lg",
-                  plan.badge === 'POPULAR' ? 'bg-[#5551FF]' : 'bg-emerald-500'
-                )}>
-                  {plan.badge}
-                </div>
-              )}
-              {isActive && (
-                <div className="absolute -top-3 right-6 bg-emerald-500 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-[0.2em] shadow-lg flex items-center gap-1">
-                  <Check size={8} strokeWidth={4} /> Ativo
-                </div>
-              )}
-
-              <div className="mb-5">
-                <span className="text-2xl">{plan.icon}</span>
-                <h3 className={cn("text-lg font-black uppercase tracking-tight mt-2", isUltra ? 'text-white' : 'text-gray-900')}>{plan.name}</h3>
-                <div className="flex items-baseline gap-1 mt-2">
-                  {!isFree && <span className={cn("text-xs font-bold opacity-60", isUltra ? 'text-gray-400' : '')}>R$</span>}
-                  <span className={cn("text-4xl font-black italic tracking-tighter", isUltra ? 'text-white' : 'text-gray-900')}>
-                    {isFree ? 'Grátis' : price.toFixed(2).replace('.', ',')}
-                  </span>
-                  {!isFree && <span className={cn("text-[10px] font-bold opacity-40 uppercase ml-1", isUltra ? 'text-gray-400' : '')}>/{activeTab === 'monthly' ? 'mês' : 'ano'}</span>}
-                </div>
-              </div>
-
-              <div className="space-y-3 mb-8 flex-1">
-                {plan.features.map(f => (
-                  <div key={f} className="flex items-start gap-2 text-xs font-medium">
-                    <div className={cn("w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5",
-                      isUltra ? 'bg-white/20' : 'bg-emerald-500/10'
-                    )}>
-                      <Check size={10} className={isUltra ? 'text-white' : 'text-emerald-500'} strokeWidth={4} />
-                    </div>
-                    <span className={isUltra ? 'text-gray-300' : 'text-gray-600'}>{f}</span>
+            return (
+              <div key={plan.name} className={cn(
+                "p-7 rounded-[2rem] transition-all duration-300 flex flex-col h-full relative group",
+                isActive ? 'border-2 border-[#10b981] shadow-xl' : isUltra ? 'border-2 border-transparent hover:-translate-y-1 hover:shadow-2xl' : 'border-0 hover:-translate-y-1 hover:shadow-xl',
+                isUltra ? 'bg-[#0a0f1c] text-white' : 'bg-white'
+              )}>
+                {plan.badge && (
+                  <div className={cn("absolute -top-3 left-6 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-[0.2em] shadow-lg",
+                    plan.badge === 'POPULAR' ? 'bg-[#5551FF]' : 'bg-[#10b981]'
+                  )}>
+                    {plan.badge}
                   </div>
-                ))}
-              </div>
+                )}
+                {isActive && (
+                  <div className="absolute -top-3 right-6 bg-[#10b981] text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-[0.2em] shadow-lg flex items-center gap-1">
+                    <Check size={8} strokeWidth={4} /> Ativo
+                  </div>
+                )}
 
-              <button
-                onClick={() => {
-                  if (isFree || isActive) return;
-                  if (plan.kiwifyLink && plan.kiwifyLink !== '#') {
-                    const emailParam = session?.user?.email ? `&email=${encodeURIComponent(session.user.email)}` : '';
-                    const userIdParam = session?.user?.id ? `&user_id=${session.user.id}` : '';
-                    window.open(`${plan.kiwifyLink}?utm_source=nexora${emailParam}${userIdParam}`, '_blank');
-                    onAction(`Redirecionando para o checkout do plano ${plan.name}...`);
-                  } else {
-                    onAction('Em breve disponível!');
-                  }
-                }}
-                disabled={isActive || isFree}
-                className={cn(
-                  "w-full py-3.5 rounded-2xl font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 group/btn active:scale-95",
-                  isActive || isFree
-                    ? isUltra ? "bg-white/10 text-white/40 cursor-not-allowed" : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : isUltra
-                      ? "bg-white text-gray-900 hover:bg-gray-100 shadow-xl"
-                      : "bg-[#111827] text-white hover:bg-black shadow-xl shadow-gray-200"
-                )}>
-                {isActive ? 'Plano Atual' : isFree ? 'Plano Atual' : 'Assinar Agora'}
-                {!isActive && !isFree && <ChevronDown className="-rotate-90 group-hover/btn:translate-x-1 transition-transform" size={14} />}
-              </button>
-            </div>
-          );
-        })}
+                <div className="mb-5">
+                  <h3 className={cn("text-lg font-black uppercase tracking-tight mt-2", isUltra ? 'text-white' : 'text-gray-900')}>{plan.name}</h3>
+                  <div className="flex items-baseline gap-1 mt-2">
+                    {!isFree && <span className={cn("text-xs font-bold opacity-60", isUltra ? 'text-gray-400' : 'text-gray-500')}>R$</span>}
+                    <span className={cn("text-4xl font-black italic tracking-tighter", isUltra ? 'text-white' : 'text-gray-900')}>
+                      {isFree ? 'Grátis' : price.toFixed(2).replace('.', ',')}
+                    </span>
+                    {!isFree && <span className={cn("text-[10px] font-bold opacity-40 uppercase ml-1", isUltra ? 'text-gray-400' : 'text-gray-500')}>/{activeTab === 'monthly' ? 'mês' : 'ano'}</span>}
+                  </div>
+                </div>
+
+                <div className="space-y-3 mb-8 flex-1">
+                  {plan.features.map(f => (
+                    <div key={f} className="flex items-start gap-2 text-xs font-medium">
+                      <div className={cn("w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                        isUltra ? 'bg-white/10' : 'bg-[#10b981]/10'
+                      )}>
+                        <Check size={10} className={isUltra ? 'text-white/80' : 'text-[#10b981]'} strokeWidth={4} />
+                      </div>
+                      <span className={isUltra ? 'text-gray-300' : 'text-gray-600'}>{f}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (isFree || isActive) return;
+                    if (plan.kiwifyLink && plan.kiwifyLink !== '#') {
+                      const emailParam = session?.user?.email ? `&email=${encodeURIComponent(session.user.email)}` : '';
+                      const userIdParam = session?.user?.id ? `&user_id=${session.user.id}` : '';
+                      window.open(`${plan.kiwifyLink}?utm_source=nexora${emailParam}${userIdParam}`, '_blank');
+                      onAction(`Redirecionando para o checkout do plano ${plan.name}...`);
+                    } else {
+                      onAction('Em breve disponível!');
+                    }
+                  }}
+                  disabled={isActive || isFree}
+                  className={cn(
+                    "w-full py-3.5 rounded-2xl font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 group/btn active:scale-95",
+                    isActive || isFree
+                      ? isUltra ? "bg-white/10 text-white/40 cursor-not-allowed" : "bg-gray-100/50 text-gray-400 cursor-not-allowed"
+                      : isUltra
+                        ? "bg-white text-[#0a0f1c] hover:bg-gray-100 shadow-xl"
+                        : "bg-[#0a0f1c] text-white hover:bg-black shadow-xl shadow-gray-200"
+                  )}>
+                  {isActive ? 'Plano Atual' : isFree ? 'Plano Atual' : 'Assinar Agora'}
+                  {!isActive && !isFree && <ChevronDown className="-rotate-90 group-hover/btn:translate-x-1 transition-transform" size={14} />}
+                </button>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 pt-12">
@@ -1997,6 +1995,7 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
             </details>
           </div>
         </div>
+
         <div className="p-8 bg-gray-900 rounded-3xl text-white space-y-4">
           <h4 className="font-bold flex items-center gap-2">
             <ShieldCheck size={18} className="text-indigo-400" /> Garantia Nexora
@@ -2855,34 +2854,31 @@ export default function App() {
                         <p className="text-xs text-gray-400">Este endereço sempre funcionará, independente de domínio personalizado.</p>
                       </div>
 
-                      <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
-                        <div className="flex items-center gap-2 text-[#5551FF] font-bold text-sm">
-                          <Globe size={18} />
-                          Domínio personalizado
+                      <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6 relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gray-50/20 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                           <div className="bg-gray-900 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-xl flex items-center gap-2">
+                             <Clock size={16} />
+                             Funcionamento em breve
+                           </div>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex items-center justify-between opacity-80">
+                          <div className="flex items-center gap-2 text-[#5551FF] font-bold text-sm">
+                            <Globe size={18} />
+                            Domínio personalizado
+                          </div>
+                        </div>
+                        <div className="flex gap-3 opacity-80">
                           <input
                             type="text"
                             value={customDomain}
                             onChange={(e) => setCustomDomain(e.target.value)}
                             placeholder="minhaloja.com"
-                            className="flex-1 px-4 py-3 bg-white border border-gray-100 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
+                            disabled
+                            className="flex-1 px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:outline-none transition-all font-bold cursor-not-allowed text-gray-400"
                           />
                           <button
-                            onClick={async () => {
-                              try {
-                                const { error } = await supabase
-                                  .from('stores')
-                                  .update({ custom_domain: customDomain })
-                                  .eq('user_id', session.user.id);
-                                if (error) throw error;
-                                notify("Domínio configurado com sucesso!");
-                                fetchStoreData(session.user.id);
-                              } catch (err: any) {
-                                notify("Erro ao salvar: " + err.message);
-                              }
-                            }}
-                            className="bg-[#5551FF] text-white px-8 py-3 rounded-2xl font-bold hover:bg-[#4440FF] transition-all shadow-lg shadow-indigo-100"
+                            disabled
+                            className="bg-gray-200 text-gray-400 px-8 py-3 rounded-2xl font-bold cursor-not-allowed"
                           >
                             Salvar
                           </button>
