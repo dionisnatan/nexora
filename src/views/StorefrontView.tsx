@@ -802,7 +802,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               animate={{ opacity: 1, scale: 1 }} 
               transition={{ delay: 0.3 }} 
               onClick={() => fallbackProduct.id && setSelectedProduct(fallbackProduct)}
-              className={cn("text-white font-bold uppercase text-xs px-8 py-3 rounded shadow hover:brightness-110 transition-all", btnColor)}
+              className={getButtonStyle(cn("text-white font-bold uppercase text-xs px-8 py-3 shadow hover:brightness-110 transition-all", btnColor))}
             >
               COMPRAR AGORA
             </motion.button>
@@ -913,7 +913,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                     <span className="text-gray-500 font-bold">A partir de</span>
                     <span className="text-red-500 font-black">R$ {Number(p.prod?.price || 59.99).toFixed(2).replace('.', ',')}</span>
                   </div>
-                  <button className={cn("flex items-center gap-1 mt-2 text-[10px] font-black uppercase tracking-wider group-hover:underline", isBlue ? "text-[#1868D5]" : "text-[var(--theme-primary)]")}>
+                  <button className={getButtonStyle(cn("flex items-center gap-1 mt-2 text-[10px] font-black uppercase tracking-wider group-hover:underline", isBlue ? "text-[#1868D5] bg-transparent" : "text-[var(--theme-primary)] bg-transparent", "p-0! justify-start! shadow-none!"))} style={{ padding: 0, justifyContent: 'flex-start', boxShadow: 'none' }}>
                     <div className={cn("w-5 h-5 rounded-full flex items-center justify-center text-white", isBlue ? "bg-[#1868D5]" : "bg-[var(--theme-primary)]")}>
                       <ChevronRight size={12} strokeWidth={3} />
                     </div>
@@ -1184,7 +1184,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
           />
           {/* Quick Add Overlay */}
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <button className={getButtonStyle("bg-white text-black px-4 py-2 text-[9px]")}>Ver Detalhes</button>
+            <button className={getButtonStyle("bg-white text-black px-4 py-2 text-[9px] hover:scale-105")}>Ver Detalhes</button>
           </div>
         </div>
 
@@ -2517,7 +2517,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   <button onClick={() => setPaymentMethod('pix')} className={cn("flex-1 py-3 text-[10px] font-black uppercase rounded-lg border transition-all", paymentMethod === 'pix' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600')}>Pix</button>
                   <button onClick={() => setPaymentMethod('card')} className={cn("flex-1 py-3 text-[10px] font-black uppercase rounded-lg border transition-all", paymentMethod === 'card' ? 'bg-blue-500/10 border-blue-500 text-blue-400' : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600')}>Card</button>
                 </div>
-                <button onClick={() => handleDirectPurchase(finalPrice, paymentMethod)} className="w-full h-14 bg-gradient-to-r from-blue-600 to-fuchsia-600 hover:from-blue-500 hover:to-fuchsia-500 text-white rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(59,130,246,0.3)] transition-all transform hover:scale-[1.02]">
+                <button onClick={() => handleDirectPurchase(finalPrice, paymentMethod)} className={getButtonStyle("w-full h-14 bg-gradient-to-r from-blue-600 to-fuchsia-600 hover:from-blue-500 hover:to-fuchsia-500 text-white font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(59,130,246,0.3)] transition-all transform hover:scale-[1.02]")}>
                   <Zap size={18} fill="currentColor" /> Initiate Purchase
                 </button>
                 <div className="flex items-center justify-center gap-4 text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] pt-2">
