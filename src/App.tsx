@@ -465,9 +465,17 @@ const AppearanceView = ({ onAction, session, storeId }: { onAction: (msg: string
         }
       };
 
-      const { error } = await supabase
-        .from('stores')
-        .upsert({ ...updateData, user_id: session.user.id }, { onConflict: 'user_id' });
+      let error;
+      if (storeId) {
+        ({ error } = await supabase
+          .from('stores')
+          .update(updateData)
+          .eq('id', storeId));
+      } else {
+        ({ error } = await supabase
+          .from('stores')
+          .insert({ ...updateData, user_id: session.user.id }));
+      }
       if (error) throw error;
 
       onAction("Configurações de aparência salvas com sucesso!");
