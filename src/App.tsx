@@ -162,7 +162,10 @@ const StatCard = ({ icon: Icon, label, value, subtext, color }: { icon: any, lab
 
 // --- Views ---
 
-const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: string) => void; onNavigate: (view: View) => void; storeId: string | null }) => (
+const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: string) => void; onNavigate: (view: View) => void; storeId: string | null }) => {
+  const [timeRange, setTimeRange] = useState('7 dias');
+  
+  return (
   <div className="space-y-8 animate-in fade-in duration-500">
     <div className="flex flex-col sm:items-center sm:flex-row justify-between gap-4">
       <div>
@@ -210,14 +213,27 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
     </div>
 
     <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-lg font-bold text-gray-900">Vendas</h2>
-          <p className="text-sm text-gray-500">Últimos 7 dias</p>
+          <p className="text-sm text-gray-500">Últimos {timeRange}</p>
         </div>
-        <span className="bg-[#EEF2FF] text-[#5551FF] text-xs font-bold px-2 py-1 rounded-md uppercase tracking-wider">
-          Esta semana
-        </span>
+        <div className="flex items-center p-1 bg-white border border-gray-200 rounded-lg shadow-sm">
+          {['Hoje', '7 dias', '30 dias', '12 meses'].map((range) => (
+            <button
+              key={range}
+              onClick={() => setTimeRange(range)}
+              className={cn(
+                "px-4 py-1.5 text-xs font-bold rounded-md transition-all",
+                timeRange === range
+                  ? "bg-[#5551FF] text-white shadow-sm"
+                  : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+              )}
+            >
+              {range}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="h-[300px] w-full">
         <ResponsiveContainer width="100%" height="100%">
@@ -343,7 +359,8 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
       ))}
     </div>
   </div>
-);
+  );
+};
 
 const AppearanceView = ({ onAction, session, storeId }: { onAction: (msg: string) => void, session: any, storeId: string | null }) => {
   const [loading, setLoading] = useState(true);
