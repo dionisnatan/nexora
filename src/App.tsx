@@ -76,107 +76,7 @@ interface UserProfile {
   expires_at: string | null;
 }
 
-// --- Mock Data ---
 
-const dashboardData = {
-  'Hoje': {
-    faturamento: 'R$ 0,00',
-    pedidos: '0',
-    pedidosSub: '0 hoje',
-    produtos: '2',
-    produtosSub: '2 ativos',
-    pendentes: '0',
-    pendentesSub: 'Aguardando ação',
-    chartData: [
-      { date: '00:00', sales: 0 },
-      { date: '06:00', sales: 0 },
-      { date: '12:00', sales: 0 },
-      { date: '18:00', sales: 0 },
-      { date: '23:59', sales: 0 },
-    ],
-    recentOrders: [],
-    bestSellers: []
-  },
-  '7 dias': {
-    faturamento: 'R$ 29,90',
-    pedidos: '3',
-    pedidosSub: '0 hoje',
-    produtos: '2',
-    produtosSub: '2 ativos',
-    pendentes: '0',
-    pendentesSub: 'Aguardando ação',
-    chartData: [
-      { date: '01/03', sales: 2 },
-      { date: '02/03', sales: 2 },
-      { date: '03/03', sales: 2 },
-      { date: '04/03', sales: 2 },
-      { date: '05/03', sales: 6 },
-      { date: '06/03', sales: 28 },
-      { date: '07/03', sales: 4 },
-    ],
-    recentOrders: [
-      { id: 1, name: 'teste', email: 'dionis natan silva lopes', date: '06 mar', value: 'R$ 29,90', status: 'Cancelado' },
-      { id: 2, name: 'teste', email: 'dionis natan silva lopes', date: '06 mar', value: 'R$ 29,90', status: 'Cancelado' },
-      { id: 3, name: 'print', email: '', date: '06 mar', value: 'R$ 29,90', status: 'Pago' },
-    ],
-    bestSellers: [
-      { name: 'teste', sales: 2, percentage: 80, image: 'https://picsum.photos/seed/teste/40/40' },
-      { name: 'print', sales: 1, percentage: 40, image: 'https://picsum.photos/seed/print/40/40' },
-    ]
-  },
-  '30 dias': {
-    faturamento: 'R$ 1.250,55',
-    pedidos: '45',
-    pedidosSub: '3 hoje',
-    produtos: '5',
-    produtosSub: '4 ativos',
-    pendentes: '2',
-    pendentesSub: 'Aguardando envio',
-    chartData: [
-      { date: '10/02', sales: 12 },
-      { date: '15/02', sales: 18 },
-      { date: '20/02', sales: 25 },
-      { date: '25/02', sales: 15 },
-      { date: '02/03', sales: 30 },
-      { date: '07/03', sales: 45 },
-    ],
-    recentOrders: [
-      { id: 4, name: 'João Silva', email: 'joao@email.com', date: '05 mar', value: 'R$ 150,00', status: 'Pago' },
-      { id: 5, name: 'Maria Santos', email: 'maria@email.com', date: '02 mar', value: 'R$ 89,90', status: 'Pago' },
-      { id: 6, name: 'Pedro Costa', email: 'pedro@email.com', date: '28 fev', value: 'R$ 250,00', status: 'Cancelado' },
-    ],
-    bestSellers: [
-      { name: 'Camiseta', sales: 25, percentage: 60, image: 'https://picsum.photos/seed/teste/40/40' },
-      { name: 'Calça', sales: 15, percentage: 30, image: 'https://picsum.photos/seed/print/40/40' },
-      { name: 'Boné', sales: 5, percentage: 10, image: 'https://picsum.photos/seed/bone/40/40' },
-    ]
-  },
-  '12 meses': {
-    faturamento: 'R$ 45.890,00',
-    pedidos: '856',
-    pedidosSub: '12 esta semana',
-    produtos: '12',
-    produtosSub: '10 ativos',
-    pendentes: '5',
-    pendentesSub: 'Aguardando ação',
-    chartData: [
-      { date: 'Abr', sales: 350 },
-      { date: 'Jul', sales: 420 },
-      { date: 'Out', sales: 580 },
-      { date: 'Jan', sales: 856 },
-      { date: 'Mar', sales: 856 },
-    ],
-    recentOrders: [
-      { id: 7, name: 'Empresa X', email: 'contato@x.com', date: '15 fev', value: 'R$ 1.500,00', status: 'Pago' },
-      { id: 8, name: 'Cliente Y', email: 'cliente@y.com', date: '10 fev', value: 'R$ 890,90', status: 'Pago' },
-    ],
-    bestSellers: [
-      { name: 'Produto Premium', sales: 450, percentage: 55, image: 'https://picsum.photos/seed/teste/40/40' },
-      { name: 'Produto Standard', sales: 300, percentage: 35, image: 'https://picsum.photos/seed/print/40/40' },
-      { name: 'Acessório', sales: 106, percentage: 10, image: 'https://picsum.photos/seed/bone/40/40' },
-    ]
-  }
-};
 
 // --- Components ---
 
@@ -241,12 +141,291 @@ const StatCard = ({ icon: Icon, label, value, subtext, color }: { icon: any, lab
 
 // --- Views ---
 
+
+const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: string | null, onAction: (msg: string) => void }) => {
+  const [orderTab, setOrderTab] = useState('Todos');
+  const [orders, setOrders] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchOrders() {
+      setIsLoading(true);
+      try {
+        let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
+        if (storeId) {
+          query = query.eq('store_id', storeId);
+        }
+        const { data } = await query;
+        if (isMounted && data) {
+          setOrders(data);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+    fetchOrders();
+    return () => { isMounted = false; };
+  }, [storeId]);
+
+  const filteredOrders = orders.filter(order => orderTab === 'Todos' || order.status === orderTab);
+
+  if (isLoading) {
+    return (
+       <div className="w-full h-64 flex flex-col items-center justify-center">
+         <div className="w-8 h-8 rounded-full border-4 border-indigo-100 border-t-[#5551FF] animate-spin mb-4" />
+         <span className="text-sm font-bold text-gray-500 animate-pulse">Carregando pedidos...</span>
+       </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Pedidos</h1>
+        <p className="text-gray-500">{filteredOrders.length} pedido(s) no total</p>
+      </div>
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 custom-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+        {['Todos', 'Pendente', 'Pago', 'Enviado', 'Entregue', 'Cancelado'].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setOrderTab(tab)}
+            className={cn(
+              "px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap",
+              orderTab === tab ? "bg-[#5551FF] text-white" : "bg-white text-gray-500 border border-gray-100 hover:bg-gray-50"
+            )}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm min-h-[400px] flex flex-col p-6">
+        {filteredOrders.length > 0 ? (
+          <div className="space-y-4 w-full">
+            {filteredOrders.map((order) => {
+              const customerName = order.customer_name || 'Desconhecido';
+              return (
+                <div key={order.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-gray-100 gap-4 sm:gap-0 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-[#5551FF] font-bold text-sm shrink-0">
+                      {customerName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="text-sm font-bold text-gray-900 truncate">{customerName}</h4>
+                      <p className="text-xs text-gray-400 truncate">{order.customer_email || '-'} • {new Date(order.created_at).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between sm:justify-end gap-4">
+                    <span className="text-sm font-bold text-gray-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(order.total)||0)}</span>
+                    <span className={cn(
+                      "text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider",
+                      order.status === 'Cancelado' || order.status === 'Recusado' ? "bg-red-50 text-red-500" : 
+                      order.status === 'Pago' || order.status === 'Aprovado' ? "bg-emerald-50 text-emerald-500" :
+                      "bg-orange-50 text-orange-500"
+                    )}>
+                      {order.status || 'Pendente'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-center py-12">
+            <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mb-4">
+              <Package size={24} className="text-gray-300" />
+            </div>
+            <h3 className="text-sm font-bold text-gray-900 mb-1">Nenhum pedido encontrado</h3>
+            <p className="text-xs text-gray-400 max-w-[250px]">
+              Os pedidos da sua loja aparecerão aqui.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: string) => void; onNavigate: (view: View) => void; storeId: string | null }) => {
   const [timeRange, setTimeRange] = useState<'Hoje' | '7 dias' | '30 dias' | '12 meses'>('7 dias');
-  const currentData = dashboardData[timeRange];
+  const [isLoading, setIsLoading] = useState(true);
   
+  const [metrics, setMetrics] = useState({
+    faturamento: 'R$ 0,00',
+    pedidos: '0',
+    pedidosSub: '0 hoje',
+    produtos: '0',
+    produtosSub: '0 ativos',
+    pendentes: '0',
+    pendentesSub: 'Aguardando ação',
+  });
+  
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [bestSellers, setBestSellers] = useState<any[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchData() {
+      setIsLoading(true);
+      try {
+        const now = new Date();
+        const start = new Date();
+        if (timeRange === 'Hoje') {
+          start.setHours(0, 0, 0, 0);
+        } else if (timeRange === '7 dias') {
+          start.setDate(now.getDate() - 7);
+        } else if (timeRange === '30 dias') {
+          start.setDate(now.getDate() - 30);
+        } else if (timeRange === '12 meses') {
+          start.setMonth(now.getMonth() - 12);
+        }
+        
+        let ordersQuery = supabase.from('orders').select('*').gte('created_at', start.toISOString());
+        let productsQuery = supabase.from('products').select('*');
+        let todayOrdersQuery = supabase.from('orders').select('id, created_at');
+
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        todayOrdersQuery = todayOrdersQuery.gte('created_at', todayStart.toISOString());
+        
+        if (storeId) {
+          ordersQuery = ordersQuery.eq('store_id', storeId);
+          productsQuery = productsQuery.eq('store_id', storeId);
+          todayOrdersQuery = todayOrdersQuery.eq('store_id', storeId);
+        }
+        
+        const [ordersRes, productsRes, todayOrdersRes] = await Promise.all([
+          ordersQuery,
+          productsQuery,
+          todayOrdersQuery
+        ]);
+        
+        if (!isMounted) return;
+
+        const orders = ordersRes.data || [];
+        const products = productsRes.data || [];
+        const todayOrdersCount = todayOrdersRes.data?.length || 0;
+        
+        const faturamentoNum = orders
+          .filter(o => o.status === 'Pago' || o.status === 'Aprovado')
+          .reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+          
+        const pendentesNum = orders.filter(o => o.status === 'Pendente' || o.status === 'Aguardando ação').length;
+        const ativosNum = products.filter(p => p.is_active).length;
+        
+        setMetrics({
+          faturamento: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(faturamentoNum),
+          pedidos: String(orders.length),
+          pedidosSub: `${todayOrdersCount} hoje`,
+          produtos: String(products.length),
+          produtosSub: `${ativosNum} ativos`,
+          pendentes: String(pendentesNum),
+          pendentesSub: 'Aguardando ação'
+        });
+        
+        const groupedSales = new Map<string, number>();
+        if (timeRange === 'Hoje') {
+          for(let i = 0; i <= now.getHours(); i++) {
+            groupedSales.set(i.toString().padStart(2, '0') + ':00', 0);
+          }
+        } else if (timeRange === '7 dias' || timeRange === '30 dias') {
+          const days = timeRange === '7 dias' ? 6 : 29;
+          for(let i = days; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            groupedSales.set(`${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}`, 0);
+          }
+        } else if (timeRange === '12 meses') {
+           for(let i = 11; i >= 0; i--) {
+             const d = new Date();
+             d.setMonth(d.getMonth() - i);
+             const monthStr = d.toLocaleString('pt-BR', { month: 'short' }).replace('.', '');
+             groupedSales.set(monthStr.charAt(0).toUpperCase() + monthStr.slice(1), 0);
+           }
+        }
+        
+        orders.filter(o => o.status === 'Pago' || o.status === 'Aprovado').forEach(o => {
+           const d = new Date(o.created_at);
+           let key = '';
+           if (timeRange === 'Hoje') {
+             key = d.getHours().toString().padStart(2, '0') + ':00';
+           } else if (timeRange === '7 dias' || timeRange === '30 dias') {
+             key = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}`;
+           } else {
+             const monthStr = d.toLocaleString('pt-BR', { month: 'short' }).replace('.', '');
+             key = monthStr.charAt(0).toUpperCase() + monthStr.slice(1);
+           }
+           if(groupedSales.has(key)) {
+             groupedSales.set(key, groupedSales.get(key)! + (Number(o.total) || 0));
+           } else {
+             groupedSales.set(key, (Number(o.total) || 0));
+           }
+        });
+        
+        setChartData(Array.from(groupedSales.entries()).map(([date, sales]) => ({ date, sales })));
+        
+        const sortedOrders = [...orders].sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setRecentOrders(sortedOrders.slice(0, 5).map(o => ({
+           id: o.id,
+           name: o.customer_name || 'Desconhecido',
+           email: o.customer_email || '-',
+           date: new Date(o.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', ''),
+           value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(o.total)||0),
+           status: o.status || 'Pendente'
+        })));
+        
+        const productSales = new Map<string, {name: string, sales: number, img: string}>();
+        let totalItemsSold = 0;
+        
+        orders.filter(o => o.status === 'Pago' || o.status === 'Aprovado').forEach(o => {
+          if (o.items && Array.isArray(o.items)) {
+            o.items.forEach(item => {
+              const qty = item.amount || item.quantity || 1;
+              totalItemsSold += qty;
+              const title = item.title || item.name || 'Produto Desconhecido';
+              const img = item.image_url || item.image || 'https://via.placeholder.com/40';
+              if (productSales.has(title)) {
+                productSales.get(title)!.sales += qty;
+              } else {
+                productSales.set(title, { name: title, sales: qty, img });
+              }
+            });
+          }
+        });
+        
+        const sortedBestSellers = Array.from(productSales.values())
+          .sort((a,b) => b.sales - a.sales)
+          .slice(0, 5)
+          .map(p => ({
+            name: p.name,
+            sales: p.sales,
+            percentage: totalItemsSold > 0 ? Math.round((p.sales / totalItemsSold) * 100) : 0,
+            image: p.img
+          }));
+          
+        setBestSellers(sortedBestSellers);
+        
+      } catch (e) {
+        console.error("Error fetching dashboard data", e);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+    fetchData();
+    return () => { isMounted = false; };
+  }, [timeRange, storeId]);
+
   return (
-  <div className="space-y-8 animate-in fade-in duration-500">
+  <div className="space-y-8 animate-in fade-in duration-500 relative">
+    {isLoading && (
+       <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-2xl">
+         <div className="w-8 h-8 rounded-full border-4 border-indigo-100 border-t-[#5551FF] animate-spin mb-4" />
+         <span className="text-sm font-bold text-gray-500 animate-pulse">Carregando métricas reais...</span>
+       </div>
+    )}
     <div className="flex flex-col sm:items-center sm:flex-row justify-between gap-4">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
@@ -265,29 +444,29 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
       <StatCard
         icon={DollarSign}
         label="Faturamento"
-        value={currentData.faturamento}
-        subtext="Pedidos pagos"
+        value={metrics.faturamento}
+        subtext={metrics.pedidosSub.includes('hoje') ? 'Pedidos pagos' : 'Pedidos pagos'} 
         color="bg-blue-50 text-blue-600"
       />
       <StatCard
         icon={ShoppingCart}
         label="Pedidos"
-        value={currentData.pedidos}
-        subtext={currentData.pedidosSub}
+        value={metrics.pedidos}
+        subtext={metrics.pedidosSub}
         color="bg-indigo-50 text-indigo-600"
       />
       <StatCard
         icon={Box}
         label="Produtos"
-        value={currentData.produtos}
-        subtext={currentData.produtosSub}
+        value={metrics.produtos}
+        subtext={metrics.produtosSub}
         color="bg-purple-50 text-purple-600"
       />
       <StatCard
         icon={TrendingUp}
         label="Pendentes"
-        value={currentData.pendentes}
-        subtext={currentData.pendentesSub}
+        value={metrics.pendentes}
+        subtext={metrics.pendentesSub}
         color="bg-orange-50 text-orange-600"
       />
     </div>
@@ -317,7 +496,7 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
       </div>
       <div className="h-[300px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={currentData.chartData}>
+          <AreaChart data={chartData}>
             <defs>
               <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#5551FF" stopOpacity={0.1} />
@@ -335,11 +514,15 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
             <YAxis
               axisLine={false}
               tickLine={false}
+              tickFormatter={(val) => 
+                new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val)
+              }
               tick={{ fontSize: 12, fill: '#9CA3AF' }}
               dx={-10}
             />
             <Tooltip
               contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+              formatter={(val) => [new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val), 'Faturamento']}
             />
             <Area
               type="monotone"
@@ -359,7 +542,7 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-lg font-bold text-gray-900">Pedidos recentes</h2>
-            <p className="text-sm text-gray-500">{currentData.recentOrders.length} pedido(s) no total</p>
+            <p className="text-sm text-gray-500">{recentOrders.length} pedido(s) no total</p>
           </div>
           <button
             onClick={() => onNavigate('pedidos')}
@@ -369,7 +552,7 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
           </button>
         </div>
         <div className="space-y-4">
-          {currentData.recentOrders.map((order) => (
+          {recentOrders.length > 0 ? recentOrders.map((order) => (
             <div key={order.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
               <div className="flex items-center gap-4 min-w-0">
                 <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-[#5551FF] font-bold text-sm shrink-0">
@@ -384,13 +567,17 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
                 <span className="text-sm font-bold text-gray-900">{order.value}</span>
                 <span className={cn(
                   "text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider",
-                  order.status === 'Cancelado' ? "bg-red-50 text-red-500" : "bg-emerald-50 text-emerald-500"
+                  order.status === 'Cancelado' || order.status === 'Recusado' ? "bg-red-50 text-red-500" : 
+                  order.status === 'Pago' || order.status === 'Aprovado' ? "bg-emerald-50 text-emerald-500" :
+                  "bg-orange-50 text-orange-500"
                 )}>
                   {order.status}
                 </span>
               </div>
             </div>
-          ))}
+          )) : (
+            <p className="text-sm text-gray-400 py-4 text-center">Nenhum pedido no período.</p>
+          )}
         </div>
       </div>
 
@@ -398,14 +585,14 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
         <h2 className="text-lg font-bold text-gray-900 mb-1">Mais vendidos</h2>
         <p className="text-sm text-gray-500 mb-6">Por quantidade de pedidos</p>
         <div className="space-y-6">
-          {currentData.bestSellers.map((product) => (
+          {bestSellers.length > 0 ? bestSellers.map((product) => (
             <div key={product.name} className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <img src={product.image} alt={product.name} className="w-10 h-10 rounded-lg object-cover" referrerPolicy="no-referrer" />
-                  <span className="text-sm font-bold text-gray-900">{product.name}</span>
+                  <img src={product.image || 'https://via.placeholder.com/40'} alt={product.name} className="w-10 h-10 rounded-lg object-cover" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/40'; }} />
+                  <span className="text-sm font-bold text-gray-900 truncate max-w-[150px]">{product.name}</span>
                 </div>
-                <span className="text-xs text-gray-400 font-medium">{product.sales} vendas</span>
+                <span className="text-xs text-gray-400 font-medium whitespace-nowrap">{product.sales} vendas</span>
               </div>
               <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                 <motion.div
@@ -416,7 +603,9 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
                 />
               </div>
             </div>
-          ))}
+          )) : (
+            <p className="text-sm text-gray-400 py-4 text-center">Nenhuma venda registrada.</p>
+          )}
         </div>
       </div>
     </div>
@@ -2840,69 +3029,7 @@ export default function App() {
                   />
                 )}
                 {currentView === 'admin-assinaturas' && <AdminSubscribersView onAction={notify} session={session} />}
-                {currentView === 'pedidos' && (() => {
-                  const filteredOrders = dashboardData['30 dias'].recentOrders.filter(order => orderTab === 'Todos' || order.status === orderTab);
-                  return (
-                    <div className="space-y-8">
-                      <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Pedidos</h1>
-                        <p className="text-gray-500">{filteredOrders.length} pedido(s) no total</p>
-                      </div>
-                      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 custom-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
-                        {['Todos', 'Pendente', 'Pago', 'Enviado', 'Entregue', 'Cancelado'].map((tab) => (
-                          <button
-                            key={tab}
-                            onClick={() => setOrderTab(tab)}
-                            className={cn(
-                              "px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap",
-                              orderTab === tab ? "bg-[#5551FF] text-white" : "bg-white text-gray-500 border border-gray-100 hover:bg-gray-50"
-                            )}
-                          >
-                            {tab}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm min-h-[400px] flex flex-col p-6">
-                        {filteredOrders.length > 0 ? (
-                          <div className="space-y-4 w-full">
-                            {filteredOrders.map((order) => (
-                              <div key={order.id} className="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
-                                <div className="flex items-center gap-4 min-w-0">
-                                  <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-[#5551FF] font-bold text-sm shrink-0">
-                                    {order.name.charAt(0).toUpperCase()}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <h4 className="text-sm font-bold text-gray-900 truncate">{order.name}</h4>
-                                    <p className="text-xs text-gray-400 truncate">{order.email} • {order.date}</p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                  <span className="text-sm font-bold text-gray-900">{order.value}</span>
-                                  <span className={cn(
-                                    "text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider",
-                                    order.status === 'Cancelado' ? "bg-red-50 text-red-500" :
-                                      order.status === 'Pago' ? "bg-emerald-50 text-emerald-500" :
-                                        "bg-blue-50 text-blue-500"
-                                  )}>
-                                    {order.status}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="flex-1 flex items-center justify-center">
-                            <EmptyState
-                              title="Nenhum pedido encontrado."
-                              desc={`Você não tem pedidos com o status ${orderTab}.`}
-                              icon={ShoppingCart}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
+                {currentView === 'pedidos' && <OrdersView session={session} storeId={storeId} onAction={notify}/>}
                 {currentView === 'produtos' && <ProductsView onAction={notify} session={session} storeId={activeStoreId} />}
                 {currentView === 'dominio' && (
                   <div className="max-w-2xl mx-auto space-y-12 py-12">
