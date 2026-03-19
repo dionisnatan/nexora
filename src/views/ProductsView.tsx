@@ -77,6 +77,10 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
     sku: '',
     warranty: '12 meses',
     pix_discount_percent: '',
+    weight: '',
+    width: '',
+    height: '',
+    length: '',
     variations: [] as any[],
     extra_info: {
       technical: '',
@@ -239,6 +243,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
       });
       
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       
       if (data) {
         setNewProduct(prev => ({
@@ -277,6 +282,10 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
       sku: prod.sku || '',
       warranty: prod.warranty || '12 meses',
       pix_discount_percent: prod.pix_discount_percent?.toString() || '',
+      weight: prod.weight?.toString() || '',
+      width: prod.width?.toString() || '',
+      height: prod.height?.toString() || '',
+      length: prod.length?.toString() || '',
       variations: [],
       extra_info: prod.extra_info || { technical: '', informative: '' }
     });
@@ -352,6 +361,12 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
       
       const finalImageUrl = currentUrls.join(',');
 
+      const parsedWeight = newProduct.weight ? parseFloat(newProduct.weight) : null;
+      const parsedWidth = newProduct.width ? parseFloat(newProduct.width) : null;
+      const parsedHeight = newProduct.height ? parseFloat(newProduct.height) : null;
+      const parsedLength = newProduct.length ? parseFloat(newProduct.length) : null;
+      const hasShippingData = Boolean(parsedWeight && parsedWidth && parsedHeight && parsedLength);
+
       const productData = {
         store_id: storeId,
         name: newProduct.name,
@@ -364,6 +379,11 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
         sku: newProduct.sku || generateSKU(newProduct.name),
         warranty: newProduct.warranty,
         pix_discount_percent: newProduct.pix_discount_percent ? parseFloat(newProduct.pix_discount_percent) : null,
+        weight: parsedWeight,
+        width: parsedWidth,
+        height: parsedHeight,
+        length: parsedLength,
+        has_shipping_data: hasShippingData,
         image_url: finalImageUrl,
         extra_info: newProduct.extra_info,
         updated_at: new Date().toISOString()
@@ -422,7 +442,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
       setIsAdding(false);
       setEditingProductId(null);
       // reset form
-      setNewProduct({ name: '', price: '', compare_at_price: '', stock: '0', description: '', is_active: true, category_id: '', sku: '', warranty: '12 meses', pix_discount_percent: '', variations: [], extra_info: { technical: '', informative: '' } });
+      setNewProduct({ name: '', price: '', compare_at_price: '', stock: '0', description: '', is_active: true, category_id: '', sku: '', warranty: '12 meses', pix_discount_percent: '', weight: '', width: '', height: '', length: '', variations: [], extra_info: { technical: '', informative: '' } });
       setImageFiles([]);
       setImagePreviews([]);
       
@@ -492,7 +512,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
                 onClick={() => {
                   setIsAdding(false);
                   setEditingProductId(null);
-                  setNewProduct({ name: '', price: '', compare_at_price: '', stock: '0', description: '', is_active: true, category_id: '', sku: '', warranty: '12 meses', pix_discount_percent: '', variations: [], extra_info: { technical: '', informative: '' } });
+                  setNewProduct({ name: '', price: '', compare_at_price: '', stock: '0', description: '', is_active: true, category_id: '', sku: '', warranty: '12 meses', pix_discount_percent: '', weight: '', width: '', height: '', length: '', variations: [], extra_info: { technical: '', informative: '' } });
                   setImagePreviews([]);
                   setImageFiles([]);
                   setAiPrompt('');
@@ -717,6 +737,59 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
                   onChange={e => setNewProduct({...newProduct, stock: e.target.value})}
                   className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5551FF]/20 focus:border-[#5551FF] transition-all" 
                 />
+              </div>
+
+              {/* Shipping Dimensions UI */}
+              <div className="space-y-4 pt-4 border-t border-gray-50">
+                <div className="flex items-center gap-2">
+                  <Package className="text-[#5551FF]" size={18} />
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Dados de Envio (Opcional)</label>
+                </div>
+                <p className="text-[11px] text-gray-400">
+                  Para habilitar o cálculo de frete automático no checkout, preencha todos os 4 campos abaixo. Caso deixe em branco, o produto ficará restrito à "Retirada em mãos".
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase">Peso (kg)</label>
+                    <input 
+                      type="number" step="0.01"
+                      placeholder="0.00" 
+                      className="w-full px-3 py-2 bg-white border border-gray-100 rounded-lg text-xs focus:ring-1 focus:ring-indigo-200 focus:outline-none"
+                      value={newProduct.weight}
+                      onChange={e => setNewProduct({...newProduct, weight: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase">Largura (cm)</label>
+                    <input 
+                      type="number" step="0.1"
+                      placeholder="0.0" 
+                      className="w-full px-3 py-2 bg-white border border-gray-100 rounded-lg text-xs focus:ring-1 focus:ring-indigo-200 focus:outline-none"
+                      value={newProduct.width}
+                      onChange={e => setNewProduct({...newProduct, width: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase">Altura (cm)</label>
+                    <input 
+                      type="number" step="0.1"
+                      placeholder="0.0" 
+                      className="w-full px-3 py-2 bg-white border border-gray-100 rounded-lg text-xs focus:ring-1 focus:ring-indigo-200 focus:outline-none"
+                      value={newProduct.height}
+                      onChange={e => setNewProduct({...newProduct, height: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase">Compr. (cm)</label>
+                    <input 
+                      type="number" step="0.1"
+                      placeholder="0.0" 
+                      className="w-full px-3 py-2 bg-white border border-gray-100 rounded-lg text-xs focus:ring-1 focus:ring-indigo-200 focus:outline-none"
+                      value={newProduct.length}
+                      onChange={e => setNewProduct({...newProduct, length: e.target.value})}
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Variations UI */}

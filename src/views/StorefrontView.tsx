@@ -47,7 +47,25 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showInstallments, setShowInstallments] = useState(false);
+  const [selectedInstallments, setSelectedInstallments] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState<'pix' | 'card'>('pix');
+
+  // --- Address + Shipping State ---
+  const [checkoutAddress, setCheckoutAddress] = useState({
+    fullName: '',
+    phone: '',
+    cep: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: ''
+  });
+  const [cepLoading, setCepLoading] = useState(false);
+  const [shippingOptions, setShippingOptions] = useState<any[]>([]);
+  const [selectedShipping, setSelectedShipping] = useState<any>(null);
+  const [shippingLoading, setShippingLoading] = useState(false);
   const [cart, setCart] = useState<any[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [customerSession, setCustomerSession] = useState<any>(null);
@@ -60,6 +78,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [showDescrição, setShowDescrição] = useState(false);
+  const [deliveryMode, setDeliveryMode] = useState<'shipping' | 'pickup'>('shipping');
   const [timeLeft, setTimeLeft] = useState({ hours: 1, minutes: 11, seconds: 45 });
   const [activeDashboardTab, setActiveDashboardTab] = useState<'profile' | 'orders' | 'favorites'>('profile');
   const [favorites, setFavorites] = useState<any[]>([]);
@@ -215,6 +234,71 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
       }));
     } catch (err) {
       console.error('Erro ao buscar CEP:', err);
+    }
+  };
+
+  const handleCheckoutCepLookup = async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, '');
+    setCheckoutAddress(prev => ({ ...prev, cep }));
+    if (cleanCep.length !== 8) return;
+    setCepLoading(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setCheckoutAddress(prev => ({
+          ...prev,
+          street: data.logradouro || prev.street,
+          neighborhood: data.bairro || prev.neighborhood,
+          city: data.localidade || prev.city,
+          state: data.uf || prev.state,
+          cep: cleanCep.replace(/(\d{5})(\d{3})/, '$1-$2')
+        }));
+        // Calculate shipping options after CEP is found
+        calculateShipping(cleanCep);
+      } else {
+        showNotification('CEP não encontrado', 'error');
+      }
+    } catch (e) {
+      console.error('Erro ao buscar CEP:', e);
+    } finally {
+      setCepLoading(false);
+    }
+  };
+
+  const calculateShipping = async (cep: string) => {
+    setShippingLoading(true);
+    setShippingOptions([]);
+    setSelectedShipping(null);
+    try {
+      const productsPayload = cart.length > 0 ? cart : (selectedProduct ? [selectedProduct] : []);
+      const { data, error } = await supabase.functions.invoke('calculate-shipping', {
+        body: { cep_destino: cep, products: productsPayload, from_cep: store?.origin_cep || undefined }
+      });
+
+      if (error) throw error;
+      
+      const options = data?.options || [];
+      const formattedOptions = options.map((opt: any) => ({
+        id: opt.id,
+        name: opt.name,
+        price: opt.price,
+        days: `${opt.days} dias úteis`,
+        icon: opt.company?.toLowerCase().includes('correios') ? '📦' : '🚚'
+      }));
+
+      // Sort by price (cheapest first)
+      formattedOptions.sort((a: any, b: any) => a.price - b.price);
+
+      setShippingOptions(formattedOptions);
+      if (formattedOptions.length > 0) {
+        setSelectedShipping(formattedOptions[0]); // auto-select cheapest
+      }
+    } catch (err: any) {
+      console.error("Erro ao calcular frete:", err);
+      showNotification('Não foi possível calcular o frete para este CEP. O serviço pode estar indisponível.', 'error');
+    } finally {
+      setShippingLoading(false);
     }
   };
 
@@ -1733,19 +1817,36 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
 
   const handleDirectPurchase = async (price: number, method: 'pix' | 'card') => {
-    const phone = store.whatsapp?.replace(/\D/g, '');
-    if (!phone) return;
+    const productsPayload = cart.length > 0 ? cart : (selectedProduct ? [selectedProduct] : []);
+    const canShipPurchase = productsPayload.every(p => p.has_shipping_data !== false);
+    const isPickup = !canShipPurchase ? true : (deliveryMode === 'pickup');
+
+    // Validate shipping and address only for shipping mode
+    if (!isPickup) {
+      if (!checkoutAddress.fullName || !checkoutAddress.cep || !checkoutAddress.number) {
+        showNotification('Preencha os campos obrigatórios de endereço (Nome, CEP, Número).', 'error');
+        return;
+      }
+      if (shippingOptions.length > 0 && !selectedShipping) {
+        showNotification('Por favor, selecione uma opção de frete para continuar.', 'error');
+        return;
+      }
+    }
 
     const pixDiscount = Number(selectedProduct.pix_discount_percent !== null && selectedProduct.pix_discount_percent !== undefined ? selectedProduct.pix_discount_percent : 10) / 100;
     const priceToUse = method === 'pix' ? price * (1 - pixDiscount) : price;
+    const shippingCost = isPickup ? 0 : (selectedShipping?.price || 0);
+    const finalPriceWithShipping = priceToUse + shippingCost;
+    const shippingMethodToSave = isPickup ? { id: 'pickup', name: 'Retirar em Mãos', price: 0 } : selectedShipping;
 
+    let orderId = '';
     if (customerSession?.user) {
       try {
-        await supabase.from('orders').insert([{
+        const { data } = await supabase.from('orders').insert([{
           customer_id: customerSession.user.id,
           store_id: store.id,
-          total: method === 'pix' ? priceToUse : price,
-          pix_total: priceToUse,
+          total: finalPriceWithShipping,
+          pix_total: finalPriceWithShipping,
           items: [{
             ...selectedProduct,
             selectedVariation,
@@ -1753,16 +1854,54 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             price: price
           }],
           customer_email: customerSession.user.email,
+          shipping_address: isPickup ? null : checkoutAddress,
+          shipping_method: shippingMethodToSave,
           status: 'Pendente'
-        }]);
+        }]).select('id').single();
+        if (data) orderId = data.id;
         fetchCustomerOrders();
       } catch (err) { console.error('Error saving direct order:', err); }
     }
 
-    const varInfo = selectedVariation ? ` (${selectedVariation.name}: ${selectedVariation.value})` : '';
-    const methodStr = method === 'pix' ? 'no PIX' : 'no Cartão';
-    const message = `Olá! Quero comprar agora o produto: ${selectedProduct.name}${varInfo} por R$ ${priceToUse.toFixed(2).replace('.', ',')} ${methodStr}.`;
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+    if (isPickup) {
+      // Pickup goes directly to WhatsApp
+      const phone = store.whatsapp?.replace(/\D/g, '');
+      if (!phone) {
+        showNotification('WhatsApp da loja não configurado.', 'error');
+        return;
+      }
+
+      const varInfo = selectedVariation ? ` (${selectedVariation.name}: ${selectedVariation.value})` : '';
+      const methodStr = method === 'pix' ? 'no PIX' : 'no Cartão';
+      const message = `Olá! Quero comprar o produto: ${selectedProduct.name}${varInfo} por R$ ${finalPriceWithShipping.toFixed(2).replace('.', ',')} ${methodStr}.\n\nModalidade: ✋ RETIRAR EM MÃOS`;
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+      return;
+    }
+
+    // Shipping goes exclusively to Mercado Pago
+    try {
+      const { data, error } = await supabase.functions.invoke('mp-create-payment', {
+        body: {
+          store_id: store.id,
+          amount: finalPriceWithShipping,
+          title: `${selectedProduct.name} ${selectedVariation ? `(${selectedVariation.value})` : ''}`,
+          payer_email: customerSession?.user?.email,
+          order_id: orderId
+        }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.init_point) {
+        window.location.href = data.init_point;
+      } else {
+        throw new Error('Link de pagamento não retornado');
+      }
+    } catch (mpError: any) {
+      console.log('Mercado Pago connect error or not configured:', mpError);
+      showNotification('Pagamento online indisponível. A loja precisa configurar o Mercado Pago.', 'error');
+    }
   };
 
   const renderDefaultCheckoutModal = () => {
@@ -1771,6 +1910,11 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
     const pixDiscount = Number(selectedProduct.pix_discount_percent !== null && selectedProduct.pix_discount_percent !== undefined ? selectedProduct.pix_discount_percent : 10) / 100;
     const pixPrice = finalPrice * (1 - pixDiscount);
     const installmentPrice = finalPrice / 12;
+    
+    // Check all products that are part of this transaction
+    const productsPayload = cart.length > 0 ? cart : [selectedProduct];
+    const canShip = productsPayload.every(p => p.has_shipping_data !== false);
+    const currentDeliveryMode = canShip ? deliveryMode : 'pickup';
 
     return (
       <AnimatePresence>
@@ -2112,10 +2256,18 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(num => (
                                 <button
                                   key={num}
-                                  className="p-3 bg-white border border-gray-100 rounded-xl flex justify-between items-center shadow-sm hover:border-[#f70] hover:shadow-md transition-all group/it"
+                                  type="button"
+                                  onClick={() => setSelectedInstallments(num)}
+                                  className={cn(
+                                    "p-3 rounded-xl flex justify-between items-center transition-all",
+                                    selectedInstallments === num
+                                      ? 'bg-orange-50 border-2 border-[#f70] shadow-md ring-2 ring-orange-100'
+                                      : 'bg-white border border-gray-100 shadow-sm hover:border-[#f70] hover:shadow-md'
+                                  )}
                                 >
-                                  <span className="text-[10px] font-bold text-gray-400 group-hover/it:text-[#f70]">{num}x</span>
+                                  <span className={cn("text-[10px] font-bold", selectedInstallments === num ? 'text-[#f70]' : 'text-gray-400')}>{num}x</span>
                                   <span className="text-[11px] font-black text-gray-900">R$ {(finalPrice / num).toFixed(2).replace('.', ',')}</span>
+                                  {selectedInstallments === num && <Check size={10} className="text-[#f70] shrink-0" strokeWidth={4} />}
                                 </button>
                               ))}
                             </div>
@@ -2175,6 +2327,256 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                         )}
                       </button>
                     </div>
+                  </div>
+
+                  {/* Address + Shipping Section */}
+                  <div className="mt-4 border-t border-dashed border-gray-100 pt-4 space-y-4">
+                    {/* Delivery Mode Toggle */}
+                    {canShip ? (
+                      <div>
+                        <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2 mb-3">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#f70] animate-pulse" />
+                          Modalidade de Entrega
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeliveryMode('shipping');
+                              setSelectedShipping(null);
+                              setShippingOptions([]);
+                            }}
+                            className={cn(
+                              "p-4 rounded-2xl border-2 text-left transition-all duration-200 relative overflow-hidden",
+                              deliveryMode === 'shipping'
+                                ? 'border-[#f70] bg-orange-50 ring-2 ring-orange-100'
+                                : 'border-gray-100 bg-white hover:border-gray-200'
+                            )}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <Truck size={14} className={deliveryMode === 'shipping' ? 'text-[#f70]' : 'text-gray-400'} />
+                              <span className={cn("text-[9px] font-black uppercase tracking-widest", deliveryMode === 'shipping' ? 'text-[#f70]' : 'text-gray-400')}>Enviar</span>
+                            </div>
+                            <p className="text-[10px] font-bold text-gray-500">Receber em casa</p>
+                            {deliveryMode === 'shipping' && <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#f70] text-white flex items-center justify-center"><Check size={9} strokeWidth={4} /></div>}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeliveryMode('pickup');
+                              setSelectedShipping({ id: 'pickup', name: 'Retirar em Mãos', price: 0 });
+                              setShippingOptions([]);
+                            }}
+                            className={cn(
+                              "p-4 rounded-2xl border-2 text-left transition-all duration-200 relative overflow-hidden",
+                              deliveryMode === 'pickup'
+                                ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-100'
+                                : 'border-gray-100 bg-white hover:border-gray-200'
+                            )}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-sm">✋</span>
+                              <span className={cn("text-[9px] font-black uppercase tracking-widest", deliveryMode === 'pickup' ? 'text-emerald-600' : 'text-gray-400')}>Retirar</span>
+                            </div>
+                            <p className="text-[10px] font-bold text-gray-500">Retirar em mãos</p>
+                            {deliveryMode === 'pickup' && <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center"><Check size={9} strokeWidth={4} /></div>}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-2xl flex items-start gap-3">
+                        <span className="text-xl shrink-0">⚠️</span>
+                        <div>
+                          <p className="text-[10px] font-black text-yellow-700 uppercase tracking-widest">Produto indisponível para envio</p>
+                          <p className="text-[10px] font-bold text-yellow-600 mt-0.5">Apenas retirada em mãos disponível.</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Pickup info banner */}
+                    {currentDeliveryMode === 'pickup' && (
+                      <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start gap-3">
+                        <span className="text-xl shrink-0">✋</span>
+                        <div>
+                          <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Retirada grátis!</p>
+                          <p className="text-[10px] font-bold text-emerald-600 mt-0.5">Combine com o vendedor o local e horário de retirada via WhatsApp.</p>
+                          {store?.address && <p className="text-[10px] font-bold text-emerald-600 mt-1">📍 {store.address}</p>}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Shipping Address fields (only show for shipping mode) */}
+                    {currentDeliveryMode === 'shipping' && (
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#f70] animate-pulse" />
+                      Endereço de Entrega
+                    </p>
+                    )}
+
+                    {currentDeliveryMode === 'shipping' && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="col-span-2 space-y-1">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Nome completo *</label>
+                        <input
+                          type="text"
+                          required
+                          value={checkoutAddress.fullName}
+                          onChange={e => setCheckoutAddress(prev => ({ ...prev, fullName: e.target.value }))}
+                          placeholder="Ex: João Silva"
+                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Telefone</label>
+                        <input
+                          type="text"
+                          value={checkoutAddress.phone}
+                          onChange={e => setCheckoutAddress(prev => ({ ...prev, phone: e.target.value }))}
+                          placeholder="(11) 99999-9999"
+                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all"
+                        />
+                      </div>
+                      <div className="space-y-1 relative">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">CEP *</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            required
+                            maxLength={9}
+                            value={checkoutAddress.cep}
+                            onChange={e => handleCheckoutCepLookup(e.target.value)}
+                            placeholder="00000-000"
+                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all pr-8"
+                          />
+                          {cepLoading && <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 border-2 border-[#f70]/30 border-t-[#f70] rounded-full animate-spin" />}
+                        </div>
+                      </div>
+                      <div className="col-span-2 space-y-1">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Rua</label>
+                        <input
+                          type="text"
+                          value={checkoutAddress.street}
+                          onChange={e => setCheckoutAddress(prev => ({ ...prev, street: e.target.value }))}
+                          placeholder="Preenchido automaticamente"
+                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Número *</label>
+                        <input
+                          type="text"
+                          required
+                          value={checkoutAddress.number}
+                          onChange={e => setCheckoutAddress(prev => ({ ...prev, number: e.target.value }))}
+                          placeholder="Ex: 123"
+                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Complemento</label>
+                        <input
+                          type="text"
+                          value={checkoutAddress.complement}
+                          onChange={e => setCheckoutAddress(prev => ({ ...prev, complement: e.target.value }))}
+                          placeholder="Apto, Bloco..."
+                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Bairro</label>
+                        <input
+                          type="text"
+                          value={checkoutAddress.neighborhood}
+                          onChange={e => setCheckoutAddress(prev => ({ ...prev, neighborhood: e.target.value }))}
+                          placeholder="Bairro"
+                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Cidade</label>
+                        <input
+                          type="text"
+                          value={checkoutAddress.city}
+                          readOnly
+                          placeholder="Preenchido pelo CEP"
+                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold opacity-70"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Estado</label>
+                        <input
+                          type="text"
+                          value={checkoutAddress.state}
+                          readOnly
+                          placeholder="UF"
+                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold opacity-70"
+                        />
+                      </div>
+                    </div>
+                    )}
+
+                    {/* Shipping Options (only for shipping mode) */}
+                    {currentDeliveryMode === 'shipping' && shippingLoading && (
+                      <div className="flex items-center gap-3 py-4 justify-center">
+                        <div className="w-4 h-4 border-2 border-[#f70]/30 border-t-[#f70] rounded-full animate-spin" />
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Calculando frete...</span>
+                      </div>
+                    )}
+
+                    {currentDeliveryMode === 'shipping' && !shippingLoading && shippingOptions.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Opção de Frete</p>
+                        {shippingOptions.map(option => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => setSelectedShipping(option)}
+                            className={cn(
+                              "w-full p-3 rounded-xl flex items-center justify-between text-left transition-all",
+                              selectedShipping?.id === option.id
+                                ? 'bg-orange-50 border-2 border-[#f70] ring-2 ring-orange-100'
+                                : 'bg-white border border-gray-100 hover:border-[#f70]/50'
+                            )}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="text-base">{option.icon}</span>
+                              <div>
+                                <p className={cn("text-[10px] font-black uppercase tracking-wide", selectedShipping?.id === option.id ? 'text-[#f70]' : 'text-gray-900')}>{option.name}</p>
+                                <p className="text-[9px] font-bold text-gray-400">{option.days}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs font-black text-gray-900">
+                                {option.price === 0 ? 'Grátis' : `R$ ${option.price.toFixed(2).replace('.', ',')}`}
+                              </p>
+                              {selectedShipping?.id === option.id && <Check size={10} className="text-[#f70] ml-auto" strokeWidth={4} />}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Total summary */}
+                    {(selectedShipping || currentDeliveryMode === 'pickup') && (
+                      <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 space-y-1.5">
+                        <div className="flex justify-between text-[10px] font-bold text-gray-500">
+                          <span>Produto</span>
+                          <span>R$ {finalPrice.toFixed(2).replace('.', ',')}</span>
+                        </div>
+                        <div className="flex justify-between text-[10px] font-bold text-gray-500">
+                          <span>{currentDeliveryMode === 'pickup' ? '✋ Retirada em Mãos' : `Frete (${selectedShipping?.name})`}</span>
+                          <span className={currentDeliveryMode === 'pickup' ? 'text-emerald-600 font-black' : ''}>
+                            {currentDeliveryMode === 'pickup' ? 'Grátis' : (selectedShipping?.price === 0 ? 'Grátis' : `R$ ${selectedShipping?.price.toFixed(2).replace('.', ',')}`)}
+                          </span>
+                        </div>
+                        <div className="h-px bg-gray-200" />
+                        <div className="flex justify-between text-[11px] font-black text-gray-900">
+                          <span>Total</span>
+                          <span>R$ {(finalPrice + (currentDeliveryMode === 'pickup' ? 0 : (selectedShipping?.price || 0))).toFixed(2).replace('.', ',')}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

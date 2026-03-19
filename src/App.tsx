@@ -36,7 +36,11 @@ import {
   BookOpen,
   AlertCircle,
   Edit3,
-  Clock
+  Clock,
+  Wallet,
+  Link,
+  Unlink,
+  RefreshCw
 } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './lib/supabase';
@@ -65,7 +69,7 @@ function cn(...inputs: ClassValue[]) {
 
 // --- Types ---
 
-type View = 'dashboard' | 'produtos' | 'pedidos' | 'aparencia' | 'dominio' | 'minha-loja' | 'plano' | 'checkout' | 'admin-assinaturas' | 'admin-dashboard' | 'admin-users' | 'admin-stores' | 'admin-access' | 'catalogo' | 'minhas-lojas';
+type View = 'dashboard' | 'produtos' | 'pedidos' | 'aparencia' | 'dominio' | 'minha-loja' | 'plano' | 'checkout' | 'admin-assinaturas' | 'admin-dashboard' | 'admin-users' | 'admin-stores' | 'admin-access' | 'catalogo' | 'minhas-lojas' | 'pagamentos';
 
 interface UserProfile {
   id: string;
@@ -142,6 +146,223 @@ const StatCard = ({ icon: Icon, label, value, subtext, color }: { icon: any, lab
 // --- Views ---
 
 
+// ============================================================
+// PaymentSettingsView  — Mercado Pago OAuth per-user connection
+// ============================================================
+const MP_CLIENT_ID = import.meta.env.VITE_MP_CLIENT_ID || '7586811358422236';
+const SUPABASE_FUNCTIONS_URL = `https://zgnwqxcjdbjpzniemrdy.supabase.co/functions/v1`;
+
+const PaymentSettingsView = ({ session, storeId, onAction }: { session: any, storeId: string | null, onAction: (msg: string) => void }) => {
+  const [integration, setIntegration] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchIntegration() {
+      setIsLoading(true);
+      try {
+        const { data } = await supabase
+          .from('payment_integrations')
+          .select('id, mp_email, mp_nickname, mp_user_id, expires_at, created_at, provider')
+          .eq('user_id', session?.user?.id)
+          .eq('provider', 'mercadopago')
+          .maybeSingle();
+        if (isMounted) setIntegration(data);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+    if (session?.user?.id) fetchIntegration();
+    // Check for OAuth callback result in URL
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mp_connected') === '1') {
+      onAction('✅ Mercado Pago conectado com sucesso!');
+      window.history.replaceState({}, '', window.location.pathname);
+      fetchIntegration();
+    } else if (params.get('mp_error')) {
+      onAction('❌ Erro ao conectar: ' + params.get('mp_error'));
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    return () => { isMounted = false; };
+  }, [session?.user?.id]);
+
+  const handleConnect = () => {
+    if (!MP_CLIENT_ID) {
+      onAction('Configure a variável VITE_MP_CLIENT_ID no .env com o Client ID do seu App Mercado Pago.');
+      return;
+    }
+    const redirectUri = encodeURIComponent(`${SUPABASE_FUNCTIONS_URL}/mp-oauth-callback`);
+    const state = `${session?.user?.id}|${storeId || ''}`;
+    const mpOauthUrl = `https://auth.mercadopago.com.br/authorization?client_id=${MP_CLIENT_ID}&response_type=code&platform_id=mp&redirect_uri=${redirectUri}&state=${state}`;
+    window.location.href = mpOauthUrl;
+  };
+
+  const handleDisconnect = async () => {
+    if (!window.confirm('Tem certeza? Sua loja não poderá processar pagamentos pelo Mercado Pago.')) return;
+    setIsDisconnecting(true);
+    try {
+      await supabase
+        .from('payment_integrations')
+        .delete()
+        .eq('user_id', session?.user?.id)
+        .eq('provider', 'mercadopago');
+      setIntegration(null);
+      onAction('Mercado Pago desconectado.');
+    } catch (e: any) {
+      onAction('Erro ao desconectar: ' + e.message);
+    } finally {
+      setIsDisconnecting(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Pagamentos</h1>
+        <p className="text-gray-500">Conecte sua conta Mercado Pago para receber pagamentos diretamente.</p>
+      </div>
+
+      {/* Status Card */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* MP Logo Badge */}
+            <div className="w-12 h-12 rounded-xl bg-[#009EE3] flex items-center justify-center shadow-lg shadow-blue-200">
+              <span className="text-white font-black text-xs">MP</span>
+            </div>
+            <div>
+              <h2 className="font-black text-gray-900">Mercado Pago</h2>
+              <p className="text-xs text-gray-400">Receba via PIX, Cartão, Boleto</p>
+            </div>
+          </div>
+          {!isLoading && (
+            <span className={cn(
+              "flex items-center gap-1.5 text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest",
+              integration ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-400"
+            )}>
+              <span className={cn(
+                "w-2 h-2 rounded-full",
+                integration ? "bg-emerald-500 animate-pulse" : "bg-gray-300"
+              )} />
+              {integration ? 'Conectado' : 'Não conectado'}
+            </span>
+          )}
+        </div>
+
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="w-6 h-6 border-4 border-indigo-100 border-t-[#5551FF] rounded-full animate-spin" />
+          </div>
+        ) : integration ? (
+          <div className="space-y-4">
+            {/* Account Info */}
+            <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 space-y-3">
+              <div className="flex items-center gap-2 text-emerald-700">
+                <ShieldCheck size={16} />
+                <span className="text-xs font-black uppercase tracking-widest">Conta vinculada</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-[9px] font-black text-emerald-600/60 uppercase tracking-widest mb-0.5">E-mail</p>
+                  <p className="text-sm font-bold text-gray-900 truncate">{integration.mp_email || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-emerald-600/60 uppercase tracking-widest mb-0.5">Apelido</p>
+                  <p className="text-sm font-bold text-gray-900 truncate">{integration.mp_nickname || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-emerald-600/60 uppercase tracking-widest mb-0.5">MP User ID</p>
+                  <p className="text-sm font-bold text-gray-900 font-mono">{integration.mp_user_id || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-emerald-600/60 uppercase tracking-widest mb-0.5">Conectado em</p>
+                  <p className="text-sm font-bold text-gray-900">{integration.created_at ? new Date(integration.created_at).toLocaleDateString('pt-BR') : '—'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleConnect}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-xs font-bold hover:bg-gray-50 transition-all"
+              >
+                <RefreshCw size={14} />
+                Reconectar
+              </button>
+              <button
+                onClick={handleDisconnect}
+                disabled={isDisconnecting}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 text-red-500 text-xs font-bold hover:bg-red-50 transition-all disabled:opacity-50"
+              >
+                <Unlink size={14} />
+                {isDisconnecting ? 'Desconectando...' : 'Desconectar'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-500 leading-relaxed">
+              Conecte sua conta do Mercado Pago para que seus clientes possam pagar diretamente na sua loja.
+              Os valores são creditados na <strong>sua conta pessoal</strong> do Mercado Pago.
+            </p>
+            <button
+              onClick={handleConnect}
+              className="w-full h-12 bg-[#009EE3] hover:bg-[#0088CC] text-white rounded-xl font-black text-sm flex items-center justify-center gap-3 transition-all shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300"
+            >
+              <Link size={18} />
+              Conectar com Mercado Pago
+            </button>
+            <p className="text-[10px] text-gray-400 text-center">Você será redirecionado para autorizar o acesso à sua conta MP</p>
+          </div>
+        )}
+      </div>
+
+      {/* How it works */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="font-black text-gray-900 mb-4 flex items-center gap-2">
+          <HelpCircle size={16} className="text-[#5551FF]" />
+          Como funciona?
+        </h3>
+        <div className="space-y-3">
+          {[
+            { num: '1', text: 'Clique em "Conectar com Mercado Pago" e autorize o acesso' },
+            { num: '2', text: 'Seu token é salvo de forma segura no servidor (nunca exposto)' },
+            { num: '3', text: 'Ao receber um pedido, o pagamento vai direto para a sua conta MP' },
+            { num: '4', text: 'Você vê todos os pagamentos no painel do Mercado Pago' }
+          ].map(step => (
+            <div key={step.num} className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-[#5551FF] text-white text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">{step.num}</div>
+              <p className="text-sm text-gray-600">{step.text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Config Tip */}
+      {!MP_CLIENT_ID && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+          <p className="text-xs font-black text-amber-700 uppercase tracking-widest mb-2 flex items-center gap-2">
+            <AlertCircle size={14} />
+            Configuração necessária
+          </p>
+          <p className="text-sm text-amber-700 leading-relaxed">
+            Para ativar, adicione no arquivo <code className="bg-amber-100 px-1 py-0.5 rounded text-xs">.env</code>:
+          </p>
+          <pre className="mt-2 bg-amber-100 rounded-lg px-3 py-2 text-xs font-mono text-amber-800">
+            VITE_MP_CLIENT_ID=TEST-93164719-407f-4a1b-9fae-97a89ee06bd5
+          </pre>
+          <p className="text-[10px] text-amber-600 mt-2">
+            Obtenha o Client ID em: mercadopago.com.br/developers/panel/app
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: string | null, onAction: (msg: string) => void }) => {
   const [orderTab, setOrderTab] = useState('Todos');
   const [orders, setOrders] = useState<any[]>([]);
@@ -174,10 +395,10 @@ const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: str
 
   if (isLoading) {
     return (
-       <div className="w-full h-64 flex flex-col items-center justify-center">
-         <div className="w-8 h-8 rounded-full border-4 border-indigo-100 border-t-[#5551FF] animate-spin mb-4" />
-         <span className="text-sm font-bold text-gray-500 animate-pulse">Carregando pedidos...</span>
-       </div>
+      <div className="w-full h-64 flex flex-col items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-4 border-indigo-100 border-t-[#5551FF] animate-spin mb-4" />
+        <span className="text-sm font-bold text-gray-500 animate-pulse">Carregando pedidos...</span>
+      </div>
     );
   }
 
@@ -218,12 +439,12 @@ const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: str
                     </div>
                   </div>
                   <div className="flex items-center justify-between sm:justify-end gap-4">
-                    <span className="text-sm font-bold text-gray-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(order.total)||0)}</span>
+                    <span className="text-sm font-bold text-gray-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(order.total) || 0)}</span>
                     <span className={cn(
                       "text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider",
-                      order.status === 'Cancelado' || order.status === 'Recusado' ? "bg-red-50 text-red-500" : 
-                      order.status === 'Pago' || order.status === 'Aprovado' ? "bg-emerald-50 text-emerald-500" :
-                      "bg-orange-50 text-orange-500"
+                      order.status === 'Cancelado' || order.status === 'Recusado' ? "bg-red-50 text-red-500" :
+                        order.status === 'Pago' || order.status === 'Aprovado' ? "bg-emerald-50 text-emerald-500" :
+                          "bg-orange-50 text-orange-500"
                     )}>
                       {order.status || 'Pendente'}
                     </span>
@@ -251,7 +472,7 @@ const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: str
 const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: string) => void; onNavigate: (view: View) => void; storeId: string | null }) => {
   const [timeRange, setTimeRange] = useState<'Hoje' | '7 dias' | '30 dias' | '12 meses'>('7 dias');
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const [metrics, setMetrics] = useState({
     faturamento: 'R$ 0,00',
     pedidos: '0',
@@ -261,7 +482,7 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
     pendentes: '0',
     pendentesSub: 'Aguardando ação',
   });
-  
+
   const [chartData, setChartData] = useState<any[]>([]);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [bestSellers, setBestSellers] = useState<any[]>([]);
@@ -282,7 +503,7 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
         } else if (timeRange === '12 meses') {
           start.setMonth(now.getMonth() - 12);
         }
-        
+
         let ordersQuery = supabase.from('orders').select('*').gte('created_at', start.toISOString());
         let productsQuery = supabase.from('products').select('*');
         let todayOrdersQuery = supabase.from('orders').select('id, created_at');
@@ -290,32 +511,32 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
         todayOrdersQuery = todayOrdersQuery.gte('created_at', todayStart.toISOString());
-        
+
         if (storeId) {
           ordersQuery = ordersQuery.eq('store_id', storeId);
           productsQuery = productsQuery.eq('store_id', storeId);
           todayOrdersQuery = todayOrdersQuery.eq('store_id', storeId);
         }
-        
+
         const [ordersRes, productsRes, todayOrdersRes] = await Promise.all([
           ordersQuery,
           productsQuery,
           todayOrdersQuery
         ]);
-        
+
         if (!isMounted) return;
 
         const orders = ordersRes.data || [];
         const products = productsRes.data || [];
         const todayOrdersCount = todayOrdersRes.data?.length || 0;
-        
+
         const faturamentoNum = orders
           .filter(o => o.status === 'Pago' || o.status === 'Aprovado')
           .reduce((acc, o) => acc + (Number(o.total) || 0), 0);
-          
+
         const pendentesNum = orders.filter(o => o.status === 'Pendente' || o.status === 'Aguardando ação').length;
         const ativosNum = products.filter(p => p.is_active).length;
-        
+
         setMetrics({
           faturamento: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(faturamentoNum),
           pedidos: String(orders.length),
@@ -325,61 +546,61 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
           pendentes: String(pendentesNum),
           pendentesSub: 'Aguardando ação'
         });
-        
+
         const groupedSales = new Map<string, number>();
         if (timeRange === 'Hoje') {
-          for(let i = 0; i <= now.getHours(); i++) {
+          for (let i = 0; i <= now.getHours(); i++) {
             groupedSales.set(i.toString().padStart(2, '0') + ':00', 0);
           }
         } else if (timeRange === '7 dias' || timeRange === '30 dias') {
           const days = timeRange === '7 dias' ? 6 : 29;
-          for(let i = days; i >= 0; i--) {
+          for (let i = days; i >= 0; i--) {
             const d = new Date();
             d.setDate(d.getDate() - i);
-            groupedSales.set(`${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}`, 0);
+            groupedSales.set(`${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`, 0);
           }
         } else if (timeRange === '12 meses') {
-           for(let i = 11; i >= 0; i--) {
-             const d = new Date();
-             d.setMonth(d.getMonth() - i);
-             const monthStr = d.toLocaleString('pt-BR', { month: 'short' }).replace('.', '');
-             groupedSales.set(monthStr.charAt(0).toUpperCase() + monthStr.slice(1), 0);
-           }
+          for (let i = 11; i >= 0; i--) {
+            const d = new Date();
+            d.setMonth(d.getMonth() - i);
+            const monthStr = d.toLocaleString('pt-BR', { month: 'short' }).replace('.', '');
+            groupedSales.set(monthStr.charAt(0).toUpperCase() + monthStr.slice(1), 0);
+          }
         }
-        
+
         orders.filter(o => o.status === 'Pago' || o.status === 'Aprovado').forEach(o => {
-           const d = new Date(o.created_at);
-           let key = '';
-           if (timeRange === 'Hoje') {
-             key = d.getHours().toString().padStart(2, '0') + ':00';
-           } else if (timeRange === '7 dias' || timeRange === '30 dias') {
-             key = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}`;
-           } else {
-             const monthStr = d.toLocaleString('pt-BR', { month: 'short' }).replace('.', '');
-             key = monthStr.charAt(0).toUpperCase() + monthStr.slice(1);
-           }
-           if(groupedSales.has(key)) {
-             groupedSales.set(key, groupedSales.get(key)! + (Number(o.total) || 0));
-           } else {
-             groupedSales.set(key, (Number(o.total) || 0));
-           }
+          const d = new Date(o.created_at);
+          let key = '';
+          if (timeRange === 'Hoje') {
+            key = d.getHours().toString().padStart(2, '0') + ':00';
+          } else if (timeRange === '7 dias' || timeRange === '30 dias') {
+            key = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+          } else {
+            const monthStr = d.toLocaleString('pt-BR', { month: 'short' }).replace('.', '');
+            key = monthStr.charAt(0).toUpperCase() + monthStr.slice(1);
+          }
+          if (groupedSales.has(key)) {
+            groupedSales.set(key, groupedSales.get(key)! + (Number(o.total) || 0));
+          } else {
+            groupedSales.set(key, (Number(o.total) || 0));
+          }
         });
-        
+
         setChartData(Array.from(groupedSales.entries()).map(([date, sales]) => ({ date, sales })));
-        
-        const sortedOrders = [...orders].sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+        const sortedOrders = [...orders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         setRecentOrders(sortedOrders.slice(0, 5).map(o => ({
-           id: o.id,
-           name: o.customer_name || 'Desconhecido',
-           email: o.customer_email || '-',
-           date: new Date(o.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', ''),
-           value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(o.total)||0),
-           status: o.status || 'Pendente'
+          id: o.id,
+          name: o.customer_name || 'Desconhecido',
+          email: o.customer_email || '-',
+          date: new Date(o.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', ''),
+          value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(o.total) || 0),
+          status: o.status || 'Pendente'
         })));
-        
-        const productSales = new Map<string, {name: string, sales: number, img: string}>();
+
+        const productSales = new Map<string, { name: string, sales: number, img: string }>();
         let totalItemsSold = 0;
-        
+
         orders.filter(o => o.status === 'Pago' || o.status === 'Aprovado').forEach(o => {
           if (o.items && Array.isArray(o.items)) {
             o.items.forEach(item => {
@@ -395,9 +616,9 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
             });
           }
         });
-        
+
         const sortedBestSellers = Array.from(productSales.values())
-          .sort((a,b) => b.sales - a.sales)
+          .sort((a, b) => b.sales - a.sales)
           .slice(0, 5)
           .map(p => ({
             name: p.name,
@@ -405,9 +626,9 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
             percentage: totalItemsSold > 0 ? Math.round((p.sales / totalItemsSold) * 100) : 0,
             image: p.img
           }));
-          
+
         setBestSellers(sortedBestSellers);
-        
+
       } catch (e) {
         console.error("Error fetching dashboard data", e);
       } finally {
@@ -419,215 +640,215 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
   }, [timeRange, storeId]);
 
   return (
-  <div className="space-y-8 animate-in fade-in duration-500 relative">
-    {isLoading && (
-       <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-2xl">
-         <div className="w-8 h-8 rounded-full border-4 border-indigo-100 border-t-[#5551FF] animate-spin mb-4" />
-         <span className="text-sm font-bold text-gray-500 animate-pulse">Carregando métricas reais...</span>
-       </div>
-    )}
-    <div className="flex flex-col sm:items-center sm:flex-row justify-between gap-4">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500">Bem-vindo de volta 👋</p>
-      </div>
-      <button
-        onClick={() => onNavigate('produtos')}
-        className="w-full sm:w-auto bg-[#5551FF] text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-medium hover:bg-[#4440FF] transition-colors shadow-sm"
-      >
-        <Plus size={18} />
-        Novo produto
-      </button>
-    </div>
-
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <StatCard
-        icon={DollarSign}
-        label="Faturamento"
-        value={metrics.faturamento}
-        subtext={metrics.pedidosSub.includes('hoje') ? 'Pedidos pagos' : 'Pedidos pagos'} 
-        color="bg-blue-50 text-blue-600"
-      />
-      <StatCard
-        icon={ShoppingCart}
-        label="Pedidos"
-        value={metrics.pedidos}
-        subtext={metrics.pedidosSub}
-        color="bg-indigo-50 text-indigo-600"
-      />
-      <StatCard
-        icon={Box}
-        label="Produtos"
-        value={metrics.produtos}
-        subtext={metrics.produtosSub}
-        color="bg-purple-50 text-purple-600"
-      />
-      <StatCard
-        icon={TrendingUp}
-        label="Pendentes"
-        value={metrics.pendentes}
-        subtext={metrics.pendentesSub}
-        color="bg-orange-50 text-orange-600"
-      />
-    </div>
-
-    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div className="space-y-8 animate-in fade-in duration-500 relative">
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-2xl">
+          <div className="w-8 h-8 rounded-full border-4 border-indigo-100 border-t-[#5551FF] animate-spin mb-4" />
+          <span className="text-sm font-bold text-gray-500 animate-pulse">Carregando métricas reais...</span>
+        </div>
+      )}
+      <div className="flex flex-col sm:items-center sm:flex-row justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">Vendas</h2>
-          <p className="text-sm text-gray-500">{timeRange === 'Hoje' ? 'Hoje' : `Últimos ${timeRange}`}</p>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-500">Bem-vindo de volta 👋</p>
         </div>
-        <div className="flex items-center p-1 bg-white border border-gray-200 rounded-lg shadow-sm">
-          {(['Hoje', '7 dias', '30 dias', '12 meses'] as const).map((range) => (
-            <button
-              key={range}
-              onClick={() => setTimeRange(range)}
-              className={cn(
-                "px-4 py-1.5 text-xs font-bold rounded-md transition-all",
-                timeRange === range
-                  ? "bg-[#5551FF] text-white shadow-sm"
-                  : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-              )}
-            >
-              {range}
-            </button>
-          ))}
-        </div>
+        <button
+          onClick={() => onNavigate('produtos')}
+          className="w-full sm:w-auto bg-[#5551FF] text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-medium hover:bg-[#4440FF] transition-colors shadow-sm"
+        >
+          <Plus size={18} />
+          Novo produto
+        </button>
       </div>
-      <div className="h-[300px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData}>
-            <defs>
-              <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#5551FF" stopOpacity={0.1} />
-                <stop offset="95%" stopColor="#5551FF" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-            <XAxis
-              dataKey="date"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 12, fill: '#9CA3AF' }}
-              dy={10}
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tickFormatter={(val) => 
-                new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val)
-              }
-              tick={{ fontSize: 12, fill: '#9CA3AF' }}
-              dx={-10}
-            />
-            <Tooltip
-              contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-              formatter={(val) => [new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val), 'Faturamento']}
-            />
-            <Area
-              type="monotone"
-              dataKey="sales"
-              stroke="#5551FF"
-              strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#colorSales)"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
 
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-lg font-bold text-gray-900">Pedidos recentes</h2>
-            <p className="text-sm text-gray-500">{recentOrders.length} pedido(s) no total</p>
-          </div>
-          <button
-            onClick={() => onNavigate('pedidos')}
-            className="text-[#5551FF] text-sm font-bold flex items-center gap-1 hover:underline"
-          >
-            Ver todos <ArrowRight size={14} />
-          </button>
-        </div>
-        <div className="space-y-4">
-          {recentOrders.length > 0 ? recentOrders.map((order) => (
-            <div key={order.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
-              <div className="flex items-center gap-4 min-w-0">
-                <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-[#5551FF] font-bold text-sm shrink-0">
-                  {order.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <h4 className="text-sm font-bold text-gray-900 truncate">{order.name}</h4>
-                  <p className="text-xs text-gray-400 truncate">{order.email} • {order.date}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-bold text-gray-900">{order.value}</span>
-                <span className={cn(
-                  "text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider",
-                  order.status === 'Cancelado' || order.status === 'Recusado' ? "bg-red-50 text-red-500" : 
-                  order.status === 'Pago' || order.status === 'Aprovado' ? "bg-emerald-50 text-emerald-500" :
-                  "bg-orange-50 text-orange-500"
-                )}>
-                  {order.status}
-                </span>
-              </div>
-            </div>
-          )) : (
-            <p className="text-sm text-gray-400 py-4 text-center">Nenhum pedido no período.</p>
-          )}
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          icon={DollarSign}
+          label="Faturamento"
+          value={metrics.faturamento}
+          subtext={metrics.pedidosSub.includes('hoje') ? 'Pedidos pagos' : 'Pedidos pagos'}
+          color="bg-blue-50 text-blue-600"
+        />
+        <StatCard
+          icon={ShoppingCart}
+          label="Pedidos"
+          value={metrics.pedidos}
+          subtext={metrics.pedidosSub}
+          color="bg-indigo-50 text-indigo-600"
+        />
+        <StatCard
+          icon={Box}
+          label="Produtos"
+          value={metrics.produtos}
+          subtext={metrics.produtosSub}
+          color="bg-purple-50 text-purple-600"
+        />
+        <StatCard
+          icon={TrendingUp}
+          label="Pendentes"
+          value={metrics.pendentes}
+          subtext={metrics.pendentesSub}
+          color="bg-orange-50 text-orange-600"
+        />
       </div>
 
       <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <h2 className="text-lg font-bold text-gray-900 mb-1">Mais vendidos</h2>
-        <p className="text-sm text-gray-500 mb-6">Por quantidade de pedidos</p>
-        <div className="space-y-6">
-          {bestSellers.length > 0 ? bestSellers.map((product) => (
-            <div key={product.name} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <img src={product.image || 'https://via.placeholder.com/40'} alt={product.name} className="w-10 h-10 rounded-lg object-cover" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/40'; }} />
-                  <span className="text-sm font-bold text-gray-900 truncate max-w-[150px]">{product.name}</span>
-                </div>
-                <span className="text-xs text-gray-400 font-medium whitespace-nowrap">{product.sales} vendas</span>
-              </div>
-              <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${product.percentage}%` }}
-                  transition={{ duration: 1, ease: "easeOut" }}
-                  className="h-full bg-[#5551FF] rounded-full"
-                />
-              </div>
-            </div>
-          )) : (
-            <p className="text-sm text-gray-400 py-4 text-center">Nenhuma venda registrada.</p>
-          )}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Vendas</h2>
+            <p className="text-sm text-gray-500">{timeRange === 'Hoje' ? 'Hoje' : `Últimos ${timeRange}`}</p>
+          </div>
+          <div className="flex items-center p-1 bg-white border border-gray-200 rounded-lg shadow-sm">
+            {(['Hoje', '7 dias', '30 dias', '12 meses'] as const).map((range) => (
+              <button
+                key={range}
+                onClick={() => setTimeRange(range)}
+                className={cn(
+                  "px-4 py-1.5 text-xs font-bold rounded-md transition-all",
+                  timeRange === range
+                    ? "bg-[#5551FF] text-white shadow-sm"
+                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                )}
+              >
+                {range}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="h-[300px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#5551FF" stopOpacity={0.1} />
+                  <stop offset="95%" stopColor="#5551FF" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+              <XAxis
+                dataKey="date"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fill: '#9CA3AF' }}
+                dy={10}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(val) =>
+                  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val)
+                }
+                tick={{ fontSize: 12, fill: '#9CA3AF' }}
+                dx={-10}
+              />
+              <Tooltip
+                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                formatter={(val) => [new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val), 'Faturamento']}
+              />
+              <Area
+                type="monotone"
+                dataKey="sales"
+                stroke="#5551FF"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#colorSales)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       </div>
-    </div>
 
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {[
-        { title: 'Gerenciar produtos', desc: 'Adicionar, editar ou remover', action: 'produtos' },
-        { title: 'Ver pedidos', desc: 'Acompanhar e atualizar status', action: 'pedidos' },
-        { title: 'Editar loja', desc: 'Logo, cores e informações', action: 'minha-loja' }
-      ].map((action) => (
-        <button
-          key={action.title}
-          onClick={() => onNavigate(action.action as View)}
-          className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all text-left group"
-        >
-          <h3 className="text-sm font-bold text-gray-900 mb-1">{action.title}</h3>
-          <p className="text-xs text-gray-400 mb-4">{action.desc}</p>
-          <ArrowRight size={16} className="text-gray-300 group-hover:text-[#5551FF] transition-colors" />
-        </button>
-      ))}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Pedidos recentes</h2>
+              <p className="text-sm text-gray-500">{recentOrders.length} pedido(s) no total</p>
+            </div>
+            <button
+              onClick={() => onNavigate('pedidos')}
+              className="text-[#5551FF] text-sm font-bold flex items-center gap-1 hover:underline"
+            >
+              Ver todos <ArrowRight size={14} />
+            </button>
+          </div>
+          <div className="space-y-4">
+            {recentOrders.length > 0 ? recentOrders.map((order) => (
+              <div key={order.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-[#5551FF] font-bold text-sm shrink-0">
+                    {order.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-bold text-gray-900 truncate">{order.name}</h4>
+                    <p className="text-xs text-gray-400 truncate">{order.email} • {order.date}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-bold text-gray-900">{order.value}</span>
+                  <span className={cn(
+                    "text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider",
+                    order.status === 'Cancelado' || order.status === 'Recusado' ? "bg-red-50 text-red-500" :
+                      order.status === 'Pago' || order.status === 'Aprovado' ? "bg-emerald-50 text-emerald-500" :
+                        "bg-orange-50 text-orange-500"
+                  )}>
+                    {order.status}
+                  </span>
+                </div>
+              </div>
+            )) : (
+              <p className="text-sm text-gray-400 py-4 text-center">Nenhum pedido no período.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+          <h2 className="text-lg font-bold text-gray-900 mb-1">Mais vendidos</h2>
+          <p className="text-sm text-gray-500 mb-6">Por quantidade de pedidos</p>
+          <div className="space-y-6">
+            {bestSellers.length > 0 ? bestSellers.map((product) => (
+              <div key={product.name} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <img src={product.image || 'https://via.placeholder.com/40'} alt={product.name} className="w-10 h-10 rounded-lg object-cover" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/40'; }} />
+                    <span className="text-sm font-bold text-gray-900 truncate max-w-[150px]">{product.name}</span>
+                  </div>
+                  <span className="text-xs text-gray-400 font-medium whitespace-nowrap">{product.sales} vendas</span>
+                </div>
+                <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${product.percentage}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                    className="h-full bg-[#5551FF] rounded-full"
+                  />
+                </div>
+              </div>
+            )) : (
+              <p className="text-sm text-gray-400 py-4 text-center">Nenhuma venda registrada.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[
+          { title: 'Gerenciar produtos', desc: 'Adicionar, editar ou remover', action: 'produtos' },
+          { title: 'Ver pedidos', desc: 'Acompanhar e atualizar status', action: 'pedidos' },
+          { title: 'Editar loja', desc: 'Logo, cores e informações', action: 'minha-loja' }
+        ].map((action) => (
+          <button
+            key={action.title}
+            onClick={() => onNavigate(action.action as View)}
+            className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all text-left group"
+          >
+            <h3 className="text-sm font-bold text-gray-900 mb-1">{action.title}</h3>
+            <p className="text-xs text-gray-400 mb-4">{action.desc}</p>
+            <ArrowRight size={16} className="text-gray-300 group-hover:text-[#5551FF] transition-colors" />
+          </button>
+        ))}
+      </div>
     </div>
-  </div>
   );
 };
 
@@ -1070,7 +1291,8 @@ const MinhaLojaView = ({ onAction, session, storeId }: { onAction: (msg: string)
     razao_social: '',
     cnpj: '',
     business_hours: '',
-    footer_note: ''
+    footer_note: '',
+    origin_cep: ''
   });
 
   useEffect(() => {
@@ -1226,6 +1448,21 @@ const MinhaLojaView = ({ onAction, session, storeId }: { onAction: (msg: string)
                 placeholder="Rua Exemplo, 123 - Cidade, Estado"
                 className="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all"
               />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                CEP de Origem para Cálculo de Frete
+                <span className="text-[9px] font-medium text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full normal-case tracking-normal">Melhor Envio</span>
+              </label>
+              <input
+                type="text"
+                value={store.origin_cep || ''}
+                onChange={e => setStore({ ...store, origin_cep: e.target.value.replace(/\D/g, '').slice(0, 8) })}
+                placeholder="Ex: 01310100"
+                maxLength={8}
+                className="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all font-mono tracking-widest"
+              />
+              <p className="text-[10px] text-gray-400">CEP de onde seus produtos serão enviados. Usado para calcular o frete automaticamente no checkout.</p>
             </div>
             <div className="space-y-2 md:col-span-2">
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Chave PIX</label>
@@ -1664,7 +1901,7 @@ const AdminGlobalDashboard = ({ onAction }: { onAction: (msg: string) => void })
         const { count: userCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
         const { count: storeCount } = await supabase.from('stores').select('*', { count: 'exact', head: true });
         const { data: subs } = await supabase.from('subscriptions').select('price, status');
-        
+
         const active = subs?.filter(s => s.status === 'active').length || 0;
         const totalRevenue = subs?.reduce((acc, s) => acc + Number(s.price), 0) || 0;
 
@@ -1782,7 +2019,7 @@ const AdminUserList = ({ onAction }: { onAction: (msg: string) => void }) => {
                   </span>
                 </td>
                 <td className="px-8 py-5 text-right">
-                  <button 
+                  <button
                     onClick={() => toggleStatus(u.id, u.status)}
                     className={cn(
                       "p-2 rounded-lg transition-colors",
@@ -1915,9 +2152,9 @@ const AdminAccessControl = ({ onAction }: { onAction: (msg: string) => void }) =
             <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">E-mail do Cliente</label>
             <div className="relative">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
-              <input 
-                type="email" 
-                required 
+              <input
+                type="email"
+                required
                 value={formData.email}
                 onChange={e => setFormData({ ...formData, email: e.target.value })}
                 placeholder="cliente@email.com"
@@ -1931,7 +2168,7 @@ const AdminAccessControl = ({ onAction }: { onAction: (msg: string) => void }) =
               <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Plano</label>
               <div className="relative">
                 <Layers className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
-                <select 
+                <select
                   value={formData.plan}
                   onChange={e => setFormData({ ...formData, plan: e.target.value })}
                   className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-50 transition-all font-bold appearance-none bg-no-repeat"
@@ -1947,9 +2184,9 @@ const AdminAccessControl = ({ onAction }: { onAction: (msg: string) => void }) =
               <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Duração (Dias)</label>
               <div className="relative">
                 <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
-                <input 
-                  type="number" 
-                  required 
+                <input
+                  type="number"
+                  required
                   value={formData.days}
                   onChange={e => setFormData({ ...formData, days: parseInt(e.target.value) })}
                   className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-50 transition-all font-bold"
@@ -1959,8 +2196,8 @@ const AdminAccessControl = ({ onAction }: { onAction: (msg: string) => void }) =
           </div>
         </div>
 
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           disabled={loading}
           className="w-full bg-[#5551FF] text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-[#4440FF] transition-all shadow-xl shadow-indigo-200 disabled:opacity-70 flex items-center justify-center gap-3"
         >
@@ -2387,7 +2624,7 @@ const MinhasLojasView = ({ session, onAction, stores, activeStoreId, onSelectSto
                 </div>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3 pt-4 border-t border-gray-50">
               <button
                 onClick={() => onSelectStore(store.id)}
@@ -2425,7 +2662,7 @@ const MinhasLojasView = ({ session, onAction, stores, activeStoreId, onSelectSto
                   <input type="text" required value={newStoreName} onChange={e => setNewStoreName(e.target.value)} placeholder="Ex: Minha Loja" className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100" />
                 </div>
                 <button type="submit" disabled={loading || !newStoreName} className="w-full py-3 bg-[#5551FF] text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#4440FF] disabled:opacity-50">
-                  {loading ? 'Criando...' : <><Plus size={16}/> Criar Loja</>}
+                  {loading ? 'Criando...' : <><Plus size={16} /> Criar Loja</>}
                 </button>
               </form>
             </motion.div>
@@ -2666,7 +2903,7 @@ export default function App() {
       }
 
       setUserProfile(profile as UserProfile);
-      
+
       // Auto-navigate to admin dashboard if admin
       if (profile.role === 'admin' && currentView === 'dashboard') {
         setCurrentView('admin-dashboard');
@@ -2749,7 +2986,7 @@ export default function App() {
             <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Motivo</p>
             <p className="text-xs font-bold text-gray-600 italic">Violação dos termos de uso ou pendência financeira.</p>
           </div>
-          <button 
+          <button
             onClick={() => supabase.auth.signOut()}
             className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-black transition-all flex items-center justify-center gap-2"
           >
@@ -2789,7 +3026,7 @@ export default function App() {
             </div>
             <span className="text-xl font-black tracking-tight text-gray-900">NEXORA</span>
           </div>
-          <button 
+          <button
             onClick={() => setIsSidebarOpen(false)}
             className="p-2 text-gray-400 hover:text-gray-900 lg:hidden"
           >
@@ -2826,17 +3063,18 @@ export default function App() {
             <>
               <p className="px-4 text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-3">Menu</p>
               <SidebarItem icon={LayoutDashboard} label="Dashboard" active={currentView === 'dashboard'} onClick={() => { setCurrentView('dashboard'); setIsSidebarOpen(false); }} />
-              
+
               {/* Only show Store options if user is not on FREE plan or has a store */}
               {userProfile?.plan !== 'free' && (
                 <>
                   <SidebarItem icon={Package} label="Produtos" active={currentView === 'produtos'} onClick={() => { setCurrentView('produtos'); setIsSidebarOpen(false); }} />
                   <SidebarItem icon={ShoppingBag} label="Pedidos" active={currentView === 'pedidos'} onClick={() => { setCurrentView('pedidos'); setIsSidebarOpen(false); }} />
+                  <SidebarItem icon={Wallet} label="Pagamentos" active={currentView === 'pagamentos'} onClick={() => { setCurrentView('pagamentos'); setIsSidebarOpen(false); }} />
                 </>
               )}
 
               <SidebarItem icon={BookOpen} label="Catálogo" active={currentView === 'catalogo'} onClick={() => { setCurrentView('catalogo'); setIsSidebarOpen(false); }} />
-              
+
               {userProfile?.plan !== 'free' && (
                 <>
                   <SidebarItem icon={Palette} label="Aparência da loja" active={currentView === 'aparencia'} onClick={() => { setCurrentView('aparencia'); setIsSidebarOpen(false); }} />
@@ -2867,7 +3105,7 @@ export default function App() {
         {/* Navbar */}
         <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 sm:px-8 shrink-0">
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={() => setIsSidebarOpen(true)}
               className="p-2 -ml-2 text-gray-400 hover:text-gray-900 lg:hidden"
             >
@@ -3029,7 +3267,8 @@ export default function App() {
                   />
                 )}
                 {currentView === 'admin-assinaturas' && <AdminSubscribersView onAction={notify} session={session} />}
-                {currentView === 'pedidos' && <OrdersView session={session} storeId={storeId} onAction={notify}/>}
+                {currentView === 'pedidos' && <OrdersView session={session} storeId={activeStoreId} onAction={notify} />}
+                {currentView === 'pagamentos' && <PaymentSettingsView session={session} storeId={activeStoreId} onAction={notify} />}
                 {currentView === 'produtos' && <ProductsView onAction={notify} session={session} storeId={activeStoreId} />}
                 {currentView === 'dominio' && (
                   <div className="max-w-2xl mx-auto space-y-12 py-12">
@@ -3080,10 +3319,10 @@ export default function App() {
 
                       <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6 relative overflow-hidden">
                         <div className="absolute inset-0 bg-gray-50/20 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                           <div className="bg-gray-900 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-xl flex items-center gap-2">
-                             <Clock size={16} />
-                             Funcionamento em breve
-                           </div>
+                          <div className="bg-gray-900 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-xl flex items-center gap-2">
+                            <Clock size={16} />
+                            Funcionamento em breve
+                          </div>
                         </div>
                         <div className="flex items-center justify-between opacity-80">
                           <div className="flex items-center gap-2 text-[#5551FF] font-bold text-sm">
