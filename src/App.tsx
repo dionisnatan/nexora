@@ -78,26 +78,105 @@ interface UserProfile {
 
 // --- Mock Data ---
 
-const chartData = [
-  { date: '01/03', sales: 2 },
-  { date: '02/03', sales: 2 },
-  { date: '03/03', sales: 2 },
-  { date: '04/03', sales: 2 },
-  { date: '05/03', sales: 6 },
-  { date: '06/03', sales: 28 },
-  { date: '07/03', sales: 4 },
-];
-
-const recentOrders = [
-  { id: 1, name: 'teste', email: 'dionis natan silva lopes', date: '06 mar', value: 'R$ 29,90', status: 'Cancelado' },
-  { id: 2, name: 'teste', email: 'dionis natan silva lopes', date: '06 mar', value: 'R$ 29,90', status: 'Cancelado' },
-  { id: 3, name: 'print', email: '', date: '06 mar', value: 'R$ 29,90', status: 'Pago' },
-];
-
-const bestSellers = [
-  { name: 'teste', sales: 2, percentage: 80, image: 'https://picsum.photos/seed/teste/40/40' },
-  { name: 'print', sales: 1, percentage: 40, image: 'https://picsum.photos/seed/print/40/40' },
-];
+const dashboardData = {
+  'Hoje': {
+    faturamento: 'R$ 0,00',
+    pedidos: '0',
+    pedidosSub: '0 hoje',
+    produtos: '2',
+    produtosSub: '2 ativos',
+    pendentes: '0',
+    pendentesSub: 'Aguardando ação',
+    chartData: [
+      { date: '00:00', sales: 0 },
+      { date: '06:00', sales: 0 },
+      { date: '12:00', sales: 0 },
+      { date: '18:00', sales: 0 },
+      { date: '23:59', sales: 0 },
+    ],
+    recentOrders: [],
+    bestSellers: []
+  },
+  '7 dias': {
+    faturamento: 'R$ 29,90',
+    pedidos: '3',
+    pedidosSub: '0 hoje',
+    produtos: '2',
+    produtosSub: '2 ativos',
+    pendentes: '0',
+    pendentesSub: 'Aguardando ação',
+    chartData: [
+      { date: '01/03', sales: 2 },
+      { date: '02/03', sales: 2 },
+      { date: '03/03', sales: 2 },
+      { date: '04/03', sales: 2 },
+      { date: '05/03', sales: 6 },
+      { date: '06/03', sales: 28 },
+      { date: '07/03', sales: 4 },
+    ],
+    recentOrders: [
+      { id: 1, name: 'teste', email: 'dionis natan silva lopes', date: '06 mar', value: 'R$ 29,90', status: 'Cancelado' },
+      { id: 2, name: 'teste', email: 'dionis natan silva lopes', date: '06 mar', value: 'R$ 29,90', status: 'Cancelado' },
+      { id: 3, name: 'print', email: '', date: '06 mar', value: 'R$ 29,90', status: 'Pago' },
+    ],
+    bestSellers: [
+      { name: 'teste', sales: 2, percentage: 80, image: 'https://picsum.photos/seed/teste/40/40' },
+      { name: 'print', sales: 1, percentage: 40, image: 'https://picsum.photos/seed/print/40/40' },
+    ]
+  },
+  '30 dias': {
+    faturamento: 'R$ 1.250,55',
+    pedidos: '45',
+    pedidosSub: '3 hoje',
+    produtos: '5',
+    produtosSub: '4 ativos',
+    pendentes: '2',
+    pendentesSub: 'Aguardando envio',
+    chartData: [
+      { date: '10/02', sales: 12 },
+      { date: '15/02', sales: 18 },
+      { date: '20/02', sales: 25 },
+      { date: '25/02', sales: 15 },
+      { date: '02/03', sales: 30 },
+      { date: '07/03', sales: 45 },
+    ],
+    recentOrders: [
+      { id: 4, name: 'João Silva', email: 'joao@email.com', date: '05 mar', value: 'R$ 150,00', status: 'Pago' },
+      { id: 5, name: 'Maria Santos', email: 'maria@email.com', date: '02 mar', value: 'R$ 89,90', status: 'Pago' },
+      { id: 6, name: 'Pedro Costa', email: 'pedro@email.com', date: '28 fev', value: 'R$ 250,00', status: 'Cancelado' },
+    ],
+    bestSellers: [
+      { name: 'Camiseta', sales: 25, percentage: 60, image: 'https://picsum.photos/seed/teste/40/40' },
+      { name: 'Calça', sales: 15, percentage: 30, image: 'https://picsum.photos/seed/print/40/40' },
+      { name: 'Boné', sales: 5, percentage: 10, image: 'https://picsum.photos/seed/bone/40/40' },
+    ]
+  },
+  '12 meses': {
+    faturamento: 'R$ 45.890,00',
+    pedidos: '856',
+    pedidosSub: '12 esta semana',
+    produtos: '12',
+    produtosSub: '10 ativos',
+    pendentes: '5',
+    pendentesSub: 'Aguardando ação',
+    chartData: [
+      { date: 'Abr', sales: 350 },
+      { date: 'Jul', sales: 420 },
+      { date: 'Out', sales: 580 },
+      { date: 'Jan', sales: 856 },
+      { date: 'Mar', sales: 856 },
+    ],
+    recentOrders: [
+      { id: 7, name: 'Empresa X', email: 'contato@x.com', date: '15 fev', value: 'R$ 1.500,00', status: 'Pago' },
+      { id: 8, name: 'Cliente Y', email: 'cliente@y.com', date: '10 fev', value: 'R$ 890,90', status: 'Pago' },
+    ],
+    bestSellers: [
+      { name: 'Produto Premium', sales: 450, percentage: 55, image: 'https://picsum.photos/seed/teste/40/40' },
+      { name: 'Produto Standard', sales: 300, percentage: 35, image: 'https://picsum.photos/seed/print/40/40' },
+      { name: 'Acessório', sales: 106, percentage: 10, image: 'https://picsum.photos/seed/bone/40/40' },
+    ]
+  }
+};
 
 // --- Components ---
 
@@ -163,7 +242,8 @@ const StatCard = ({ icon: Icon, label, value, subtext, color }: { icon: any, lab
 // --- Views ---
 
 const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: string) => void; onNavigate: (view: View) => void; storeId: string | null }) => {
-  const [timeRange, setTimeRange] = useState('7 dias');
+  const [timeRange, setTimeRange] = useState<'Hoje' | '7 dias' | '30 dias' | '12 meses'>('7 dias');
+  const currentData = dashboardData[timeRange];
   
   return (
   <div className="space-y-8 animate-in fade-in duration-500">
@@ -185,29 +265,29 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
       <StatCard
         icon={DollarSign}
         label="Faturamento"
-        value="R$ 29,90"
+        value={currentData.faturamento}
         subtext="Pedidos pagos"
         color="bg-blue-50 text-blue-600"
       />
       <StatCard
         icon={ShoppingCart}
         label="Pedidos"
-        value="3"
-        subtext="0 hoje"
+        value={currentData.pedidos}
+        subtext={currentData.pedidosSub}
         color="bg-indigo-50 text-indigo-600"
       />
       <StatCard
         icon={Box}
         label="Produtos"
-        value="2"
-        subtext="2 ativos"
+        value={currentData.produtos}
+        subtext={currentData.produtosSub}
         color="bg-purple-50 text-purple-600"
       />
       <StatCard
         icon={TrendingUp}
         label="Pendentes"
-        value="0"
-        subtext="Aguardando ação"
+        value={currentData.pendentes}
+        subtext={currentData.pendentesSub}
         color="bg-orange-50 text-orange-600"
       />
     </div>
@@ -216,10 +296,10 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-lg font-bold text-gray-900">Vendas</h2>
-          <p className="text-sm text-gray-500">Últimos {timeRange}</p>
+          <p className="text-sm text-gray-500">{timeRange === 'Hoje' ? 'Hoje' : `Últimos ${timeRange}`}</p>
         </div>
         <div className="flex items-center p-1 bg-white border border-gray-200 rounded-lg shadow-sm">
-          {['Hoje', '7 dias', '30 dias', '12 meses'].map((range) => (
+          {(['Hoje', '7 dias', '30 dias', '12 meses'] as const).map((range) => (
             <button
               key={range}
               onClick={() => setTimeRange(range)}
@@ -237,7 +317,7 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
       </div>
       <div className="h-[300px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData}>
+          <AreaChart data={currentData.chartData}>
             <defs>
               <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#5551FF" stopOpacity={0.1} />
@@ -279,7 +359,7 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-lg font-bold text-gray-900">Pedidos recentes</h2>
-            <p className="text-sm text-gray-500">3 pedido(s) no total</p>
+            <p className="text-sm text-gray-500">{currentData.recentOrders.length} pedido(s) no total</p>
           </div>
           <button
             onClick={() => onNavigate('pedidos')}
@@ -289,7 +369,7 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
           </button>
         </div>
         <div className="space-y-4">
-          {recentOrders.map((order) => (
+          {currentData.recentOrders.map((order) => (
             <div key={order.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
               <div className="flex items-center gap-4 min-w-0">
                 <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-[#5551FF] font-bold text-sm shrink-0">
@@ -318,7 +398,7 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
         <h2 className="text-lg font-bold text-gray-900 mb-1">Mais vendidos</h2>
         <p className="text-sm text-gray-500 mb-6">Por quantidade de pedidos</p>
         <div className="space-y-6">
-          {bestSellers.map((product) => (
+          {currentData.bestSellers.map((product) => (
             <div key={product.name} className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -2761,7 +2841,7 @@ export default function App() {
                 )}
                 {currentView === 'admin-assinaturas' && <AdminSubscribersView onAction={notify} session={session} />}
                 {currentView === 'pedidos' && (() => {
-                  const filteredOrders = recentOrders.filter(order => orderTab === 'Todos' || order.status === orderTab);
+                  const filteredOrders = dashboardData['30 dias'].recentOrders.filter(order => orderTab === 'Todos' || order.status === orderTab);
                   return (
                     <div className="space-y-8">
                       <div>
