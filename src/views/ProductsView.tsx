@@ -26,6 +26,7 @@ const CATEGORY_ICONS = [
   { name: 'Package', Icon: Package }
 ];
 import { supabase } from '../lib/supabase';
+import { compressImage } from '../lib/imageCompression';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -158,12 +159,15 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
 
   const uploadImage = async (file: File) => {
     if (!session?.user?.id) return null;
-    const fileExt = file.name.split('.').pop();
+    
+    onAction("Otimizando imagem...");
+    const optimizedFile = await compressImage(file);
+    const fileExt = optimizedFile.type.split('/')[1] || 'webp';
     const filePath = `${session.user.id}/prod-${Date.now()}.${fileExt}`;
     
     const { error: uploadError } = await supabase.storage
       .from('store_assets')
-      .upload(filePath, file, { upsert: true });
+      .upload(filePath, optimizedFile, { upsert: true });
       
     if (uploadError) throw uploadError;
     

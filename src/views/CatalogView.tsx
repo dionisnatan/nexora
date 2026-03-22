@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { compressImage } from '../lib/imageCompression';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   BookOpen,
@@ -99,9 +100,11 @@ export const CatalogView = ({ onAction, session, userProfile }: Props) => {
   };
 
   const uploadLogo = async (file: File) => {
-    const fileExt = file.name.split('.').pop();
+    onAction("Otimizando logo...");
+    const optimizedFile = await compressImage(file);
+    const fileExt = optimizedFile.type.split('/')[1] || 'webp';
     const filePath = `${session.user.id}/catalog-logo-${Date.now()}.${fileExt}`;
-    const { error } = await supabase.storage.from('store_assets').upload(filePath, file, { upsert: true });
+    const { error } = await supabase.storage.from('store_assets').upload(filePath, optimizedFile, { upsert: true });
     if (error) throw error;
     const { data } = supabase.storage.from('store_assets').getPublicUrl(filePath);
     return data.publicUrl;
@@ -109,10 +112,12 @@ export const CatalogView = ({ onAction, session, userProfile }: Props) => {
 
   const uploadProductImages = async (files: File[]) => {
     const urls: string[] = [];
-    for (const file of files) {
-      const fileExt = file.name.split('.').pop();
+    for (let i = 0; i < files.length; i++) {
+      onAction(`Otimizando imagem ${i + 1} de ${files.length}...`);
+      const optimizedFile = await compressImage(files[i]);
+      const fileExt = optimizedFile.type.split('/')[1] || 'webp';
       const filePath = `${session.user.id}/catalog-product-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const { error } = await supabase.storage.from('store_assets').upload(filePath, file);
+      const { error } = await supabase.storage.from('store_assets').upload(filePath, optimizedFile);
       if (error) throw error;
       const { data } = supabase.storage.from('store_assets').getPublicUrl(filePath);
       urls.push(data.publicUrl);
