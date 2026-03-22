@@ -71,7 +71,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
     name: '',
     price: '',
     compare_at_price: '',
-    stock: '0',
+    estoque: '0',
     description: '',
     is_active: true,
     category_id: '',
@@ -279,7 +279,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
       name: prod.name || '',
       price: prod.price?.toString() || '',
       compare_at_price: prod.compare_at_price?.toString() || '',
-      stock: prod.stock?.toString() || '0',
+      estoque: prod.estoque?.toString() || '0',
       description: prod.description || '',
       is_active: prod.is_active !== undefined ? prod.is_active : true,
       category_id: prod.category_id || '',
@@ -376,7 +376,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
         name: newProduct.name,
         price: parseFloat(newProduct.price),
         compare_at_price: newProduct.compare_at_price ? parseFloat(newProduct.compare_at_price) : null,
-        stock: parseInt(newProduct.stock),
+        estoque: parseInt(newProduct.estoque),
         description: newProduct.description,
         is_active: newProduct.is_active,
         category_id: newProduct.category_id || null, 
@@ -434,7 +434,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
             name: v.name,
             value: v.value,
             price: v.price ? parseFloat(v.price) : null,
-            stock: parseInt(v.stock) || 0,
+            estoque: parseInt(v.estoque) || 0,
             sku: v.sku || null
           }));
           await supabase.from('product_variations').insert(variationsToInsert);
@@ -446,7 +446,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
       setIsAdding(false);
       setEditingProductId(null);
       // reset form
-      setNewProduct({ name: '', price: '', compare_at_price: '', stock: '0', description: '', is_active: true, category_id: '', sku: '', warranty: '12 meses', pix_discount_percent: '', weight: '', width: '', height: '', length: '', variations: [], extra_info: { technical: '', informative: '' } });
+      setNewProduct({ name: '', price: '', compare_at_price: '', estoque: '0', description: '', is_active: true, category_id: '', sku: '', warranty: '12 meses', pix_discount_percent: '', weight: '', width: '', height: '', length: '', variations: [], extra_info: { technical: '', informative: '' } });
       setImageFiles([]);
       setImagePreviews([]);
       
@@ -467,7 +467,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
     if (sortOption === 'name-za') return b.name.localeCompare(a.name);
     if (sortOption === 'price-high') return Number(b.price) - Number(a.price);
     if (sortOption === 'price-low') return Number(a.price) - Number(b.price);
-    if (sortOption === 'stock-high') return (b.stock || 0) - (a.stock || 0);
+    if (sortOption === 'estoque-high') return (b.estoque || 0) - (a.estoque || 0);
     return 0;
   });
 
@@ -516,7 +516,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
                 onClick={() => {
                   setIsAdding(false);
                   setEditingProductId(null);
-                  setNewProduct({ name: '', price: '', compare_at_price: '', stock: '0', description: '', is_active: true, category_id: '', sku: '', warranty: '12 meses', pix_discount_percent: '', weight: '', width: '', height: '', length: '', variations: [], extra_info: { technical: '', informative: '' } });
+                  setNewProduct({ name: '', price: '', compare_at_price: '', estoque: '0', description: '', is_active: true, category_id: '', sku: '', warranty: '12 meses', pix_discount_percent: '', weight: '', width: '', height: '', length: '', variations: [], extra_info: { technical: '', informative: '' } });
                   setImagePreviews([]);
                   setImageFiles([]);
                   setAiPrompt('');
@@ -737,8 +737,8 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Estoque Total</label>
                 <input 
                   type="number" 
-                  value={newProduct.stock}
-                  onChange={e => setNewProduct({...newProduct, stock: e.target.value})}
+                  value={newProduct.estoque}
+                  onChange={e => setNewProduct({...newProduct, estoque: e.target.value})}
                   className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5551FF]/20 focus:border-[#5551FF] transition-all" 
                 />
               </div>
@@ -804,7 +804,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
                     type="button"
                     onClick={() => setNewProduct({
                       ...newProduct, 
-                      variations: [...newProduct.variations, { name: '', value: '', price: '', stock: '0', sku: '' }]
+                      variations: [...newProduct.variations, { name: '', value: '', price: '', estoque: '0', sku: '' }]
                     })}
                     className="text-xs font-bold text-[#5551FF] hover:underline"
                   >
@@ -872,10 +872,10 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
                             type="number"
                             placeholder="0" 
                             className="w-full px-3 py-2 bg-white border border-gray-100 rounded-lg text-xs"
-                            value={v.stock}
+                            value={v.estoque}
                             onChange={e => {
                               const updated = [...newProduct.variations];
-                              updated[i].stock = e.target.value;
+                              updated[i].estoque = e.target.value;
                               setNewProduct({...newProduct, variations: updated});
                             }}
                           />
@@ -983,7 +983,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
               <option value="name-za">Nome Z-A</option>
               <option value="price-high">Preço Maior</option>
               <option value="price-low">Preço Menor</option>
-              <option value="stock-high">Estoque</option>
+              <option value="estoque-high">Estoque</option>
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
           </div>
@@ -1040,7 +1040,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
                     R$ {Number(prod.price).toFixed(2).replace('.', ',')}
                   </div>
                   <div className="text-right text-xs font-bold text-slate-800">
-                    {prod.stock}<br/>
+                    {prod.estoque}<br/>
                     <span className="text-[10px] text-gray-400">un.</span>
                   </div>
                   <div className="text-center flex justify-center">

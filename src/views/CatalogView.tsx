@@ -159,6 +159,7 @@ export const CatalogView = ({ onAction, session, userProfile }: Props) => {
         price: editingProduct.price,
         compare_at_price: editingProduct.compare_at_price || null,
         sku: editingProduct.sku || '',
+        estoque: parseInt(editingProduct.estoque || '0'),
         image_url: finalImages.join(','),
         is_active: editingProduct.is_active !== false,
         updated_at: new Date().toISOString()
@@ -608,6 +609,10 @@ export const CatalogView = ({ onAction, session, userProfile }: Props) => {
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-gray-400 uppercase">Preço (R$)</label>
                     <input required type="number" step="0.01" value={editingProduct.price} onChange={e => setEditingProduct({...editingProduct, price: e.target.value ? parseFloat(e.target.value) : ''})} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase">Estoque</label>
+                    <input type="number" value={editingProduct.estoque || '0'} onChange={e => setEditingProduct({...editingProduct, estoque: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-gray-400 uppercase">SKU</label>

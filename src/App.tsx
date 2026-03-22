@@ -504,6 +504,66 @@ const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: str
 
   const filteredOrders = orders.filter(order => orderTab === 'Todos' || order.status === orderTab);
 
+  const updateOrderStatus = async (orderId: string, newStatus: string, items: any[]) => {
+    try {
+      // 1. Update the order status
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({ status: newStatus })
+        .eq('id', orderId);
+
+      if (updateError) throw updateError;
+
+      // 2. If confirming (Pago/Aprovado), reduce stock
+      if (newStatus === 'Pago' || newStatus === 'Aprovado') {
+        for (const item of items) {
+          const productId = item.id;
+          const variationId = item.selectedVariation?.id;
+          const quantity = Number(item.quantity) || 1;
+
+          if (variationId) {
+            // It's a variation
+            const { data: variation } = await supabase
+              .from('product_variations')
+              .select('estoque')
+              .eq('id', variationId)
+              .single();
+
+            if (variation) {
+              const newEstoque = Math.max(0, (Number(variation.estoque) || 0) - quantity);
+              await supabase
+                .from('product_variations')
+                .update({ estoque: newEstoque })
+                .eq('id', variationId);
+            }
+          } else if (productId) {
+            // It's a main product
+            const { data: product } = await supabase
+              .from('products')
+              .select('estoque')
+              .eq('id', productId)
+              .single();
+
+            if (product) {
+              const newEstoque = Math.max(0, (Number(product.estoque) || 0) - quantity);
+              await supabase
+                .from('products')
+                .update({ estoque: newEstoque })
+                .eq('id', productId);
+            }
+          }
+        }
+      }
+
+      // 3. Update local state
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+      onAction(`Pedido ${newStatus.toLowerCase()} com sucesso!`);
+    } catch (e: any) {
+      console.error('Error updating order status:', e);
+      onAction('Erro ao atualizar status: ' + e.message);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="w-full h-64 flex flex-col items-center justify-center">
@@ -539,26 +599,67 @@ const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: str
             {filteredOrders.map((order) => {
               const customerName = order.customer_name || 'Desconhecido';
               return (
-                <div key={order.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-gray-100 gap-4 sm:gap-0 hover:bg-gray-50 transition-colors">
+                <div key={order.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-gray-100 gap-4 sm:gap-0 hover:border-indigo-100 hover:bg-indigo-50/10 transition-all">
                   <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-[#5551FF] font-bold text-sm shrink-0">
+                    <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-[#5551FF] font-black text-lg shrink-0">
                       {customerName.charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <h4 className="text-sm font-bold text-gray-900 truncate">{customerName}</h4>
-                      <p className="text-xs text-gray-400 truncate">{order.customer_email || '-'} • {new Date(order.created_at).toLocaleDateString()}</p>
+                      <h4 className="text-sm font-black text-gray-900 truncate">{customerName}</h4>
+                      <p className="text-[10px] font-bold text-gray-400 truncate uppercase tracking-widest">{order.customer_email || '-'} • {new Date(order.created_at).toLocaleDateString()}</p>
+                      <p className="text-[9px] text-gray-400 mt-1 font-mono">{order.id.slice(0, 8)}...</p>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between sm:justify-end gap-4">
-                    <span className="text-sm font-bold text-gray-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(order.total) || 0)}</span>
-                    <span className={cn(
-                      "text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider",
-                      order.status === 'Cancelado' || order.status === 'Recusado' ? "bg-red-50 text-red-500" :
-                        order.status === 'Pago' || order.status === 'Aprovado' ? "bg-emerald-50 text-emerald-500" :
-                          "bg-orange-50 text-orange-500"
-                    )}>
-                      {order.status || 'Pendente'}
-                    </span>
+                  <div className="flex flex-col sm:items-end gap-3">
+                    <div className="flex items-center justify-between sm:justify-end gap-4">
+                      <span className="text-base font-black text-gray-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(order.total) || 0)}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          "text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest border",
+                          order.status === 'Cancelado' || order.status === 'Recusado' ? "bg-red-50 text-red-600 border-red-100" :
+                            order.status === 'Pago' || order.status === 'Aprovado' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                              "bg-orange-50 text-orange-600 border-orange-100"
+                        )}>
+                          {order.status || 'Pendente'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Status Actions */}
+                    <div className="flex items-center gap-2">
+                       {order.status === 'Pendente' && (
+                         <button 
+                           onClick={() => updateOrderStatus(order.id, 'Pago', order.items || [])}
+                           className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors shadow-sm shadow-emerald-200"
+                         >
+                           Confirmar Pago
+                         </button>
+                       )}
+                       {(order.status === 'Pago' || order.status === 'Aprovado') && (
+                         <button 
+                           onClick={() => updateOrderStatus(order.id, 'Enviado', order.items || [])}
+                           className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm shadow-blue-200"
+                         >
+                           Marcar Enviado
+                         </button>
+                       )}
+                       {order.status === 'Enviado' && (
+                         <button 
+                           onClick={() => updateOrderStatus(order.id, 'Entregue', order.items || [])}
+                           className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-black transition-colors"
+                         >
+                           Finalizar Entrega
+                         </button>
+                       )}
+                       {order.status !== 'Cancelado' && order.status !== 'Entregue' && (
+                         <button 
+                           onClick={() => updateOrderStatus(order.id, 'Cancelado', order.items || [])}
+                           className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 border border-red-100 text-red-500 hover:bg-red-50 transition-colors rounded-lg"
+                         >
+                           Cancelar
+                         </button>
+                       )}
+                    </div>
                   </div>
                 </div>
               );

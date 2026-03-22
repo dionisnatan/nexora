@@ -1172,6 +1172,17 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
           </div>
         )}
 
+        {/* Stock Labels Mega */}
+        {product.estoque === 0 ? (
+          <div className="absolute top-4 right-14 z-20 bg-gray-900 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm">
+            Esgotado
+          </div>
+        ) : product.estoque <= 5 ? (
+          <div className="absolute top-4 right-14 z-20 bg-orange-500 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm animate-pulse">
+            Últimas unidades
+          </div>
+        ) : null}
+
         {/* Hover Quick View / Heart */}
         <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0">
           <button onClick={(e) => { e.stopPropagation(); toggleFavorite(product); }} className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
@@ -1398,6 +1409,17 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             -{Math.round((1 - prod.price / prod.compare_at_price) * 100)}%
           </div>
         )}
+        
+        {/* Stock Labels */}
+        {prod.estoque === 0 ? (
+          <div className="absolute top-3 right-3 z-10 px-2 py-1 bg-gray-900/80 text-white text-[8px] font-black uppercase tracking-tighter rounded backdrop-blur-sm">
+            Esgotado
+          </div>
+        ) : prod.estoque <= 5 ? (
+          <div className="absolute top-3 right-3 z-10 px-2 py-1 bg-orange-500 text-white text-[8px] font-black uppercase tracking-tighter rounded animate-pulse">
+            Últimas unidades
+          </div>
+        ) : null}
 
         {/* Product Image */}
         <div className={cn("relative overflow-hidden group", imageStyles)}>
@@ -1959,6 +1981,17 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
   };
 
 
+  const handleWhatsAppAlert = (product: any) => {
+    const phone = store.whatsapp?.replace(/\D/g, '');
+    if (!phone) {
+      showNotification('WhatsApp da loja não configurado.', 'error');
+      return;
+    }
+    const skuInfo = product.sku ? ` (SKU: ${product.sku})` : '';
+    const message = `Olá, tenho interesse no produto: ${product.name}${skuInfo}, mas vi que está indisponível no momento. Poderia me avisar quando voltar ao estoque?`;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
   const handleDirectPurchase = async (price: number, method: 'pix' | 'card') => {
     const productsPayload = cart.length > 0 ? cart : (selectedProduct ? [selectedProduct] : []);
     const canShipPurchase = productsPayload.every(p => p.has_shipping_data !== false);
@@ -2256,6 +2289,19 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                           </div>
                         </div>
                       )}
+
+                      {/* Stock Warning */}
+                      {(selectedVariation?.estoque ?? selectedProduct.estoque) > 0 && (selectedVariation?.estoque ?? selectedProduct.estoque) <= 5 && (
+                        <div className="mt-2 p-2 bg-orange-100 text-orange-700 text-[10px] font-black uppercase tracking-widest rounded-lg flex items-center gap-2 animate-pulse">
+                          <span className="w-1.5 h-1.5 rounded-full bg-orange-600" />
+                          Últimas {(selectedVariation?.estoque ?? selectedProduct.estoque)} unidades disponíveis!
+                        </div>
+                      )}
+                      {(selectedVariation?.estoque ?? selectedProduct.estoque) === 0 && (
+                        <div className="mt-2 p-3 bg-red-100 text-red-700 text-[10px] font-black uppercase tracking-widest rounded-xl border border-red-200 text-center">
+                          Produto indisponível no momento
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -2366,8 +2412,10 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   <div className="space-y-3 p-6 bg-orange-50/50 rounded-3xl border border-orange-100">
                     <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
                       <span className="text-orange-600 flex items-center gap-2 italic">
-                        {Number(selectedVariation?.stock || selectedProduct.stock) <= 10 ? (
-                          `Apenas ${selectedVariation?.stock || selectedProduct.stock} unidades restantes!`
+                        {Number(selectedVariation?.estoque || selectedProduct.estoque) <= 10 ? (
+                          Number(selectedVariation?.estoque || selectedProduct.estoque) === 0 
+                            ? "Esgotado!" 
+                            : `Apenas ${selectedVariation?.estoque || selectedProduct.estoque} unidades restantes!`
                         ) : (
                           "Produto em estoque"
                         )}
@@ -2377,7 +2425,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                     <div className="h-2.5 w-full bg-white rounded-full overflow-hidden border border-orange-100 shadow-inner p-0.5">
                       <motion.div
                         initial={{ width: 0 }}
-                        animate={{ width: `${Math.min(100, (Number(selectedVariation?.stock || selectedProduct.stock) / 50) * 100)}%` }}
+                        animate={{ width: `${Math.min(100, (Number(selectedVariation?.estoque || selectedProduct.estoque) / 50) * 100)}%` }}
                         className="h-full bg-gradient-to-r from-orange-400 to-orange-600 rounded-full shadow-lg"
                       />
                     </div>
@@ -2733,11 +2781,20 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               <div className="p-4 md:p-6 bg-white border-t border-gray-100 shrink-0 relative z-40 space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <button
-                    onClick={() => addToCart(selectedProduct, selectedVariation)}
-                    className={getButtonStyle("flex-1 h-14 bg-white border-2 border-[var(--theme-primary)] text-[var(--theme-primary)] hover:bg-[var(--theme-primary)]/5")}
+                    onClick={() => (selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? addToCart(selectedProduct, selectedVariation) : handleWhatsAppAlert(selectedProduct)}
+                    className={getButtonStyle(`flex-1 h-14 bg-white border-2 border-[var(--theme-primary)] text-[var(--theme-primary)] hover:bg-[var(--theme-primary)]/5`)}
                   >
-                    <ShoppingBag size={18} />
-                    Adicionar
+                    {(selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? (
+                      <>
+                        <ShoppingBag size={18} />
+                        Adicionar
+                      </>
+                    ) : (
+                      <>
+                        <MessageCircle size={18} />
+                        Avisar no WhatsApp
+                      </>
+                    )}
                   </button>
                   {preferenceId ? (
                     <div className="h-24 w-full flex flex-col items-center justify-center gap-2">
@@ -2769,11 +2826,23 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                     </div>
                   ) : (
                     <button
-                      onClick={() => handleDirectPurchase(finalPrice, paymentMethod)}
-                      className="h-16 bg-[#25D366] text-white rounded-[1.5rem] font-black uppercase tracking-[0.15em] text-[10px] hover:scale-[1.02] active:scale-95 transition-all shadow-lg flex items-center justify-center gap-3 group italic shadow-[#25D366]/20"
+                      onClick={() => (selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? handleDirectPurchase(finalPrice, paymentMethod) : handleWhatsAppAlert(selectedProduct)}
+                      className={cn(
+                        "h-16 text-white rounded-[1.5rem] font-black uppercase tracking-[0.15em] text-[10px] hover:scale-[1.02] active:scale-95 transition-all shadow-lg flex items-center justify-center gap-3 group italic",
+                        (selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? "bg-[#25D366] shadow-[#25D366]/20" : "bg-[#0b0b0b] shadow-black/20"
+                      )}
                     >
-                      <ShoppingCart size={18} />
-                      Comprar Agora
+                      {(selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? (
+                        <>
+                          <ShoppingCart size={18} />
+                          Comprar Agora
+                        </>
+                      ) : (
+                        <>
+                          <MessageCircle size={18} />
+                          Avisar no WhatsApp
+                        </>
+                      )}
                     </button>
                   )}
                 </div>
@@ -2859,6 +2928,12 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Valor Final</p>
                   <p className="text-3xl font-black text-gray-900">R$ {finalPrice.toFixed(2).replace('.', ',')}</p>
                   <p className="text-[10px] font-black text-emerald-600 mt-1 uppercase tracking-widest">ou R$ {pixPrice.toFixed(2).replace('.', ',')} no PIX</p>
+                  {(selectedVariation?.estoque ?? selectedProduct.estoque) <= 5 && (selectedVariation?.estoque ?? selectedProduct.estoque) > 0 && (
+                    <p className="text-[9px] font-black text-orange-500 uppercase mt-2 animate-pulse">Últimas {(selectedVariation?.estoque ?? selectedProduct.estoque)} unidades!</p>
+                  )}
+                  {(selectedVariation?.estoque ?? selectedProduct.estoque) === 0 && (
+                    <p className="text-[9px] font-black text-red-500 uppercase mt-2">Produto indisponível</p>
+                  )}
                 </div>
                 <div className="flex flex-col gap-2">
                   <button onClick={() => setPaymentMethod('pix')} className={cn("px-4 py-2 text-[10px] font-black uppercase rounded-lg border", paymentMethod === 'pix' ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : 'border-gray-200 text-gray-400 hover:border-gray-300')}>Pix</button>
@@ -2867,8 +2942,8 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               </div>
 
               <div className="flex gap-3 mt-4">
-                <button onClick={() => addToCart(selectedProduct, selectedVariation)} className="h-14 w-14 shrink-0 bg-white border-2 border-gray-100 hover:border-[#f70] hover:text-[#f70] rounded-2xl flex items-center justify-center text-gray-400 transition-colors shadow-sm">
-                  <ShoppingBag size={20} />
+                <button onClick={() => (selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? addToCart(selectedProduct, selectedVariation) : handleWhatsAppAlert(selectedProduct)} className="h-14 w-14 shrink-0 bg-white border-2 border-gray-100 hover:border-[#f70] hover:text-[#f70] rounded-2xl flex items-center justify-center text-gray-400 transition-colors shadow-sm">
+                  {(selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? <ShoppingBag size={20} /> : <MessageCircle size={20} />}
                 </button>
                 {preferenceId ? (
                   <div className="flex-1 flex flex-col items-center justify-center gap-2">
@@ -2895,8 +2970,16 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                     )}
                   </div>
                 ) : (
-                  <button onClick={() => handleDirectPurchase(finalPrice, paymentMethod)} className="flex-1 h-14 bg-[#25D366] hover:bg-[#1da851] text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 transition-colors shadow-lg shadow-[#25D366]/20">
-                    <ShoppingCart size={18} /> Comprar Agora
+                  <button onClick={() => (selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? handleDirectPurchase(finalPrice, paymentMethod) : handleWhatsAppAlert(selectedProduct)} className={cn("flex-1 h-14 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 transition-colors shadow-lg", (selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? "bg-[#25D366] shadow-[#25D366]/20" : "bg-gray-900 shadow-gray-200/20")}>
+                    {(selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? (
+                      <>
+                        <ShoppingCart size={18} /> Comprar Agora
+                      </>
+                    ) : (
+                      <>
+                         <MessageCircle size={18} /> Avisar no WhatsApp
+                      </>
+                    )}
                   </button>
                 )}
               </div>
@@ -2979,6 +3062,12 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                 <div className="md:sticky md:top-0 z-30 -mx-1 px-1 py-4 bg-[#0b0b0b] md:bg-[#0b0b0b]/90 md:backdrop-blur-md border-b border-white/5 mb-4">
                   <p className="text-gray-500 uppercase tracking-widest text-[9px] font-bold mb-1">Valor Total</p>
                   <p className="text-4xl font-light text-white tracking-tighter leading-none" style={{ fontFamily: "'Playfair Display', serif" }}>R$ {finalPrice.toFixed(2).replace('.', ',')}</p>
+                  {(selectedVariation?.estoque ?? selectedProduct.estoque) === 0 && (
+                    <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mt-2">Indisponível</p>
+                  )}
+                  {(selectedVariation?.estoque ?? selectedProduct.estoque) > 0 && (selectedVariation?.estoque ?? selectedProduct.estoque) <= 5 && (
+                    <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mt-2 animate-pulse">Últimas {(selectedVariation?.estoque ?? selectedProduct.estoque)} unidades</p>
+                  )}
                 </div>
               </div>
 
@@ -3014,12 +3103,31 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                     )}
                   </div>
                 ) : (
-                  <button onClick={() => handleDirectPurchase(finalPrice, paymentMethod)} className="w-full h-16 bg-white hover:bg-gray-200 text-black rounded font-black uppercase tracking-[0.3em] text-[10px] transition-all flex items-center justify-center gap-4 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-                    Confirmar Agora <ChevronRight size={14} />
+                  <button onClick={() => (selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? handleDirectPurchase(finalPrice, paymentMethod) : handleWhatsAppAlert(selectedProduct)} className={cn("w-full h-16 rounded font-black uppercase tracking-[0.3em] text-[10px] transition-all flex items-center justify-center gap-4 shadow-[0_0_20px_rgba(255,255,255,0.1)]", (selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? "bg-white hover:bg-gray-200 text-black" : "bg-white/5 text-white/50 border border-white/10")}>
+                    {(selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? (
+                      <>
+                        Confirmar Agora <ChevronRight size={14} />
+                      </>
+                    ) : (
+                      <>
+                         <MessageCircle size={14} /> Avisar no WhatsApp
+                      </>
+                    )}
                   </button>
                 )}
-                <button onClick={() => addToCart(selectedProduct, selectedVariation)} className="w-full text-center text-[8px] font-black tracking-[0.2em] uppercase text-gray-500 hover:text-white transition-colors flex items-center justify-center gap-2">
-                  <ShoppingBag size={12} /> Adicionar ao Carrinho
+                <button 
+                  onClick={() => (selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? addToCart(selectedProduct, selectedVariation) : handleWhatsAppAlert(selectedProduct)} 
+                  className="w-full text-center text-[8px] font-black tracking-[0.2em] uppercase text-gray-500 hover:text-white transition-colors flex items-center justify-center gap-2"
+                >
+                  {(selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? (
+                    <>
+                      <ShoppingBag size={12} /> Adicionar ao Carrinho
+                    </>
+                  ) : (
+                    <>
+                      <MessageCircle size={12} /> Avisar Disponibilidade
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -3117,6 +3225,9 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                       <span className="text-4xl font-black text-white tracking-tighter">R$ {finalPrice.toFixed(2).replace('.', ',')}</span>
                       <span className="text-blue-400 text-xs font-black uppercase leading-none">Subir Nível</span>
                     </div>
+                    {(selectedVariation?.estoque ?? selectedProduct.estoque) === 0 && (
+                      <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mt-2">Inventory Empty</p>
+                    )}
                   </div>
                   <div className="mt-4 pt-4 border-t border-slate-800 flex justify-between items-center">
                     <div className="flex flex-col">
@@ -3178,8 +3289,16 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                     )}
                   </div>
                 ) : (
-                  <button onClick={() => handleDirectPurchase(finalPrice, paymentMethod)} className={getButtonStyle("w-full h-14 bg-gradient-to-r from-blue-600 to-fuchsia-600 hover:from-blue-500 hover:to-fuchsia-500 text-white font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(59,130,246,0.3)] transition-all transform hover:scale-[1.02]")}>
-                    <Zap size={18} fill="currentColor" /> Initiate Purchase
+                  <button onClick={() => (selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? handleDirectPurchase(finalPrice, paymentMethod) : handleWhatsAppAlert(selectedProduct)} className={getButtonStyle(cn("w-full h-14 font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02]", (selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? "bg-gradient-to-r from-blue-600 to-fuchsia-600 hover:from-blue-500 hover:to-fuchsia-500 text-white shadow-[0_10px_30px_rgba(59,130,246,0.3)]" : "bg-slate-800 text-slate-400 border border-slate-700"))}>
+                    {(selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? (
+                      <>
+                        <Zap size={18} fill="currentColor" /> Initiate Purchase
+                      </>
+                    ) : (
+                      <>
+                         <MessageCircle size={18} /> Avisar no WhatsApp
+                      </>
+                    )}
                   </button>
                 )}
                 <div className="flex items-center justify-center gap-4 text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] pt-2">
@@ -3294,12 +3413,16 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
                 <div className="space-y-2">
                   <div className="flex justify-between text-[10px] font-black uppercase">
-                    <span className="text-red-600">Restam apenas {selectedProduct.stock || 7} unidades!</span>
+                    {(selectedVariation?.estoque ?? selectedProduct.estoque) === 0 ? (
+                      <span className="text-red-600 animate-pulse">Produto indisponível!</span>
+                    ) : (
+                      <span className="text-red-600">Restam apenas {selectedVariation?.estoque ?? selectedProduct.estoque} unidades!</span>
+                    )}
                   </div>
                   <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: '85%' }}
+                      animate={{ width: (selectedVariation?.estoque ?? selectedProduct.estoque) === 0 ? '0%' : '85%' }}
                       className="h-full bg-red-600"
                     />
                   </div>
@@ -3358,8 +3481,16 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                     )}
                   </div>
                 ) : (
-                  <button onClick={() => handleDirectPurchase(finalPrice, paymentMethod)} className="w-full h-16 bg-[#25D366] hover:bg-[#1da851] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-3 transition-colors shadow-lg shadow-[#25D366]/20">
-                    <ShoppingCart size={20} /> Garantir Minha Oferta
+                  <button onClick={() => (selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? handleDirectPurchase(finalPrice, paymentMethod) : handleWhatsAppAlert(selectedProduct)} className={cn("w-full h-16 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-3 transition-colors shadow-lg", (selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? "bg-[#25D366] hover:bg-[#1da851] shadow-[#25D366]/20" : "bg-gray-900 shadow-gray-200/20")}>
+                    {(selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? (
+                      <>
+                        <ShoppingCart size={20} /> Garantir Minha Oferta
+                      </>
+                    ) : (
+                      <>
+                        <MessageCircle size={20} /> Avisar no WhatsApp
+                      </>
+                    )}
                   </button>
                 )}
               </div>
