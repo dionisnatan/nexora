@@ -2099,7 +2099,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             </div>
 
             {/* Left: Visuals Section */}
-            <div className="h-[40vh] md:h-auto md:w-[45%] bg-gray-50 p-6 md:p-10 flex flex-col gap-6 border-b md:border-b-0 md:border-r border-gray-100 shrink-0 overflow-y-auto custom-scrollbar">
+            <div className="w-full md:w-[45%] bg-gray-50 p-6 pt-20 md:p-10 md:pt-10 flex flex-col gap-6 border-b md:border-b-0 md:border-r border-gray-100 shrink-0 md:overflow-y-auto custom-scrollbar">
               {/* Categorias Breadcrumb */}
               <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#f70]">
                 <span>Início</span>
@@ -2178,9 +2178,9 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               </div>
             </div>
 
-            <div className="flex-1 md:w-[55%] flex flex-col min-h-0 md:h-full relative overflow-hidden">
+            <div className="w-full md:w-[55%] flex flex-col md:h-full relative overflow-visible md:overflow-hidden">
               {/* Scrollable Content Area */}
-              <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar relative">
+              <div className="w-full md:flex-1 md:overflow-y-auto p-4 md:p-6 custom-scrollbar relative">
                 {/* Limited Offer Banner */}
                 <div className="mb-6 p-3 bg-[#0b0b0b] rounded-xl flex items-center justify-between text-white relative overflow-hidden group shrink-0">
                   <div className="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent" />
@@ -2795,7 +2795,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               <X size={20} />
             </button>
             <div 
-              className="md:w-1/2 p-6 md:p-10 bg-gray-50 flex items-center justify-center relative border-b md:border-b-0 md:border-r border-gray-100 overflow-hidden group cursor-zoom-in shrink-0"
+              className="w-full md:w-1/2 p-6 pt-20 md:p-10 bg-gray-50 flex items-center justify-center relative border-b md:border-b-0 md:border-r border-gray-100 overflow-hidden group cursor-zoom-in shrink-0"
               onMouseMove={handleMouseMove}
               onMouseLeave={() => setZoomState({ ...zoomState, active: false })}
               onClick={() => setShowLightbox(true)}
@@ -2813,7 +2813,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                 className="w-full mix-blend-multiply drop-shadow-xl" 
               />
             </div>
-            <div className="md:w-1/2 p-6 md:p-10 flex flex-col justify-center space-y-6 md:space-y-8">
+            <div className="w-full md:w-1/2 p-6 md:p-10 flex flex-col justify-center space-y-6 md:space-y-8">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-widest text-[#f70]">{categories.find((c: any) => c.id === selectedProduct.category_id)?.name || 'Produto'}</span>
                 <h2 className="text-3xl font-black text-gray-900 tracking-tight leading-tight mt-2">{selectedProduct.name}</h2>
@@ -2917,7 +2917,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               <X size={20} />
             </button>
             <div 
-              className="h-[40vh] md:h-auto md:w-1/2 p-6 md:p-12 bg-gradient-to-br from-[#111] to-[#050505] flex items-center justify-center relative border-b md:border-b-0 md:border-r border-white/5 overflow-hidden group cursor-zoom-in shrink-0"
+              className="w-full md:w-1/2 p-6 pt-20 md:p-12 bg-gradient-to-br from-[#111] to-[#050505] flex items-center justify-center relative border-b md:border-b-0 md:border-r border-white/5 overflow-hidden group cursor-zoom-in shrink-0"
               onMouseMove={handleMouseMove}
               onMouseLeave={() => setZoomState({ ...zoomState, active: false })}
               onClick={() => setShowLightbox(true)}
@@ -2936,8 +2936,8 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                 className="w-full drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)] scale-105 relative z-10" 
               />
             </div>
-            <div className="flex-1 md:w-1/2 flex flex-col bg-[#0b0b0b] min-h-0 md:h-full relative overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar relative space-y-6">
+            <div className="w-full md:w-1/2 flex flex-col bg-[#0b0b0b] md:h-full relative overflow-visible md:overflow-hidden">
+              <div className="w-full md:flex-1 md:overflow-y-auto p-6 md:p-8 custom-scrollbar relative space-y-6">
                 <span className="text-[9px] font-black uppercase tracking-[0.4em] text-gray-500 line-through decoration-white/20">SELECAO PREMIUM</span>
                 <h2 className="text-4xl md:text-5xl font-light text-white tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>{selectedProduct.name}</h2>
                 <div className="w-12 h-px bg-[var(--theme-primary)]" />
@@ -3038,7 +3038,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               <X size={20} />
             </button>
             <div 
-              className="md:w-1/2 p-8 bg-[#020617] flex flex-col items-center justify-center relative border-r border-blue-500/10 overflow-hidden group cursor-zoom-in"
+              className="w-full md:w-1/2 p-8 pt-20 bg-[#020617] flex flex-col items-center justify-center relative border-b md:border-b-0 md:border-r border-blue-500/10 overflow-hidden group cursor-zoom-in shrink-0"
               onMouseMove={handleMouseMove}
               onMouseLeave={() => setZoomState({ ...zoomState, active: false })}
               onClick={() => setShowLightbox(true)}
@@ -3061,8 +3061,8 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                 <span className="px-3 py-1 bg-fuchsia-500/20 text-fuchsia-400 text-[10px] font-black uppercase tracking-widest border border-fuchsia-500/30 rounded-lg">Qualidade Premium</span>
               </div>
             </div>
-            <div className="flex-1 md:w-1/2 flex flex-col bg-slate-900/50 backdrop-blur-sm relative overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar relative">
+            <div className="w-full md:w-1/2 flex flex-col bg-slate-900/50 backdrop-blur-sm md:h-full relative overflow-visible md:overflow-hidden">
+              <div className="w-full md:flex-1 md:overflow-y-auto p-6 md:p-8 custom-scrollbar relative">
                 <div className="space-y-6">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
@@ -3096,7 +3096,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   </div>
                 )}
 
-                <div className="sticky top-0 z-30 -mx-1 px-1 py-4 bg-[#020617]/90 backdrop-blur-md rounded-2xl border border-blue-500/20 mb-4">
+                <div className="md:sticky md:top-0 z-30 -mx-1 px-1 py-4 bg-[#020617] md:bg-[#020617]/90 md:backdrop-blur-md rounded-2xl border border-blue-500/20 mb-4">
                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Valor Final</p>
                   <div className="flex items-baseline gap-2">
                     <span className="text-4xl font-black text-white tracking-tighter">R$ {finalPrice.toFixed(2).replace('.', ',')}</span>
@@ -3198,7 +3198,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             initial={{ opacity: 0, y: 100 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
-            className="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl flex flex-col relative z-50 overflow-hidden"
+            className="bg-white w-full max-w-4xl max-h-[92vh] md:max-h-none rounded-[2.5rem] shadow-2xl flex flex-col relative z-50 overflow-y-auto md:overflow-hidden"
           >
             {/* Urgency Header */}
             <div className="bg-red-600 text-white py-3 px-6 flex items-center justify-between">
@@ -3213,9 +3213,9 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               </div>
             </div>
 
-            <div className="flex flex-col md:flex-row overflow-y-auto max-h-[85vh] custom-scrollbar">
+            <div className="flex flex-col md:flex-row md:overflow-y-auto md:max-h-[85vh] custom-scrollbar">
               <div 
-                className="md:w-1/2 p-8 bg-gray-50 flex items-center justify-center overflow-hidden group cursor-zoom-in relative"
+                className="w-full md:w-1/2 p-8 pt-16 bg-gray-50 flex items-center justify-center overflow-hidden group cursor-zoom-in relative shrink-0"
                 onMouseMove={handleMouseMove}
                 onMouseLeave={() => setZoomState({ ...zoomState, active: false })}
                 onClick={() => setShowLightbox(true)}
@@ -3233,7 +3233,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   className="w-full drop-shadow-2xl" 
                 />
               </div>
-              <div className="md:w-1/2 p-8 space-y-6">
+              <div className="w-full md:w-1/2 p-6 md:p-8 space-y-6">
                 <div>
                   <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight italic">{selectedProduct.name}</h2>
                   <div className="flex items-center gap-2 mt-2">
