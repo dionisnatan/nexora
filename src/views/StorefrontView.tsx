@@ -126,6 +126,17 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
     return () => subscription.unsubscribe();
   }, []);
 
+
+
+  useEffect(() => {
+    if (selectedProduct || isCartOpen || isAuthModalOpen || showLightbox) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [selectedProduct, isCartOpen, isAuthModalOpen, showLightbox]);
+
   // Load Mercado Pago SDK
   useEffect(() => {
     const script = document.createElement('script');
@@ -2057,13 +2068,13 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSelectedProduct(null)}
-            className="absolute inset-0 bg-[#0b0b0b]/90 backdrop-blur-xl"
+            className="absolute inset-0 bg-[#0b0b0b]/90 backdrop-blur-sm"
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, y: 50, scale: 0.95 }}
-            className="bg-white w-full max-w-5xl h-[95vh] md:h-[90vh] rounded-[2.5rem] shadow-[0_50px_100px_rgba(0,0,0,0.1)] flex flex-col md:flex-row relative z-50 overflow-y-auto md:overflow-hidden"
+            className="bg-white w-full max-w-5xl h-[95vh] md:h-[90vh] rounded-[2.5rem] shadow-[0_50px_100px_rgba(0,0,0,0.1)] flex flex-col md:flex-row relative z-50 overflow-y-auto overscroll-contain md:overflow-hidden"
           >
             {/* Top Toolbar */}
             <div className="absolute top-3 right-6 z-[60] flex items-center gap-3">
@@ -2783,13 +2794,13 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setSelectedProduct(null)}
-            className="absolute inset-0 bg-white/80 backdrop-blur-2xl"
+            className="absolute inset-0 bg-white/95 backdrop-blur-sm"
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.98, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98, y: 10 }}
-            className="bg-white w-full max-w-4xl h-[95vh] md:h-[90vh] rounded-[2rem] border border-gray-100 shadow-[0_30px_60px_rgba(0,0,0,0.05)] flex flex-col md:flex-row relative z-50 overflow-y-auto md:overflow-hidden"
+            className="bg-white w-full max-w-4xl h-[95vh] md:h-[90vh] rounded-[2rem] border border-gray-100 shadow-[0_30px_60px_rgba(0,0,0,0.05)] flex flex-col md:flex-row relative z-50 overflow-y-auto overscroll-contain md:overflow-hidden"
           >
             <button onClick={() => { setSelectedProduct(null); setPreferenceId(null); }} className="absolute top-6 right-6 z-20 p-2 text-gray-400 hover:text-gray-900 bg-gray-50 rounded-full transition-colors">
               <X size={20} />
@@ -2905,13 +2916,13 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setSelectedProduct(null)}
-            className="absolute inset-0 bg-[#050505]/95 backdrop-blur-3xl"
+            className="absolute inset-0 bg-[#050505]/95 backdrop-blur-sm"
           />
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="bg-[#0b0b0b] w-full max-w-5xl h-[95vh] md:h-[90vh] rounded-[2rem] border border-white/10 shadow-[0_0_100px_rgba(255,255,255,0.05)] flex flex-col md:flex-row relative z-50 overflow-y-auto md:overflow-hidden"
+            className="bg-[#0b0b0b] w-full max-w-5xl h-[95vh] md:h-[90vh] rounded-[2rem] border border-white/10 shadow-[0_0_100px_rgba(255,255,255,0.05)] flex flex-col md:flex-row relative z-50 overflow-y-auto overscroll-contain md:overflow-hidden"
           >
             <button onClick={() => { setSelectedProduct(null); setPreferenceId(null); }} className="absolute top-3 right-6 z-20 p-3 text-gray-400 hover:text-white bg-white/5 rounded-full backdrop-blur-md transition-colors border border-white/10">
               <X size={20} />
@@ -3026,13 +3037,13 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setSelectedProduct(null)}
-            className="absolute inset-0 bg-[#020617]/95 backdrop-blur-xl"
+            className="absolute inset-0 bg-[#020617]/95 backdrop-blur-sm"
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 30 }}
-            className="bg-[#0f1115] w-full max-w-5xl h-[95vh] md:h-[90vh] rounded-3xl border border-blue-500/30 shadow-[0_0_50px_rgba(59,130,246,0.2)] flex flex-col md:flex-row relative z-50 overflow-y-auto md:overflow-hidden"
+            className="bg-[#0f1115] w-full max-w-5xl h-[95vh] md:h-[90vh] rounded-3xl border border-blue-500/30 shadow-[0_0_50px_rgba(59,130,246,0.2)] flex flex-col md:flex-row relative z-50 overflow-y-auto overscroll-contain md:overflow-hidden"
           >
             <button onClick={() => { setSelectedProduct(null); setPreferenceId(null); }} className="absolute top-3 right-6 z-20 p-2 text-blue-400 hover:text-white bg-blue-500/10 rounded-xl transition-all border border-blue-500/20">
               <X size={20} />
@@ -3192,13 +3203,13 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setSelectedProduct(null)}
-            className="absolute inset-0 bg-black/40 backdrop-blur-md"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
           <motion.div
             initial={{ opacity: 0, y: 100 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
-            className="bg-white w-full max-w-4xl h-[95vh] md:h-[90vh] rounded-[2.5rem] shadow-2xl flex flex-col relative z-50 overflow-y-auto md:overflow-hidden"
+            className="bg-white w-full max-w-4xl h-[95vh] md:h-[90vh] rounded-[2.5rem] shadow-2xl flex flex-col relative z-50 overflow-y-auto overscroll-contain md:overflow-hidden"
           >
             {/* Urgency Header */}
             <div className="bg-red-600 text-white py-3 px-6 flex items-center justify-between">
@@ -3376,7 +3387,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
           exit={{ opacity: 0, y: 20, scale: 0.9 }}
           className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[300] min-w-[300px]"
         >
-          <div className="bg-[#1a1a1a]/80 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center gap-4">
+          <div className="bg-[#1a1a1a]/80 backdrop-blur-sm border border-white/10 p-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center gap-4">
             <div className={cn(
               "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-lg",
               notification.type === 'success' ? "bg-emerald-500/20 text-emerald-400 shadow-emerald-500/20" :
@@ -3417,7 +3428,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
   if (error || !store) {
     return (
       <div className="min-h-screen bg-[#0b0b0b] flex items-center justify-center p-4">
-        <div className="max-w-md w-full text-center space-y-8 bg-white/5 p-12 rounded-[3rem] border border-white/10 backdrop-blur-xl">
+        <div className="max-w-md w-full text-center space-y-8 bg-white/5 p-12 rounded-[3rem] border border-white/10 backdrop-blur-sm">
           <div className="w-24 h-24 bg-red-500/10 rounded-[2.5rem] flex items-center justify-center mx-auto border border-red-500/20 shadow-[0_0_50px_rgba(239,68,68,0.1)]">
             <X className="text-red-500" size={48} />
           </div>
@@ -3518,7 +3529,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setCatalogProductDetails(null)}
-              className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm"
+              className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center sm:p-4"
             >
               <motion.div
                 initial={{ y: '100%' }}
@@ -3565,13 +3576,13 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                           <>
                             <button
                               onClick={(e) => { e.stopPropagation(); setCatalogImageIndex((catalogImageIndex - 1 + catalogProductDetails.image_url.split(',').length) % catalogProductDetails.image_url.split(',').length); }}
-                              className="absolute left-2 z-20 p-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full text-white transition-colors"
+                              className="absolute left-2 z-20 p-2 bg-black/20 hover:bg-black/60 backdrop-blur-sm rounded-full text-white transition-colors"
                             >
                               <ChevronLeft size={20} />
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); setCatalogImageIndex((catalogImageIndex + 1) % catalogProductDetails.image_url.split(',').length); }}
-                              className="absolute right-2 z-20 p-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full text-white transition-colors"
+                              className="absolute right-2 z-20 p-2 bg-black/20 hover:bg-black/60 backdrop-blur-sm rounded-full text-white transition-colors"
                             >
                               <ChevronRight size={20} />
                             </button>
