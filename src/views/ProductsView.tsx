@@ -162,6 +162,11 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
     
     onAction("Otimizando imagem...");
     const optimizedFile = await compressImage(file);
+    
+    const sizeRed = Math.round((1 - optimizedFile.size / file.size) * 100);
+    const msg = sizeRed > 0 ? `Otimizando imagem... (${sizeRed}% reduzido)` : "Otimizando imagem...";
+    onAction(msg);
+
     const fileExt = optimizedFile.type.split('/')[1] || 'webp';
     const filePath = `${session.user.id}/prod-${Date.now()}.${fileExt}`;
     
@@ -357,8 +362,9 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
       let currentUrls = [...imagePreviews].filter(url => url.startsWith('http')); // Keep existing public URLs
       
       if (imageFiles.length > 0) {
-        for (const file of imageFiles) {
-          const url = await uploadImage(file);
+        for (let i = 0; i < imageFiles.length; i++) {
+          onAction(`Otimizando imagem ${i + 1} de ${imageFiles.length}...`);
+          const url = await uploadImage(imageFiles[i]);
           if (url) currentUrls.push(url);
         }
       }

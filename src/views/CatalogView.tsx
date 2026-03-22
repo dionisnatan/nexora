@@ -102,6 +102,9 @@ export const CatalogView = ({ onAction, session, userProfile }: Props) => {
   const uploadLogo = async (file: File) => {
     onAction("Otimizando logo...");
     const optimizedFile = await compressImage(file);
+    const sizeRed = Math.round((1 - optimizedFile.size / file.size) * 100);
+    const msg = sizeRed > 0 ? `Otimizando logo... (${sizeRed}% reduzido)` : "Otimizando logo...";
+    onAction(msg);
     const fileExt = optimizedFile.type.split('/')[1] || 'webp';
     const filePath = `${session.user.id}/catalog-logo-${Date.now()}.${fileExt}`;
     const { error } = await supabase.storage.from('store_assets').upload(filePath, optimizedFile, { upsert: true });
@@ -115,6 +118,9 @@ export const CatalogView = ({ onAction, session, userProfile }: Props) => {
     for (let i = 0; i < files.length; i++) {
       onAction(`Otimizando imagem ${i + 1} de ${files.length}...`);
       const optimizedFile = await compressImage(files[i]);
+      const sizeRed = Math.round((1 - optimizedFile.size / files[i].size) * 100);
+      const msg = sizeRed > 0 ? `Otimizando imagem ${i + 1}... (${sizeRed}% reduzido)` : `Otimizando imagem ${i + 1}...`;
+      onAction(msg);
       const fileExt = optimizedFile.type.split('/')[1] || 'webp';
       const filePath = `${session.user.id}/catalog-product-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const { error } = await supabase.storage.from('store_assets').upload(filePath, optimizedFile);
