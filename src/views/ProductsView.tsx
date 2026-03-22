@@ -116,7 +116,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
       // Then get products
       const { data: prods } = await supabase
         .from('products')
-        .select('*, categories(name)')
+        .select('id, store_id, name, price, compare_at_price, estoque, description, is_active, category_id, sku, warranty, pix_discount_percent, weight, width, height, length, image_url, extra_info, updated_at, categories(name)')
         .eq('store_id', storeId)
         .order('created_at', { ascending: false });
         
@@ -305,7 +305,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
     const fetchVariations = async () => {
       const { data } = await supabase
         .from('product_variations')
-        .select('*')
+        .select('id, product_id, name, value, price, estoque, sku, image_url, created_at')
         .eq('product_id', prod.id);
       
       if (data) {
@@ -401,7 +401,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
           .from('products')
           .update(productData)
           .eq('id', editingProductId)
-          .select('*, categories(name)');
+          .select('id, store_id, name, price, compare_at_price, estoque, description, is_active, category_id, sku, warranty, pix_discount_percent, weight, width, height, length, image_url, extra_info, updated_at, categories(name)');
 
         if (error) throw error;
         if (data && data.length > 0) {
@@ -412,7 +412,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
         const { data, error } = await supabase
           .from('products')
           .insert([productData])
-          .select('*, categories(name)');
+          .select('id, store_id, name, price, compare_at_price, estoque, description, is_active, category_id, sku, warranty, pix_discount_percent, weight, width, height, length, image_url, extra_info, updated_at, categories(name)');
 
         if (error) throw error;
         if (data && data.length > 0) {

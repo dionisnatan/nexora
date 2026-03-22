@@ -573,7 +573,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
           const { data: prods } = await supabase
             .from('catalog_products')
-            .select('*')
+            .select('id, catalog_id, name, description, price, compare_at_price, image_url, is_active, created_at, updated_at, estoque')
             .eq('catalog_id', data.id)
             .eq('is_active', true)
             .order('created_at', { ascending: false });
@@ -595,7 +595,11 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
           const { data: prods } = await supabase
             .from('products')
-            .select('*, categories(name), product_variations(*)')
+            .select(`
+              id, store_id, name, description, price, compare_at_price, estoque, image_url, is_active, created_at, updated_at, sku, category_id, extra_info, warranty, pix_discount_percent, weight, width, height, length, has_shipping_data,
+              categories (name),
+              product_variations (id, name, value, price, estoque, sku, image_url, created_at)
+            `)
             .eq('store_id', storeData.id)
             .eq('is_active', true)
             .order('created_at', { ascending: false });

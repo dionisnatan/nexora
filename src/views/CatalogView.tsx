@@ -86,7 +86,7 @@ export const CatalogView = ({ onAction, session, userProfile }: Props) => {
         // Fetch products from catalog_products
         const { data: productsData } = await supabase
           .from('catalog_products')
-          .select('*')
+          .select('id, catalog_id, name, description, price, compare_at_price, image_url, is_active, created_at, updated_at, estoque')
           .eq('catalog_id', catData.id)
           .order('created_at', { ascending: false });
 
