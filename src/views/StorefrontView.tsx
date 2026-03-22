@@ -1064,7 +1064,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             <button onClick={() => scrollCategories('left')} className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white shadow-[0_0_15px_rgba(0,0,0,0.1)] rounded-full flex items-center justify-center text-gray-600 hover:text-[#1868D5] hover:scale-110 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-0 focus:outline-none" style={megaVariant !== 'Blue' ? { color: themeColor } as any : {}}>
               <ChevronDown size={20} className="rotate-90" />
             </button>
-            <div ref={categoriesScrollRef} className="grid grid-cols-4 md:flex gap-y-6 gap-x-2 md:gap-8 md:overflow-x-auto no-scrollbar pb-4 items-start md:justify-start scroll-smooth w-full">
+            <div ref={categoriesScrollRef} className="flex gap-4 md:gap-8 overflow-x-auto no-scrollbar pb-4 items-start justify-start scroll-smooth w-full">
               {categories.map((cat, i) => {
                 const isActive = activeCategory === cat.id;
                 const isHovered = hoveredCategory === cat.id;
@@ -1076,7 +1076,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                     onClick={() => setActiveCategory(activeCategory === cat.id ? null : cat.id)}
                     onMouseEnter={() => setHoveredCategory(cat.id)}
                     onMouseLeave={() => setHoveredCategory(null)}
-                    className="flex flex-col items-center gap-2 md:gap-4 cursor-pointer w-full md:min-w-[100px] shrink-0"
+                    className="flex flex-col items-center gap-2 md:gap-4 cursor-pointer w-[72px] md:w-auto md:min-w-[100px] shrink-0"
                   >
                     <div
                       className="w-16 h-16 md:w-24 md:h-24 rounded-full border flex items-center justify-center overflow-hidden bg-white transition-all duration-200"
