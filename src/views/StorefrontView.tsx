@@ -333,13 +333,43 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
   }, [customerSession, store?.id]);
 
   const fetchCustomerOrders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('customer_id', customerSession.user.id)
+        .eq('store_id', store.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching customer orders:', error);
+        return;
+      }
+      if (data) setCustomerOrders(data);
+    } catch (err) {
+      console.error('Unexpected error fetching customer orders:', err);
+    }
+  };
+
+  const [expandedTrackingOrderId, setExpandedTrackingOrderId] = useState<string | null>(null);
+  const [orderTrackingLogs, setOrderTrackingLogs] = useState<Record<string, any[]>>({});
+
+  const fetchOrderTracking = async (orderId: string) => {
     const { data } = await supabase
-      .from('orders')
+      .from('order_tracking')
       .select('*')
-      .eq('customer_id', customerSession.user.id)
-      .eq('store_id', store.id)
-      .order('created_at', { ascending: false });
-    if (data) setCustomerOrders(data);
+      .eq('order_id', orderId)
+      .order('created_at', { ascending: true });
+    if (data) setOrderTrackingLogs(prev => ({ ...prev, [orderId]: data }));
+  };
+
+  const handleExpandTracking = (orderId: string) => {
+    if (expandedTrackingOrderId === orderId) {
+      setExpandedTrackingOrderId(null);
+    } else {
+      setExpandedTrackingOrderId(orderId);
+      fetchOrderTracking(orderId);
+    }
   };
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -449,7 +479,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
     try {
       const productsPayload = cart.length > 0 ? cart : (selectedProduct ? [selectedProduct] : []);
       const { data, error } = await supabase.functions.invoke('calculate-shipping', {
-        body: { cep_destino: cep, products: productsPayload, from_cep: store?.origin_cep || undefined }
+        body: { cep_destino: cep, products: productsPayload, from_cep: store?.origin_cep || undefined, store_id: store?.id }
       });
 
       if (error) throw error;
@@ -935,7 +965,14 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
             {/* Right Actions */}
             <div className="flex items-center gap-8 shrink-0">
-              <div className="flex items-center gap-3 cursor-pointer group" onClick={() => customerSession ? setShowOrders(true) : setIsAuthModalOpen(true)}>
+              <div className="flex items-center gap-3 cursor-pointer group" onClick={() => {
+                if (customerSession) {
+                  setActiveDashboardTab('profile');
+                  setShowOrders(true);
+                } else {
+                  setIsAuthModalOpen(true);
+                }
+              }}>
                 <User size={26} className="text-gray-700 group-hover:text-[var(--theme-primary)] transition-colors" />
                 <div className="hidden lg:flex flex-col leading-tight">
                   <span className="text-gray-500 text-[10px] font-bold">Minha Conta</span>
@@ -964,7 +1001,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                 </div>
                 <div className="hidden lg:flex flex-col leading-tight">
                   <span className="text-gray-500 text-[10px] font-bold">Meu Carrinho</span>
-                  <span className="text-gray-900 text-xs font-black">R$ {cartTotal.toFixed(2).replace('.', ',')}</span>
+                  <span className="text-gray-900 text-xs font-black">{(cartTotal).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                 </div>
               </div>
             </div>
@@ -1059,7 +1096,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             </motion.h2>
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="flex items-center gap-3 justify-center md:justify-start py-4">
               <span className="text-xl font-bold text-gray-500">A partir de</span>
-              <span className="text-4xl text-red-500 font-black tracking-tighter">R$ {Number(fallbackProduct.price || 149.99).toFixed(2).replace('.', ',')}</span>
+              <span className="text-4xl text-red-500 font-black tracking-tighter">{(Number(fallbackProduct.price || 149.99)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
             </motion.div>
             <motion.button
               initial={{ opacity: 0, scale: 0.9 }}
@@ -1175,7 +1212,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   <h4 className="text-base font-black text-gray-900 leading-tight">{p.prod?.name || 'Oferta Especial'}</h4>
                   <div className="flex items-center gap-1 text-xs">
                     <span className="text-gray-500 font-bold">A partir de</span>
-                    <span className="text-red-500 font-black">R$ {Number(p.prod?.price || 59.99).toFixed(2).replace('.', ',')}</span>
+                    <span className="text-red-500 font-black">{(Number(p.prod?.price || 59.99)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                   </div>
                   <button className={getButtonStyle(cn("flex items-center gap-1 mt-2 text-[10px] font-black uppercase tracking-wider group-hover:underline", isBlue ? "text-[#1868D5] bg-transparent" : "text-[var(--theme-primary)] bg-transparent", "p-0! justify-start! shadow-none!"))} style={{ padding: 0, justifyContent: 'flex-start', boxShadow: 'none' }}>
                     <div className={cn("w-5 h-5 rounded-full flex items-center justify-center text-white", isBlue ? "bg-[#1868D5]" : "bg-[var(--theme-primary)]")}>
@@ -1249,9 +1286,9 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
           </div>
 
           <div className="flex items-center gap-2 pt-1">
-            <span className="text-sm font-black text-red-500 tracking-tight">R$ {Number(finalPrice).toFixed(2).replace('.', ',')}</span>
+            <span className="text-sm font-black text-red-500 tracking-tight">{(Number(finalPrice)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
             {hasDiscount && (
-              <span className="text-[10px] font-medium text-gray-400 line-through">R$ {Number(compareAt).toFixed(2).replace('.', ',')}</span>
+              <span className="text-[10px] font-medium text-gray-400 line-through">{(Number(compareAt)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
             )}
           </div>
         </div>
@@ -1492,7 +1529,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                 "text-sm md:text-lg font-black tracking-tighter italic",
                 template === 'Luxury Dark' ? "text-[var(--theme-primary)]" : "text-gray-900"
               )}>
-                R$ {prod.price.toFixed(2).replace('.', ',')}
+                {(prod.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
               </span>
               <span className="text-[8px] font-bold text-emerald-500 uppercase">ou Pix com {Number(prod.pix_discount_percent !== null && prod.pix_discount_percent !== undefined ? prod.pix_discount_percent : 10)}% OFF</span>
             </div>
@@ -1923,7 +1960,14 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
             <div className="flex items-center gap-4 md:gap-8 text-white shrink-0">
               <div
-                onClick={() => customerSession ? setShowOrders(true) : setIsAuthModalOpen(true)}
+                onClick={() => {
+                  if (customerSession) {
+                    setActiveDashboardTab('orders');
+                    setShowOrders(true);
+                  } else {
+                    setIsAuthModalOpen(true);
+                  }
+                }}
                 className="flex items-center gap-3 group cursor-pointer hidden md:flex"
               >
                 <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
@@ -2055,28 +2099,50 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
     const finalPriceWithShipping = priceToUse + shippingCost;
     const shippingMethodToSave = isPickup ? { id: 'pickup', name: 'Retirar em Mãos', price: 0 } : selectedShipping;
 
+    if (!customerSession?.user) {
+      showNotification('Você precisa estar logado para comprar.', 'info');
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    const addressParts = [
+      checkoutAddress.street ? `End: ${checkoutAddress.street}` : '',
+      checkoutAddress.number ? `Nº: ${checkoutAddress.number}` : '',
+      checkoutAddress.complement ? `Comp: ${checkoutAddress.complement}` : '',
+      checkoutAddress.neighborhood ? `Bairro: ${checkoutAddress.neighborhood}` : '',
+      checkoutAddress.city && checkoutAddress.state ? `${checkoutAddress.city}-${checkoutAddress.state}` : '',
+      checkoutAddress.cep ? `CEP: ${checkoutAddress.cep}` : '',
+      selectedShipping && !isPickup ? `Frete: ${selectedShipping.name}` : ''
+    ].filter(Boolean).join(' | ');
+
     let orderId = '';
-    if (customerSession?.user) {
-      try {
-        const { data } = await supabase.from('orders').insert([{
-          customer_id: customerSession.user.id,
-          store_id: store.id,
-          total: finalPriceWithShipping,
-          pix_total: finalPriceWithShipping,
-          items: [{
-            ...selectedProduct,
-            selectedVariation,
-            quantity: 1,
-            price: price
-          }],
-          customer_email: customerSession.user.email,
-          shipping_address: isPickup ? null : checkoutAddress,
-          shipping_method: shippingMethodToSave,
-          status: 'Pendente'
-        }]).select('id').single();
-        if (data) orderId = data.id;
-        fetchCustomerOrders();
-      } catch (err) { console.error('Error saving direct order:', err); }
+    try {
+      const { data, error } = await supabase.from('orders').insert([{
+        customer_id: customerSession.user.id,
+        store_id: store.id,
+        total: finalPriceWithShipping,
+        pix_total: finalPriceWithShipping,
+        items: [{
+          ...selectedProduct,
+          selectedVariation,
+          quantity: 1,
+          price: price
+        }],
+        customer_email: customerSession.user.email,
+        customer_name: checkoutAddress.fullName || customerSession.user.email.split('@')[0],
+        customer_whatsapp: checkoutAddress.phone,
+        address: isPickup ? 'Retirar em Mãos' : addressParts,
+        shipping: shippingMethodToSave || null,
+        status: 'Pendente'
+      }]).select('id').single();
+      if (error) throw error;
+      if (data) Object.assign({ orderId: data.id }, { orderId: data.id });
+      orderId = data?.id || '';
+      fetchCustomerOrders();
+    } catch (err: any) {
+      console.error('Error saving direct order:', err);
+      showNotification(`Erro ao criar pedido: ${err.message || 'Verifique sua conexão.'}`, 'error');
+      return; 
     }
 
     if (isPickup) {
@@ -2090,7 +2156,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
       const varInfo = selectedVariation ? ` (${selectedVariation.name}: ${selectedVariation.value})` : '';
       const skuInfo = selectedProduct.sku ? ` (SKU: ${selectedProduct.sku})` : '';
       const methodStr = method === 'pix' ? 'no PIX' : 'no Cartão';
-      const message = `Olá! Quero comprar o produto: ${selectedProduct.name}${skuInfo}${varInfo} por R$ ${finalPriceWithShipping.toFixed(2).replace('.', ',')} ${methodStr}.\n\nModalidade: ✋ RETIRAR EM MÃOS`;
+      const message = `Olá! Quero comprar o produto: ${selectedProduct.name}${skuInfo}${varInfo} por ${(finalPriceWithShipping).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} ${methodStr}.\n\nModalidade: ✋ RETIRAR EM MÃOS`;
       window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
       return;
     }
@@ -2303,10 +2369,10 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                     <div className="space-y-1">
                       {(selectedProduct.compare_at_price || selectedVariation?.compare_at_price) && (
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest line-through">
-                          De: R$ {Number(selectedVariation?.compare_at_price || selectedProduct.compare_at_price).toFixed(2).replace('.', ',')}
+                          De: {(Number(selectedVariation?.compare_at_price || selectedProduct.compare_at_price)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         </p>
                       )}
-                      <p className="text-3xl font-black text-gray-900 tracking-tighter italic leading-none">R$ {finalPrice.toFixed(2).replace('.', ',')}</p>
+                      <p className="text-3xl font-black text-gray-900 tracking-tighter italic leading-none">{(finalPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                     </div>
 
                     <div className="h-px bg-gray-200/50" />
@@ -2316,7 +2382,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                         <div className="flex items-center gap-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
                           <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-black text-xs italic shrink-0 shadow-sm shadow-emerald-200/50">PIX</div>
                           <div>
-                            <p className="text-2xl font-black text-emerald-600 tracking-tight">R$ {pixPrice.toFixed(2).replace('.', ',')}</p>
+                            <p className="text-2xl font-black text-emerald-600 tracking-tight">{(pixPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                             <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest">À vista com {Number(selectedProduct.pix_discount_percent || 10)}% de desconto adicional</p>
                           </div>
                         </div>
@@ -2324,7 +2390,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                         <div className="flex items-center gap-4 p-4 bg-orange-50 rounded-2xl border border-orange-100">
                           <div className="w-12 h-12 rounded-xl bg-orange-100 text-[#f70] flex items-center justify-center shrink-0 shadow-sm shadow-orange-200/50"><CreditCard size={20} /></div>
                           <div>
-                            <p className="text-2xl font-black text-gray-900 tracking-tight italic">12x de R$ {(finalPrice / 12).toFixed(2).replace('.', ',')}</p>
+                            <p className="text-2xl font-black text-gray-900 tracking-tight italic">12x de {((finalPrice / 12)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                             <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Parcelamento sem juros no cartão</p>
                           </div>
                         </div>
@@ -2502,7 +2568,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                                 )}
                               >
                                 <span className={cn("text-[10px] font-bold", selectedInstallments === num ? 'text-[#f70]' : 'text-gray-400')}>{num}x</span>
-                                <span className="text-[11px] font-black text-gray-900">R$ {(finalPrice / num).toFixed(2).replace('.', ',')}</span>
+                                <span className="text-[11px] font-black text-gray-900">{((finalPrice / num)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                                 {selectedInstallments === num && <Check size={10} className="text-[#f70] shrink-0" strokeWidth={4} />}
                               </button>
                             ))}
@@ -2784,7 +2850,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                             </div>
                             <div className="text-right">
                               <p className="text-xs font-black text-gray-900">
-                                {option.price === 0 ? 'Grátis' : `R$ ${option.price.toFixed(2).replace('.', ',')}`}
+                                {option.price === 0 ? 'Grátis' : `${(option.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}
                               </p>
                               {selectedShipping?.id === option.id && <Check size={10} className="text-[#f70] ml-auto" strokeWidth={4} />}
                             </div>
@@ -2798,18 +2864,18 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                       <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 space-y-1.5">
                         <div className="flex justify-between text-[10px] font-bold text-gray-500">
                           <span>Produto</span>
-                          <span>R$ {finalPrice.toFixed(2).replace('.', ',')}</span>
+                          <span>{(finalPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                         </div>
                         <div className="flex justify-between text-[10px] font-bold text-gray-500">
                           <span>{currentDeliveryMode === 'pickup' ? '✋ Retirada em Mãos' : `Frete (${selectedShipping?.name})`}</span>
                           <span className={currentDeliveryMode === 'pickup' ? 'text-emerald-600 font-black' : ''}>
-                            {currentDeliveryMode === 'pickup' ? 'Grátis' : (selectedShipping?.price === 0 ? 'Grátis' : `R$ ${selectedShipping?.price.toFixed(2).replace('.', ',')}`)}
+                            {currentDeliveryMode === 'pickup' ? 'Grátis' : (selectedShipping?.price === 0 ? 'Grátis' : `${(selectedShipping?.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`)}
                           </span>
                         </div>
                         <div className="h-px bg-gray-200" />
                         <div className="flex justify-between text-[11px] font-black text-gray-900">
                           <span>Total</span>
-                          <span>R$ {(finalPrice + (currentDeliveryMode === 'pickup' ? 0 : (selectedShipping?.price || 0))).toFixed(2).replace('.', ',')}</span>
+                          <span>{((finalPrice + (currentDeliveryMode === 'pickup' ? 0 : (selectedShipping?.price || 0)))).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                         </div>
                       </div>
                     )}
@@ -2966,8 +3032,8 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               <div className="p-5 bg-gray-50 rounded-2xl flex items-center justify-between border border-gray-100">
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Valor Final</p>
-                  <p className="text-3xl font-black text-gray-900">R$ {finalPrice.toFixed(2).replace('.', ',')}</p>
-                  <p className="text-[10px] font-black text-emerald-600 mt-1 uppercase tracking-widest">ou R$ {pixPrice.toFixed(2).replace('.', ',')} no PIX</p>
+                  <p className="text-3xl font-black text-gray-900">{(finalPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                  <p className="text-[10px] font-black text-emerald-600 mt-1 uppercase tracking-widest">ou {(pixPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} no PIX</p>
                   {(selectedVariation?.estoque ?? selectedProduct.estoque) <= 5 && (selectedVariation?.estoque ?? selectedProduct.estoque) > 0 && (
                     <p className="text-[9px] font-black text-orange-500 uppercase mt-2 animate-pulse">Últimas {(selectedVariation?.estoque ?? selectedProduct.estoque)} unidades!</p>
                   )}
@@ -3101,7 +3167,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
                 <div className="md:sticky md:top-0 z-30 -mx-1 px-1 py-4 bg-[#0b0b0b] md:bg-[#0b0b0b]/90 md:backdrop-blur-md border-b border-white/5 mb-4">
                   <p className="text-gray-500 uppercase tracking-widest text-[9px] font-bold mb-1">Valor Total</p>
-                  <p className="text-4xl font-light text-white tracking-tighter leading-none" style={{ fontFamily: "'Playfair Display', serif" }}>R$ {finalPrice.toFixed(2).replace('.', ',')}</p>
+                  <p className="text-4xl font-light text-white tracking-tighter leading-none" style={{ fontFamily: "'Playfair Display', serif" }}>{(finalPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                   {(selectedVariation?.estoque ?? selectedProduct.estoque) === 0 && (
                     <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mt-2">Indisponível</p>
                   )}
@@ -3262,7 +3328,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   <div className="md:sticky md:top-0 z-30 -mx-1 px-1 py-4 bg-[#020617] md:bg-[#020617]/90 md:backdrop-blur-md rounded-2xl border border-blue-500/20 mb-4">
                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Valor Final</p>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-black text-white tracking-tighter">R$ {finalPrice.toFixed(2).replace('.', ',')}</span>
+                      <span className="text-4xl font-black text-white tracking-tighter">{(finalPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                       <span className="text-blue-400 text-xs font-black uppercase leading-none">Subir Nível</span>
                     </div>
                     {(selectedVariation?.estoque ?? selectedProduct.estoque) === 0 && (
@@ -3272,11 +3338,11 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   <div className="mt-4 pt-4 border-t border-slate-800 flex justify-between items-center">
                     <div className="flex flex-col">
                       <span className="text-[10px] font-black text-emerald-400 uppercase">Desconto Pix</span>
-                      <span className="text-lg font-black text-emerald-500">R$ {pixPrice.toFixed(2).replace('.', ',')}</span>
+                      <span className="text-lg font-black text-emerald-500">{(pixPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                     </div>
                     <div className="flex flex-col text-right">
                       <span className="text-[10px] font-black text-slate-500 uppercase">Installments</span>
-                      <span className="text-[10px] font-black text-white">12x R$ {(finalPrice / 12).toFixed(2).replace('.', ',')}</span>
+                      <span className="text-[10px] font-black text-white">12x {((finalPrice / 12)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                     </div>
                   </div>
 
@@ -3289,7 +3355,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                       {[1, 2, 3, 4, 6, 12].map(num => (
                         <div key={num} className="p-2 bg-slate-800/50 rounded-lg border border-slate-700 flex justify-between items-center">
                           <span className="text-[8px] font-black text-slate-500 uppercase">{num}x</span>
-                          <span className="text-[10px] font-black text-white">R$ {(finalPrice / num).toFixed(2).replace('.', ',')}</span>
+                          <span className="text-[10px] font-black text-white">{((finalPrice / num)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                         </div>
                       ))}
                     </motion.div>
@@ -3445,8 +3511,8 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                 <div className="p-6 bg-red-50 rounded-2xl border border-red-100 flex items-center justify-between">
                   <div>
                     <p className="text-[10px] font-black text-red-600 uppercase mb-1">Preço Promocional</p>
-                    <p className="text-3xl font-black text-gray-900">R$ {finalPrice.toFixed(2).replace('.', ',')}</p>
-                    <p className="text-[10px] font-bold text-gray-400 line-through">De R$ {(finalPrice * 1.5).toFixed(2).replace('.', ',')}</p>
+                    <p className="text-3xl font-black text-gray-900">{(finalPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                    <p className="text-[10px] font-bold text-gray-400 line-through">De {((finalPrice * 1.5)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                   </div>
                   <div className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase">33% OFF</div>
                 </div>
@@ -3471,7 +3537,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                 <div className="flex gap-4">
                   <button onClick={() => setPaymentMethod('pix')} className={cn("flex-1 p-4 rounded-2xl border-2 flex flex-col items-center gap-1 transition-all text-center", paymentMethod === 'pix' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-100 hover:border-gray-200')}>
                     <span className="text-[10px] font-black uppercase tracking-widest">Pix</span>
-                    <span className="text-[10px] font-black text-emerald-600">R$ {pixPrice.toFixed(2).replace('.', ',')}</span>
+                    <span className="text-[10px] font-black text-emerald-600">{(pixPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                   </button>
                   <button onClick={() => setPaymentMethod('card')} className={cn("flex-1 p-4 rounded-2xl border-2 flex flex-col items-center gap-1 transition-all text-center", paymentMethod === 'card' ? 'border-blue-500 bg-blue-50' : 'border-gray-100 hover:border-gray-200')}>
                     <span className="text-[10px] font-black uppercase tracking-widest">Cartão</span>
@@ -3488,7 +3554,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                     {[1, 2, 3, 4, 6, 12].map(num => (
                       <div key={num} className="p-2 bg-gray-50 rounded-lg border border-gray-100 flex justify-between items-center">
                         <span className="text-[8px] font-black text-gray-400 uppercase">{num}x</span>
-                        <span className="text-[10px] font-black text-gray-900">R$ {(finalPrice / num).toFixed(2).replace('.', ',')}</span>
+                        <span className="text-[10px] font-black text-gray-900">{((finalPrice / num)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                       </div>
                     ))}
                   </motion.div>
@@ -3673,10 +3739,10 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                       <p className="text-[11px] font-bold text-gray-900 line-clamp-2 leading-tight flex-1">{p.name}</p>
                       <div className="mt-2 text-left">
                         {(p.compare_at_price) && (
-                          <p className="text-[9px] font-bold text-gray-400 line-through mb-0.5">R$ {Number(p.compare_at_price).toFixed(2).replace('.', ',')}</p>
+                          <p className="text-[9px] font-bold text-gray-400 line-through mb-0.5">{(Number(p.compare_at_price)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                         )}
                         <p className="text-xs font-black" style={{ color: store.theme_color || '#5551FF' }}>
-                          R$ {Number(p.price).toFixed(2).replace('.', ',')}
+                          {(Number(p.price)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         </p>
                       </div>
                     </div>
@@ -3791,11 +3857,11 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   <h2 className="text-xl font-black text-gray-900 leading-tight mb-2">{catalogProductDetails.name}</h2>
                   <div className="flex items-end gap-2 mb-6">
                     <p className="text-2xl font-black" style={{ color: store.theme_color || '#5551FF' }}>
-                      R$ {Number(catalogProductDetails.price).toFixed(2).replace('.', ',')}
+                      {(Number(catalogProductDetails.price)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </p>
                     {catalogProductDetails.compare_at_price && (
                       <p className="text-sm font-bold text-gray-400 line-through mb-1">
-                        R$ {Number(catalogProductDetails.compare_at_price).toFixed(2).replace('.', ',')}
+                        {(Number(catalogProductDetails.compare_at_price)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </p>
                     )}
                   </div>
@@ -3919,11 +3985,11 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             const itemsList = cart.map((item: any) => {
               const variation = item.selectedVariation ? ` [${item.selectedVariation.name}: ${item.selectedVariation.value}]` : '';
               const skuStr = item.sku ? ` (SKU: ${item.sku})` : '';
-              return `• ${item.quantity}x ${item.name}${skuStr}${variation} — R$ ${(Number(item.price) * item.quantity).toFixed(2).replace('.', ',')}`;
+              return `• ${item.quantity}x ${item.name}${skuStr}${variation} — ${(Number(item.price) * item.quantity).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
             }).join('\n');
             const shippingLabel = selectedShipping ? `📦 *Frete (${selectedShipping.name}):*` : `🚚 *Frete (${cartShippingZone?.label || 'A organizar'}):*`;
             const shippingLine = (selectedShipping || cartShippingZone)
-              ? `${shippingLabel} R$ ${shippingCost.toFixed(2).replace('.', ',')}`
+              ? `${shippingLabel} ${shippingCost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`
               : '🚚 *Frete:* A consultar';
             const addressLine = cartDeliveryAddress.trim()
               ? `📍 *Endereço:* ${cartDeliveryAddress.trim()}${cartNeighborhood.trim() ? ` — ${cartNeighborhood.trim()}` : ''}`
@@ -3934,10 +4000,10 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               '*Produtos:*',
               itemsList,
               '',
-              `💰 *Subtotal:* R$ ${cartTotal.toFixed(2).replace('.', ',')}`,
+              `💰 *Subtotal:* ${cartTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
               shippingLine,
-              `✅ *Total:* R$ ${cartFinalTotal.toFixed(2).replace('.', ',')}`,
-              `💚 *Total no Pix:* R$ ${cartFinalPixTotal.toFixed(2).replace('.', ',')}`,
+              `✅ *Total:* ${cartFinalTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
+              `💚 *Total no Pix:* ${cartFinalPixTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
               '',
               `👤 *Cliente:* ${cartCustomerName.trim()}`,
               cartCustomerPhone.trim() ? `📱 *Telefone:* ${cartCustomerPhone.trim()}` : '',
@@ -3947,7 +4013,6 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
           };
 
           const saveOrderAndGetId = async (method: string): Promise<string> => {
-            if (cartOrderId) return cartOrderId;
             try {
               const total = method === 'pix' ? cartFinalPixTotal : cartFinalTotal;
               
@@ -3959,18 +4024,28 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                 selectedShipping ? `Frete: ${selectedShipping.name}` : cartShippingZone ? `Zona: ${cartShippingZone.label}` : ''
               ].filter(Boolean).join(' | ');
 
-              const { data, error } = await supabase.from('orders').insert([{
-                customer_id: customerSession?.user?.id || null, // Allow guest
+              const payload = {
+                customer_id: customerSession?.user?.id,
                 store_id: store.id,
                 total,
                 pix_total: cartFinalPixTotal,
                 items: cart,
                 customer_name: cartCustomerName,
-                customer_email: customerSession?.user?.email || null,
+                customer_email: customerSession?.user?.email,
                 customer_whatsapp: cartCustomerPhone,
                 address: addressParts,
+                shipping: selectedShipping || (cartShippingZone ? { name: cartShippingZone.label, price: cartShippingZone.price } : null),
                 status: 'Pendente'
-              }]).select('id').single();
+              };
+
+              if (cartOrderId) {
+                const { error: updateError } = await supabase.from('orders').update(payload).eq('id', cartOrderId);
+                if (updateError) throw updateError;
+                if (customerSession?.user) fetchCustomerOrders();
+                return cartOrderId;
+              }
+
+              const { data, error } = await supabase.from('orders').insert([payload]).select('id').single();
               
               if (error) throw error;
               if (data?.id) {
@@ -3978,14 +4053,19 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                 if (customerSession?.user) fetchCustomerOrders();
                 return data.id;
               }
-            } catch (err) { 
+            } catch (err: any) { 
               console.error('Error saving order:', err);
-              // Fallback for some non-critical insert errors
+              showNotification(`Erro ao salvar pedido: ${err.message || 'Verifique sua conexão e tente novamente.'}`, 'error');
             }
             return '';
           };
 
           const handleGoToCheckout = () => {
+            if (!customerSession) {
+              showNotification('Você precisa estar logado para continuar com a compra.', 'info');
+              setIsAuthModalOpen(true);
+              return;
+            }
             if (!cartCustomerName.trim()) {
               showNotification('Preencha seu nome antes de continuar.', 'error');
               return;
@@ -4154,7 +4234,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                                       <button onClick={() => updateCartQuantity(item.cartItemId, 1)} className="w-5 h-5 flex items-center justify-center rounded text-gray-500 hover:bg-gray-100 transition-colors"><Plus size={10} /></button>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                      <span className="text-[13px] font-black text-gray-900">R$ {(Number(item.price) * item.quantity).toFixed(2).replace('.', ',')}</span>
+                                      <span className="text-[13px] font-black text-gray-900">{((Number(item.price) * item.quantity)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                                       <button onClick={() => removeFromCart(item.cartItemId)} className="text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={13} /></button>
                                     </div>
                                   </div>
@@ -4174,7 +4254,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                                   className={cn('p-3 rounded-xl text-left border-2 transition-all', cartShippingZone?.label === zone.label ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)]/5' : 'border-gray-100 bg-gray-50 hover:border-gray-200')}
                                 >
                                   <p className={cn("text-[10px] font-black leading-tight", cartShippingZone?.label === zone.label ? "text-[var(--theme-primary)]" : "text-gray-700")}>{zone.label}</p>
-                                  <p className={cn("text-[11px] font-black mt-0.5", zone.price === 0 ? "text-gray-400" : "text-emerald-600")}>{zone.price === 0 ? 'A combinar' : `R$ ${zone.price.toFixed(2).replace('.', ',')}`}</p>
+                                  <p className={cn("text-[11px] font-black mt-0.5", zone.price === 0 ? "text-gray-400" : "text-emerald-600")}>{zone.price === 0 ? 'A combinar' : `${(zone.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}</p>
                                 </button>
                               ))}
                             </div>
@@ -4226,7 +4306,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                                             <p className="text-[9px] text-gray-400 font-bold">{opt.days}</p>
                                           </div>
                                         </div>
-                                        <p className="text-[11px] font-black text-gray-900">R$ {opt.price.toFixed(2).replace('.', ',')}</p>
+                                        <p className="text-[11px] font-black text-gray-900">{(opt.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                                       </button>
                                     ))}
                                   </div>
@@ -4243,11 +4323,11 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                               <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">Resumo</p>
                             </div>
                             <div className="p-4 space-y-2">
-                              <div className="flex justify-between"><span className="text-[11px] font-bold text-gray-500">Subtotal ({totalItemsQty} itens)</span><span className="text-[12px] font-black">R$ {cartTotal.toFixed(2).replace('.', ',')}</span></div>
-                              <div className="flex justify-between"><span className="text-[11px] font-bold text-gray-500">Frete</span><span className={cn("text-[12px] font-black", cartShippingZone ? "text-gray-900" : "text-gray-400")}>{cartShippingZone ? (cartShippingZone.price === 0 ? 'A combinar' : `R$ ${cartShippingZone.price.toFixed(2).replace('.', ',')}`) : '—'}</span></div>
+                              <div className="flex justify-between"><span className="text-[11px] font-bold text-gray-500">Subtotal ({totalItemsQty} itens)</span><span className="text-[12px] font-black">{(cartTotal).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
+                              <div className="flex justify-between"><span className="text-[11px] font-bold text-gray-500">Frete</span><span className={cn("text-[12px] font-black", cartShippingZone ? "text-gray-900" : "text-gray-400")}>{cartShippingZone ? (cartShippingZone.price === 0 ? 'A combinar' : `${(cartShippingZone.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`) : '—'}</span></div>
                               <div className="h-px bg-gray-100" />
-                              <div className="flex justify-between"><span className="text-[13px] font-black">Total</span><span className="text-[17px] font-black">R$ {cartFinalTotal.toFixed(2).replace('.', ',')}</span></div>
-                              <div className="flex justify-between"><span className="text-[10px] font-black text-emerald-600">Total no Pix</span><span className="text-[15px] font-black text-emerald-600">R$ {cartFinalPixTotal.toFixed(2).replace('.', ',')}</span></div>
+                              <div className="flex justify-between"><span className="text-[13px] font-black">Total</span><span className="text-[17px] font-black">{(cartFinalTotal).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
+                              <div className="flex justify-between"><span className="text-[10px] font-black text-emerald-600">Total no Pix</span><span className="text-[15px] font-black text-emerald-600">{(cartFinalPixTotal).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
                             </div>
                           </div>
                         </div>
@@ -4296,21 +4376,21 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                               <img src={item.image_url?.split(',')[0]} alt={item.name} className="w-full h-full object-cover" />
                             </div>
                             <span className="flex-1 font-bold text-gray-700 line-clamp-1">{item.quantity}x {item.name}</span>
-                            <span className="font-black text-gray-900">R$ {(Number(item.price) * item.quantity).toFixed(2).replace('.', ',')}</span>
+                            <span className="font-black text-gray-900">{((Number(item.price) * item.quantity)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                           </div>
                         ))}
                         <div className="h-px bg-gray-200 mt-2 mb-1" />
                         {cartShippingZone && cartShippingZone.price > 0 && (
                           <div className="flex justify-between text-[11px]">
                             <span className="font-bold text-gray-500">Frete ({cartShippingZone.label})</span>
-                            <span className="font-black">R$ {cartShippingZone.price.toFixed(2).replace('.', ',')}</span>
+                            <span className="font-black">{(cartShippingZone.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                           </div>
                         )}
                         <div className="flex justify-between items-center pt-1">
                           <span className="text-[12px] font-black text-gray-900">Total</span>
-                          <span className="text-[18px] font-black text-gray-900">R$ {cartFinalTotal.toFixed(2).replace('.', ',')}</span>
+                          <span className="text-[18px] font-black text-gray-900">{(cartFinalTotal).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                         </div>
-                        <div className="text-right text-[10px] font-black text-emerald-600">ou R$ {cartFinalPixTotal.toFixed(2).replace('.', ',')} no Pix</div>
+                        <div className="text-right text-[10px] font-black text-emerald-600">ou {(cartFinalPixTotal).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} no Pix</div>
                       </div>
 
                       {/* Payment methods */}
@@ -4325,7 +4405,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                           <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center font-black text-sm shrink-0", cartPaymentMethod === 'pix' ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-500')}>PIX</div>
                           <div className="flex-1">
                             <p className={cn("text-[12px] font-black", cartPaymentMethod === 'pix' ? 'text-emerald-700' : 'text-gray-900')}>Pagar com Pix</p>
-                            <p className={cn("text-[10px] font-bold", cartPaymentMethod === 'pix' ? 'text-emerald-600' : 'text-gray-400')}>R$ {cartFinalPixTotal.toFixed(2).replace('.', ',')} — aprovação imediata</p>
+                            <p className={cn("text-[10px] font-bold", cartPaymentMethod === 'pix' ? 'text-emerald-600' : 'text-gray-400')}>{(cartFinalPixTotal).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} — aprovação imediata</p>
                           </div>
                           {cartPaymentMethod === 'pix' && <Check size={18} className="text-emerald-500 shrink-0" strokeWidth={3} />}
                         </button>
@@ -4340,7 +4420,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                           </div>
                           <div className="flex-1">
                             <p className={cn("text-[12px] font-black", cartPaymentMethod === 'card' ? 'text-[var(--theme-primary)]' : 'text-gray-900')}>Cartão de Crédito</p>
-                            <p className={cn("text-[10px] font-bold", cartPaymentMethod === 'card' ? 'text-[var(--theme-primary)]/70' : 'text-gray-400')}>12x de R$ {(cartFinalTotal / 12).toFixed(2).replace('.', ',')} sem juros</p>
+                            <p className={cn("text-[10px] font-bold", cartPaymentMethod === 'card' ? 'text-[var(--theme-primary)]/70' : 'text-gray-400')}>12x de {((cartFinalTotal / 12)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} sem juros</p>
                           </div>
                           {cartPaymentMethod === 'card' && <Check size={18} className="text-[var(--theme-primary)] shrink-0" strokeWidth={3} />}
                         </button>
@@ -4374,7 +4454,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                             </p>
                             {selectedShipping && (
                               <p className="text-[11px] font-black text-[var(--theme-primary)] flex items-center gap-1 mt-1">
-                                <Truck size={12} /> {selectedShipping.name} — R$ {selectedShipping.price.toFixed(2).replace('.', ',')}
+                                <Truck size={12} /> {selectedShipping.name} — {(selectedShipping.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                               </p>
                             )}
                           </div>
@@ -4440,7 +4520,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
                     {/* Mini order recap */}
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="w-full rounded-2xl border border-gray-100 p-4 text-left space-y-2 bg-gray-50">
-                      <div className="flex justify-between text-[11px]"><span className="font-bold text-gray-500">Total pago</span><span className="font-black text-gray-900">R$ {(cartPaymentMethod === 'pix' ? cartFinalPixTotal : cartFinalTotal).toFixed(2).replace('.', ',')}</span></div>
+                      <div className="flex justify-between text-[11px]"><span className="font-bold text-gray-500">Total pago</span><span className="font-black text-gray-900">{((cartPaymentMethod === 'pix' ? cartFinalPixTotal : cartFinalTotal)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
                       <div className="flex justify-between text-[11px]"><span className="font-bold text-gray-500">Forma de pagamento</span><span className="font-black text-gray-900 capitalize">{cartPaymentMethod === 'pix' ? 'Pix' : cartPaymentMethod === 'card' ? 'Cartão' : 'WhatsApp'}</span></div>
                       <div className="flex justify-between text-[11px]"><span className="font-bold text-gray-500">Status</span><span className="font-black text-amber-600">Pendente</span></div>
                     </motion.div>
@@ -5015,20 +5095,109 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                         <p className="text-xs text-gray-300">Seus pedidos aparecerão aqui após a confirmação</p>
                       </div>
                     ) : (
-                      customerOrders.map((order: any) => (
-                        <div key={order.id} className="border border-gray-100 rounded-2xl p-4 space-y-3 hover:border-gray-200 transition-colors">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                              Pedido #{order.id?.slice(0, 8)}
-                            </span>
-                            <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase rounded-full border border-emerald-100">
-                              {order.status}
-                            </span>
+                      customerOrders.map((order: any) => {
+                        const isExpanded = expandedTrackingOrderId === order.id;
+                        const logs = orderTrackingLogs[order.id] || [];
+                        const ALL_STEPS = ['Pendente', 'Pago', 'Preparando', 'Enviado', 'Entregue'];
+                        const stepIdx = ALL_STEPS.indexOf(order.status);
+                        const statusColor = (
+                          order.status === 'Cancelado' ? 'bg-red-50 text-red-600 border-red-100' :
+                          order.status === 'Pago' || order.status === 'Aprovado' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                          order.status === 'Entregue' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                          order.status === 'Enviado' ? 'bg-sky-50 text-sky-600 border-sky-100' :
+                          order.status === 'Preparando' ? 'bg-purple-50 text-purple-600 border-purple-100' :
+                          'bg-orange-50 text-orange-600 border-orange-100'
+                        );
+                        return (
+                          <div key={order.id} className="border border-gray-100 rounded-2xl overflow-hidden hover:border-gray-200 transition-colors">
+                            {/* Order Summary Row */}
+                            <div
+                              className="p-4 space-y-3 cursor-pointer"
+                              onClick={() => handleExpandTracking(order.id)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                  Pedido #{order.id?.slice(0, 8)}
+                                </span>
+                                <span className={`px-3 py-1 text-[9px] font-black uppercase rounded-full border ${statusColor}`}>
+                                  {order.status}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <p className="text-xl font-black">{(Number(order.total)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                                <p className="text-[10px] text-gray-400">{new Date(order.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                              </div>
+
+                              {/* Tracking Code and Link */}
+                              {order.tracking_code && (
+                                <div className="bg-blue-50/50 rounded-xl p-3 flex items-center justify-between border border-blue-100/50">
+                                  <div className="flex items-center gap-2">
+                                    <Truck size={14} className="text-blue-600" />
+                                    <div>
+                                      <p className="text-[8px] font-black uppercase tracking-widest text-blue-400">Código de Rastreio</p>
+                                      <p className="text-xs font-black text-blue-700 font-mono tracking-wider">{order.tracking_code}</p>
+                                    </div>
+                                  </div>
+                                  <a 
+                                    href={`https://www.melhorenvio.com.br/rastreio/${order.tracking_code}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="px-3 py-1.5 bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
+                                  >
+                                    Rastrear <ExternalLink size={10} />
+                                  </a>
+                                </div>
+                              )}
+
+                              {/* Progress bar for non-cancelled orders */}
+                              {order.status !== 'Cancelado' && stepIdx >= 0 && (
+                                <div className="flex items-center gap-1 mt-2">
+                                  {ALL_STEPS.map((step, i) => (
+                                    <div key={step} className="flex-1 flex flex-col items-center gap-1">
+                                      <div className={`w-full h-1.5 rounded-full transition-colors ${
+                                        i <= stepIdx ? 'bg-[var(--theme-primary)]' : 'bg-gray-100'
+                                      }`} />
+                                      <span className={`text-[8px] font-bold truncate w-full text-center ${
+                                        i === stepIdx ? 'text-[var(--theme-primary)]' : i < stepIdx ? 'text-gray-400' : 'text-gray-200'
+                                      }`}>{step}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              <p className="text-[10px] text-[var(--theme-primary)] font-black text-right">
+                                {isExpanded ? '▲ Ocultar histórico' : '▼ Ver histórico completo'}
+                              </p>
+                            </div>
+
+                            {/* Tracking Timeline */}
+                            {isExpanded && (
+                              <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-4">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">📍 Rastreio do Pedido</p>
+                                {logs.length === 0 ? (
+                                  <p className="text-xs text-gray-400 italic">Nenhuma atualização disponível ainda.</p>
+                                ) : (
+                                  <div className="relative pl-6">
+                                    <div className="absolute left-2 top-0 bottom-0 w-px bg-gray-200" />
+                                    {logs.map((log: any, idx: number) => (
+                                      <div key={log.id} className="relative mb-4 last:mb-0">
+                                        <div className={`absolute -left-[23px] w-4 h-4 rounded-full border-2 border-white shadow ${
+                                          idx === logs.length - 1 ? 'bg-[var(--theme-primary)]' : 'bg-emerald-400'
+                                        }`} />
+                                        <p className="text-[11px] font-black text-gray-800">{log.description || log.status}</p>
+                                        <p className="text-[9px] text-gray-400 mt-0.5">
+                                          {new Date(log.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          <p className="text-xl font-black">R$ {Number(order.total).toFixed(2).replace('.', ',')}</p>
-                          <p className="text-[10px] text-gray-400">{new Date(order.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 )}
@@ -5057,7 +5226,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                             </div>
                             <div className="p-3">
                               <p className="text-[10px] font-black text-gray-800 line-clamp-2 uppercase leading-tight">{product.name}</p>
-                              <p className="text-sm font-black text-[var(--theme-primary)] mt-1">R$ {Number(product.price).toFixed(2).replace('.', ',')}</p>
+                              <p className="text-sm font-black text-[var(--theme-primary)] mt-1">{(Number(product.price)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                               <button
                                 onClick={() => { setSelectedProduct(product); setShowOrders(false); }}
                                 className="mt-2 w-full h-8 bg-[var(--theme-primary)] text-white text-[9px] font-black uppercase tracking-widest rounded-lg hover:brightness-90 transition-all"

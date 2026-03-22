@@ -366,6 +366,11 @@ const PaymentSettingsView = ({ session, storeId, onAction }: { session: any, sto
           </p>
         </div>
       )}
+
+      {/* Melhor Envio Integration section */}
+      <h2 className="text-2xl font-bold text-gray-900 pt-8 border-t border-gray-100 mt-8">Logística</h2>
+      <p className="text-gray-500 mb-6">Conecte sua conta Melhor Envio para gerar etiquetas de frete.</p>
+      <MelhorEnvioSettings storeId={storeId} onAction={onAction} />
     </div>
   );
 };
@@ -481,10 +486,150 @@ const MercadoPagoSettings = ({ storeId, onAction }: { storeId: string | null, on
   );
 };
 
+const MelhorEnvioSettings = ({ storeId, onAction }: { storeId: string | null, onAction: (msg: string) => void }) => {
+  const [integration, setIntegration] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+
+  const fetchIntegration = async () => {
+    if (!storeId) return;
+    setLoading(true);
+    const { data } = await supabase
+      .from('me_store_integrations')
+      .select('*')
+      .eq('store_id', storeId)
+      .maybeSingle();
+    setIntegration(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchIntegration();
+    
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('me_success')) {
+      onAction('✅ Melhor Envio conectado com sucesso!');
+      window.history.replaceState({}, '', window.location.pathname + '?tab=config');
+    } else if (params.get('me_error')) {
+      onAction('❌ Erro ao conectar Melhor Envio.');
+      window.history.replaceState({}, '', window.location.pathname + '?tab=config');
+    }
+  }, [storeId]);
+
+  const handleConnect = () => {
+    if (!storeId) return;
+    const ME_CLIENT_ID = '44100';
+    const clientId = import.meta.env.VITE_MELHOR_ENVIO_CLIENT_ID || ME_CLIENT_ID;
+    const redirectUri = encodeURIComponent(`https://zgnwqxcjdbjpzniemrdy.supabase.co/functions/v1/me-oauth-callback`);
+    const meOauthUrl = `https://www.melhorenvio.com.br/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=shipping-calculate%20shipping-checkout%20shipping-generate%20users-read&state=${storeId}`;
+    window.location.href = meOauthUrl;
+  };
+
+  const handleDisconnect = async () => {
+    if (!window.confirm('Tem certeza? Você não poderá mais gerar etiquetas automaticamente para esta loja.')) return;
+    setIsDisconnecting(true);
+    try {
+      await supabase
+        .from('me_store_integrations')
+        .delete()
+        .eq('store_id', storeId);
+      setIntegration(null);
+      onAction('Melhor Envio desconectado.');
+    } catch (e: any) {
+      onAction('Erro ao desconectar: ' + e.message);
+    } finally {
+      setIsDisconnecting(false);
+    }
+  };
+
+  if (loading) return <div className="p-4 animate-pulse">Carregando Melhor Envio...</div>;
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-amber-400 flex items-center justify-center shadow-lg shadow-amber-200/50">
+            <Package className="text-white" size={24} />
+          </div>
+          <div>
+            <h2 className="font-black text-gray-900">Melhor Envio</h2>
+            <p className="text-xs text-gray-400">Geração de etiquetas automatizada</p>
+          </div>
+        </div>
+        {!loading && (
+          <span className={cn(
+            "flex items-center gap-1.5 text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest",
+            integration ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-400"
+          )}>
+            <span className={cn(
+              "w-2 h-2 rounded-full",
+              integration ? "bg-emerald-500 animate-pulse" : "bg-gray-300"
+            )} />
+            {integration ? 'Conectado' : 'Não conectado'}
+          </span>
+        )}
+      </div>
+
+      {integration ? (
+        <div className="space-y-4">
+          <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 space-y-3">
+            <div className="flex items-center gap-2 text-emerald-700">
+              <ShieldCheck size={16} />
+              <span className="text-xs font-black uppercase tracking-widest">Conta vinculada</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-[9px] font-black text-emerald-600/60 uppercase tracking-widest mb-0.5">E-mail Melhor Envio</p>
+                <p className="text-sm font-bold text-gray-900 truncate">{integration.me_email || '—'}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-black text-emerald-600/60 uppercase tracking-widest mb-0.5">Conectado em</p>
+                <p className="text-sm font-bold text-gray-900">{integration.created_at ? new Date(integration.created_at).toLocaleDateString('pt-BR') : '—'}</p>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={handleDisconnect}
+            disabled={isDisconnecting}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 text-red-500 text-xs font-bold hover:bg-red-50 transition-all disabled:opacity-50"
+          >
+            <Unlink size={14} />
+            {isDisconnecting ? 'Desconectando...' : 'Desconectar da loja'}
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <p className="text-sm text-gray-500 leading-relaxed">
+            Conecte sua conta do Melhor Envio para gerar etiquetas diretamente do painel, utilizando os saldos já existentes na sua carteira.
+          </p>
+          <button
+            onClick={handleConnect}
+            className="w-full h-12 bg-amber-400 hover:bg-amber-500 text-white rounded-xl font-black text-sm flex items-center justify-center gap-3 transition-all shadow-lg shadow-amber-200 hover:shadow-xl hover:shadow-amber-300"
+          >
+            <Link size={18} />
+            Conectar com Melhor Envio
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const STATUS_TRACKING_LABELS: Record<string, string> = {
+  'Pendente':    '📋 Pedido recebido e aguardando confirmação',
+  'Pago':        '✅ Pagamento confirmado com sucesso',
+  'Preparando':  '📦 Pedido em preparação',
+  'Enviado':     '🚚 Pedido saiu para entrega',
+  'Entregue':    '🎉 Pedido entregue ao cliente',
+  'Cancelado':   '❌ Pedido cancelado',
+};
+
 const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: string | null, onAction: (msg: string) => void }) => {
   const [orderTab, setOrderTab] = useState('Todos');
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const [trackingLogs, setTrackingLogs] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
     let isMounted = true;
@@ -536,6 +681,26 @@ const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: str
 
   const filteredOrders = orders.filter(order => orderTab === 'Todos' || order.status === orderTab);
 
+  const fetchTrackingLogs = async (orderId: string) => {
+    const { data } = await supabase
+      .from('order_tracking')
+      .select('*')
+      .eq('order_id', orderId)
+      .order('created_at', { ascending: true });
+    if (data) {
+      setTrackingLogs(prev => ({ ...prev, [orderId]: data }));
+    }
+  };
+
+  const handleExpandOrder = (orderId: string) => {
+    if (expandedOrderId === orderId) {
+      setExpandedOrderId(null);
+    } else {
+      setExpandedOrderId(orderId);
+      fetchTrackingLogs(orderId);
+    }
+  };
+
   const updateOrderStatus = async (orderId: string, newStatus: string, items: any[]) => {
     try {
       // 1. Update the order status
@@ -546,7 +711,19 @@ const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: str
 
       if (updateError) throw updateError;
 
-      // 2. If confirming (Pago/Aprovado), reduce stock
+      // 2. Insert tracking log entry
+      await supabase.from('order_tracking').insert({
+        order_id: orderId,
+        status: newStatus,
+        description: STATUS_TRACKING_LABELS[newStatus] || `Status alterado para ${newStatus}`,
+      });
+
+      // Refresh tracking logs for this order if expanded
+      if (expandedOrderId === orderId) {
+        fetchTrackingLogs(orderId);
+      }
+
+      // 3. If confirming (Pago/Aprovado), reduce stock
       if (newStatus === 'Pago' || newStatus === 'Aprovado') {
         for (const item of items) {
           const productId = item.id;
@@ -554,7 +731,6 @@ const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: str
           const quantity = Number(item.quantity) || 1;
 
           if (variationId) {
-            // It's a variation
             const { data: variation } = await supabase
               .from('product_variations')
               .select('estoque')
@@ -569,7 +745,6 @@ const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: str
                 .eq('id', variationId);
             }
           } else if (productId) {
-            // It's a main product
             const { data: product } = await supabase
               .from('products')
               .select('estoque')
@@ -587,12 +762,57 @@ const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: str
         }
       }
 
-      // 3. Update local state
+      // 4. Update local state
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
       onAction(`Pedido ${newStatus.toLowerCase()} com sucesso!`);
     } catch (e: any) {
       console.error('Error updating order status:', e);
       onAction('Erro ao atualizar status: ' + e.message);
+    }
+  };
+
+  const [isBuyingShipping, setIsBuyingShipping] = useState<Record<string, boolean>>({});
+
+  const handleBuyShipping = async (order: any) => {
+    try {
+      if (!storeId) return;
+      setIsBuyingShipping(prev => ({ ...prev, [order.id]: true }));
+      onAction('Gerando etiqueta no Melhor Envio...');
+      
+      const { data, error } = await supabase.functions.invoke('buy-shipping', {
+        body: { orderId: order.id, storeId }
+      });
+      
+      if (error) throw error;
+      
+      setOrders(prev => prev.map(o => o.id === order.id ? { 
+        ...o, 
+        tracking_code: data.tracking_code,
+        shipping_label_url: data.shipping_label_url
+      } : o));
+      
+      onAction('Etiqueta gerada com sucesso!');
+      
+      if (data.tracking_code && order.status !== 'Enviado') {
+        updateOrderStatus(order.id, 'Enviado', order.items || []);
+      }
+    } catch (e: any) {
+      console.error('Buy Shipping Error:', e);
+      let errorMsg = e.message || 'Erro desconhecido';
+      
+      // If it's a Supabase Edge Function error with a response
+      if (e.context && typeof e.context.json === 'function') {
+        try {
+          const body = await e.context.json();
+          errorMsg = body.error || errorMsg;
+        } catch (parseError) {
+          // Fallback if body is not JSON
+        }
+      }
+      
+      onAction('Erro ao processar frete: ' + errorMsg);
+    } finally {
+      setIsBuyingShipping(prev => ({ ...prev, [order.id]: false }));
     }
   };
 
@@ -612,7 +832,7 @@ const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: str
         <p className="text-gray-500">{filteredOrders.length} pedido(s) no total</p>
       </div>
       <div className="flex gap-2 mb-6 overflow-x-auto pb-2 custom-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
-        {['Todos', 'Pendente', 'Pago', 'Enviado', 'Entregue', 'Cancelado'].map((tab) => (
+        {['Todos', 'Pendente', 'Pago', 'Preparando', 'Enviado', 'Entregue', 'Cancelado'].map((tab) => (
           <button
             key={tab}
             onClick={() => setOrderTab(tab)}
@@ -627,72 +847,131 @@ const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: str
       </div>
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm min-h-[400px] flex flex-col p-6">
         {filteredOrders.length > 0 ? (
-          <div className="space-y-4 w-full">
+          <div className="space-y-3 w-full">
             {filteredOrders.map((order) => {
               const customerName = order.customer_name || 'Desconhecido';
+              const isExpanded = expandedOrderId === order.id;
+              const logs = trackingLogs[order.id] || [];
+              const statusColor = (
+                order.status === 'Cancelado' || order.status === 'Recusado' ? 'bg-red-50 text-red-600 border-red-100' :
+                order.status === 'Pago' || order.status === 'Aprovado' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                order.status === 'Entregue' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                order.status === 'Enviado' ? 'bg-sky-50 text-sky-600 border-sky-100' :
+                order.status === 'Preparando' ? 'bg-purple-50 text-purple-600 border-purple-100' :
+                'bg-orange-50 text-orange-600 border-orange-100'
+              );
               return (
-                <div key={order.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-gray-100 gap-4 sm:gap-0 hover:border-indigo-100 hover:bg-indigo-50/10 transition-all">
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-[#5551FF] font-black text-lg shrink-0">
-                      {customerName.charAt(0).toUpperCase()}
+                <div key={order.id} className="rounded-2xl border border-gray-100 hover:border-indigo-100 transition-all overflow-hidden">
+                  {/* Order Header Row */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 gap-4 sm:gap-0">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-[#5551FF] font-black text-lg shrink-0">
+                        {customerName.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-sm font-black text-gray-900 truncate">{customerName}</h4>
+                        <p className="text-[10px] font-bold text-gray-400 truncate uppercase tracking-widest">{order.customer_email || '-'} • {new Date(order.created_at).toLocaleDateString()}</p>
+                        <p className="text-[9px] text-gray-400 mt-1 font-mono">{order.id.slice(0, 8)}...</p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <h4 className="text-sm font-black text-gray-900 truncate">{customerName}</h4>
-                      <p className="text-[10px] font-bold text-gray-400 truncate uppercase tracking-widest">{order.customer_email || '-'} • {new Date(order.created_at).toLocaleDateString()}</p>
-                      <p className="text-[9px] text-gray-400 mt-1 font-mono">{order.id.slice(0, 8)}...</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col sm:items-end gap-3">
-                    <div className="flex items-center justify-between sm:justify-end gap-4">
-                      <span className="text-base font-black text-gray-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(order.total) || 0)}</span>
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          "text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest border",
-                          order.status === 'Cancelado' || order.status === 'Recusado' ? "bg-red-50 text-red-600 border-red-100" :
-                            order.status === 'Pago' || order.status === 'Aprovado' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                              "bg-orange-50 text-orange-600 border-orange-100"
-                        )}>
+                    <div className="flex flex-col sm:items-end gap-3">
+                      <div className="flex items-center justify-between sm:justify-end gap-4">
+                        <span className="text-base font-black text-gray-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(order.total) || 0)}</span>
+                        <span className={cn('text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest border', statusColor)}>
                           {order.status || 'Pendente'}
                         </span>
                       </div>
-                    </div>
-                    
-                    {/* Status Actions */}
-                    <div className="flex items-center gap-2">
-                       {order.status === 'Pendente' && (
-                         <button 
-                           onClick={() => updateOrderStatus(order.id, 'Pago', order.items || [])}
-                           className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors shadow-sm shadow-emerald-200"
-                         >
-                           Confirmar Pago
-                         </button>
-                       )}
-                       {(order.status === 'Pago' || order.status === 'Aprovado') && (
-                         <button 
-                           onClick={() => updateOrderStatus(order.id, 'Enviado', order.items || [])}
-                           className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm shadow-blue-200"
-                         >
-                           Marcar Enviado
-                         </button>
-                       )}
-                       {order.status === 'Enviado' && (
-                         <button 
-                           onClick={() => updateOrderStatus(order.id, 'Entregue', order.items || [])}
-                           className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-black transition-colors"
-                         >
-                           Finalizar Entrega
-                         </button>
-                       )}
-                       {order.status !== 'Cancelado' && order.status !== 'Entregue' && (
-                         <button 
-                           onClick={() => updateOrderStatus(order.id, 'Cancelado', order.items || [])}
-                           className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 border border-red-100 text-red-500 hover:bg-red-50 transition-colors rounded-lg"
-                         >
-                           Cancelar
-                         </button>
-                       )}
+                      {/* Status Action Buttons */}
+                      <div className="flex items-center flex-wrap gap-2">
+                        {order.status === 'Pendente' && (
+                          <button onClick={() => updateOrderStatus(order.id, 'Pago', order.items || [])} className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors shadow-sm">
+                            ✅ Confirmar Pago
+                          </button>
+                        )}
+                        {(order.status === 'Pago' || order.status === 'Aprovado') && (
+                          <button onClick={() => updateOrderStatus(order.id, 'Preparando', order.items || [])} className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors shadow-sm">
+                            📦 Preparando
+                          </button>
+                        )}
+                        {order.status === 'Preparando' && (
+                          <button onClick={() => updateOrderStatus(order.id, 'Enviado', order.items || [])} className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors shadow-sm">
+                            🚚 Marcar Enviado
+                          </button>
+                        )}
+                        {order.status === 'Enviado' && (
+                          <button onClick={() => updateOrderStatus(order.id, 'Entregue', order.items || [])} className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                            🎉 Finalizar Entrega
+                          </button>
+                        )}
+                        {order.status !== 'Cancelado' && order.status !== 'Entregue' && (
+                          <button onClick={() => updateOrderStatus(order.id, 'Cancelado', order.items || [])} className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 border border-red-100 text-red-500 hover:bg-red-50 transition-colors rounded-lg">
+                            Cancelar
+                          </button>
+                        )}
+                        {/* Shipping Integration Buttons */}
+                        {order.status === 'Pago' || order.status === 'Preparando' || order.status === 'Aprovado' ? (
+                          !order.tracking_code ? (
+                             <button 
+                               onClick={() => handleBuyShipping(order)} 
+                               disabled={isBuyingShipping[order.id]}
+                               className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 bg-amber-400 text-white rounded-lg hover:bg-amber-500 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1"
+                             >
+                               <Package size={12} />
+                               {isBuyingShipping[order.id] ? 'Gerando...' : 'Comprar Frete'}
+                             </button>
+                          ) : (
+                             <a 
+                               href={order.shipping_label_url || `https://melhorenvio.com.br/painel/envios/aguardando-impressao`}
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors shadow-sm flex items-center gap-1"
+                             >
+                               <ExternalLink size={12} />
+                               Imprimir Etiqueta
+                             </a>
+                          )
+                        ) : null}
+                        {/* Expand toggle */}
+                        <button
+                          onClick={() => handleExpandOrder(order.id)}
+                          className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 border border-gray-100 text-gray-500 hover:bg-gray-50 transition-colors rounded-lg flex items-center gap-1"
+                        >
+                          {isExpanded ? '▲ Ocultar' : '▼ Rastreio'}
+                        </button>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Tracking Timeline */}
+                  {isExpanded && (
+                    <div className="border-t border-gray-50 bg-gray-50/50 px-6 py-5">
+                      <div className="flex items-center justify-between mb-4">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">📍 Histórico do Pedido</p>
+                        {order.tracking_code && (
+                          <p className="text-[10px] font-black text-[#5551FF] uppercase tracking-widest bg-indigo-50 px-2 py-1 rounded-md">
+                            Rastreio: {order.tracking_code}
+                          </p>
+                        )}
+                      </div>
+                      {logs.length === 0 ? (
+                        <p className="text-xs text-gray-400 italic">Nenhum histórico registrado ainda.</p>
+                      ) : (
+                        <div className="relative pl-6">
+                          <div className="absolute left-2 top-0 bottom-0 w-px bg-gray-200" />
+                          {logs.map((log, idx) => (
+                            <div key={log.id} className="relative mb-4 last:mb-0">
+                              <div className={cn(
+                                'absolute -left-[18px] w-4 h-4 rounded-full border-2 border-white flex items-center justify-center',
+                                idx === logs.length - 1 ? 'bg-[#5551FF]' : 'bg-emerald-400'
+                              )} />
+                              <p className="text-[11px] font-black text-gray-800">{log.description || log.status}</p>
+                              <p className="text-[9px] text-gray-400 mt-0.5">{new Date(log.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}

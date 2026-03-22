@@ -1043,7 +1043,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
                     </span>
                   </div>
                   <div className="text-right font-bold text-slate-800 text-sm">
-                    R$ {Number(prod.price).toFixed(2).replace('.', ',')}
+                    {Number(prod.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </div>
                   <div className="text-right text-xs font-bold text-slate-800">
                     {prod.estoque}<br/>
