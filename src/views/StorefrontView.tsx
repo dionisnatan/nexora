@@ -2015,8 +2015,9 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
       }
 
       const varInfo = selectedVariation ? ` (${selectedVariation.name}: ${selectedVariation.value})` : '';
+      const skuInfo = selectedProduct.sku ? ` (SKU: ${selectedProduct.sku})` : '';
       const methodStr = method === 'pix' ? 'no PIX' : 'no Cartão';
-      const message = `Olá! Quero comprar o produto: ${selectedProduct.name}${varInfo} por R$ ${finalPriceWithShipping.toFixed(2).replace('.', ',')} ${methodStr}.\n\nModalidade: ✋ RETIRAR EM MÃOS`;
+      const message = `Olá! Quero comprar o produto: ${selectedProduct.name}${skuInfo}${varInfo} por R$ ${finalPriceWithShipping.toFixed(2).replace('.', ',')} ${methodStr}.\n\nModalidade: ✋ RETIRAR EM MÃOS`;
       window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
       return;
     }
@@ -3638,7 +3639,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
                 <div className="p-4 bg-white border-t border-gray-100 shrink-0">
                   <a
-                    href={`https://wa.me/${store.whatsapp?.replace(/\D/g, '') || ''}?text=Olá,%20gostaria%20de%20comprar%20o%20produto:%20${encodeURIComponent(catalogProductDetails.name)}`}
+                    href={`https://wa.me/${store.whatsapp?.replace(/\D/g, '') || ''}?text=Olá,%20gostaria%20de%20comprar%20o%20produto:%20${encodeURIComponent(catalogProductDetails.name)}%20(SKU:%20${encodeURIComponent(catalogProductDetails.sku || '')})`}
                     target="_blank"
                     rel="noreferrer"
                     className="w-full py-4 rounded-xl flex items-center justify-center gap-2 text-white font-black uppercase tracking-widest text-xs hover:opacity-90 transition-opacity"
@@ -3812,7 +3813,8 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
                         const itemsList = cart.map(item => {
                           const variation = item.selectedVariation ? ` [${item.selectedVariation.name}: ${item.selectedVariation.value}]` : '';
-                          return `- ${item.quantity}x ${item.name}${variation}: R$ ${(item.price * item.quantity).toFixed(2).replace('.', ',')}`;
+                          const skuStr = item.sku ? ` (SKU: ${item.sku})` : '';
+                          return `- ${item.quantity}x ${item.name}${skuStr}${variation}: R$ ${(item.price * item.quantity).toFixed(2).replace('.', ',')}`;
                         }).join('\n');
 
                         const message = `Olá! Quero finalizar meu pedido:\n\n${itemsList}\n\n*TOTAL (Pix): R$ ${cartPixTotal.toFixed(2).replace('.', ',')}*\n*TOTAL (Cartão): R$ ${cartTotal.toFixed(2).replace('.', ',')}*`;
