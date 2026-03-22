@@ -100,6 +100,14 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
   const [notification, setNotification] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   const [catalogProductDetails, setCatalogProductDetails] = useState<any>(null);
   const [catalogImageIndex, setCatalogImageIndex] = useState(0);
+  const [preferenceId, setPreferenceId] = useState<string | null>(null);
+  const [mpInitialized, setMpInitialized] = useState(false);
+  const [mpIntegration, setMpIntegration] = useState<{ public_key?: string } | null>(null);
+  const [brickLoading, setBrickLoading] = useState(false);
+  const [brickError, setBrickError] = useState(false);
+  const [mpInitPoint, setMpInitPoint] = useState<string | null>(null);
+  const [brickId] = useState(() => `mp-brick-${Math.random().toString(36).substr(2, 9)}`);
+  const [showBrickFallback, setShowBrickFallback] = useState(false);
 
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setNotification({ message, type });
@@ -117,6 +125,127 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Load Mercado Pago SDK
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://sdk.mercadopago.com/js/v2';
+    script.async = true;
+    script.onload = () => setMpInitialized(true);
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
+  // Fetch MP Integration for Public Key
+  useEffect(() => {
+    if (store?.id) {
+      const fetchMPIntegration = async () => {
+        const { data } = await supabase
+          .from('payment_integrations')
+          .select('public_key, mp_user_id')
+          .eq('store_id', store.id)
+          .eq('provider', 'mercadopago')
+          .single();
+        if (data) setMpIntegration(data);
+      };
+      fetchMPIntegration();
+    }
+  }, [store?.id]);
+
+  // Initialize Wallet Brick
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    let fallbackTimer: NodeJS.Timeout;
+    let isMounted = true;
+
+    if (mpInitialized && preferenceId && (window as any).MercadoPago) {
+      setBrickLoading(true);
+      setBrickError(false);
+
+      const publicKey = mpIntegration?.public_key || 'APP_USR-7699b49febcf37bfddfa6e11f77991a8';
+      const mp = new (window as any).MercadoPago(publicKey, {
+        locale: 'pt-BR'
+      });
+      const bricksBuilder = mp.bricks();
+
+      // Fallback timer: if brick doesn't load in 6 seconds, show error/fallback
+      fallbackTimer = setTimeout(() => {
+        if (isMounted && brickLoading) {
+           console.log('[MP Brick] Timeout reached, showing fallback');
+           setBrickLoading(false);
+           setBrickError(true);
+        }
+      }, 6000);
+
+      const renderWalletBrick = async (bricksBuilder: any) => {
+        try {
+          console.log('[MP Brick] Initializing with preference:', preferenceId);
+          const settings = {
+            initialization: {
+              preferenceId: preferenceId,
+              redirectMode: 'modal'
+            },
+            customization: {
+              texts: {
+                valueProp: 'smart_option',
+              },
+            },
+            callbacks: {
+              onReady: () => {
+                console.log('[MP Brick] Ready');
+                if (isMounted) {
+                  setBrickLoading(false);
+                  clearTimeout(fallbackTimer);
+                }
+              },
+              onError: (error: any) => {
+                console.error('[MP Brick] Error:', error);
+                if (isMounted) {
+                  setBrickLoading(false);
+                  setBrickError(true);
+                  clearTimeout(fallbackTimer);
+                }
+              },
+            }
+          };
+          await bricksBuilder.create(
+            'wallet',
+            brickId,
+            settings
+          );
+          console.log('[MP Brick] Successfully rendered in:', brickId);
+        } catch (e) {
+          console.error('[MP Brick] Create failed:', e);
+          if (isMounted) {
+            setBrickLoading(false);
+            setBrickError(true);
+          }
+        }
+      };
+
+      const tryRender = () => {
+        if (!isMounted) return;
+        const container = document.getElementById(brickId);
+        if (container) {
+          console.log('[MP Brick] Container found:', brickId);
+          renderWalletBrick(bricksBuilder);
+        } else {
+          console.log('[MP Brick] Container NOT found:', brickId, 'retrying...');
+          timeoutId = setTimeout(tryRender, 100);
+        }
+      };
+
+      tryRender();
+    }
+
+    return () => {
+      isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+    };
+  }, [mpInitialized, preferenceId]);
 
   useEffect(() => {
     if (customerSession?.user) {
@@ -1893,7 +2022,11 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      if (data?.init_point) {
+      if (data?.preference_id) {
+        setPreferenceId(data.preference_id);
+        setMpInitPoint(data.init_point || null);
+      } else if (data?.init_point) {
+        // Fallback to redirect if preference_id not available (though it should be)
         window.location.href = data.init_point;
       } else {
         throw new Error('Link de pagamento não retornado');
@@ -1929,8 +2062,8 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="bg-white w-full max-w-6xl h-[95vh] md:h-[90vh] rounded-[2.5rem] md:rounded-[3rem] overflow-hidden shadow-[0_50px_100px_rgba(0,0,0,0.25)] flex flex-col md:flex-row relative z-50 transition-all"
+            exit={{ opacity: 0, y: 50, scale: 0.95 }}
+            className="bg-white w-full max-w-5xl min-h-[92vh] md:min-h-0 md:h-[90vh] rounded-[2.5rem] shadow-[0_50px_100px_rgba(0,0,0,0.1)] flex flex-col md:flex-row relative z-50 overflow-y-auto md:overflow-hidden"
           >
             {/* Top Toolbar */}
             <div className="absolute top-3 right-6 z-[60] flex items-center gap-3">
@@ -1958,7 +2091,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                 />
               </button>
               <button
-                onClick={() => setSelectedProduct(null)}
+                onClick={() => { setSelectedProduct(null); setPreferenceId(null); }}
                 className="p-3 bg-[#0b0b0b] hover:bg-[#f70] rounded-2xl transition-all text-white shadow-lg"
               >
                 <X size={20} />
@@ -1966,7 +2099,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             </div>
 
             {/* Left: Visuals Section */}
-            <div className="h-[40vh] md:h-auto md:w-[55%] bg-gray-50 p-4 md:p-8 flex flex-col gap-4 border-b md:border-b-0 md:border-r border-gray-100 overflow-y-auto custom-scrollbar shrink-0">
+            <div className="h-[40vh] md:h-auto md:w-[45%] bg-gray-50 p-6 md:p-10 flex flex-col gap-6 border-b md:border-b-0 md:border-r border-gray-100 shrink-0 overflow-y-auto custom-scrollbar">
               {/* Categorias Breadcrumb */}
               <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#f70]">
                 <span>Início</span>
@@ -2045,7 +2178,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               </div>
             </div>
 
-            <div className="flex-1 md:w-[45%] flex flex-col bg-white h-0 md:h-full relative overflow-hidden">
+            <div className="flex-1 md:w-[55%] flex flex-col min-h-0 md:h-full relative overflow-hidden">
               {/* Scrollable Content Area */}
               <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar relative">
                 {/* Limited Offer Banner */}
@@ -2073,8 +2206,8 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                 </div>
 
                 <div className="space-y-4 pb-4">
-                  {/* High-End Price Box - Floating/Sticky at Top */}
-                  <div className="sticky top-0 z-30 -mx-1 px-1 py-3 bg-white/80 backdrop-blur-md rounded-2xl shadow-md border border-gray-100 mb-6 p-4 rounded-[1.5rem] space-y-2 relative overflow-hidden group">
+                  {/* High-End Price Box - Non-sticky on mobile to avoid overlaps */}
+                  <div className="md:sticky md:top-0 z-30 -mx-1 px-1 py-3 bg-white md:bg-white/80 md:backdrop-blur-md rounded-2xl shadow-sm md:shadow-md border border-gray-100 mb-6 p-4 rounded-[1.5rem] space-y-2 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                       <CreditCard size={100} />
                     </div>
@@ -2591,13 +2724,43 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                     <ShoppingBag size={18} />
                     Adicionar
                   </button>
-                  <button
-                    onClick={() => handleDirectPurchase(finalPrice, paymentMethod)}
-                    className="h-16 bg-[#25D366] text-white rounded-[1.5rem] font-black uppercase tracking-[0.15em] text-[10px] hover:scale-[1.02] active:scale-95 transition-all shadow-lg flex items-center justify-center gap-3 group italic shadow-[#25D366]/20"
-                  >
-                    <ShoppingCart size={18} />
-                    Comprar Agora
-                  </button>
+                  {preferenceId ? (
+                    <div className="h-24 w-full flex flex-col items-center justify-center gap-2">
+                       <div id={brickId} className={cn("w-full transition-all", (brickLoading || brickError) ? 'h-0 opacity-0 overflow-hidden' : 'min-h-[64px] opacity-100')} />
+                       {brickLoading && (
+                         <div className="flex flex-col items-center gap-3">
+                           <div className="flex items-center gap-2 text-gray-500 animate-pulse">
+                             <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+                             <span className="text-[10px] font-bold uppercase tracking-widest">Preparando Checkout...</span>
+                           </div>
+                           {preferenceId && (
+                             <button 
+                               onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
+                               className="text-[9px] font-black text-blue-500 uppercase tracking-tighter hover:underline"
+                             >
+                               Não carregou? Clique aqui para pagar
+                             </button>
+                           )}
+                         </div>
+                       )}
+                       {brickError && (
+                         <button
+                           onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
+                           className="w-full h-14 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+                         >
+                           <ExternalLink size={16} /> Pagar Agora (Link Seguro)
+                         </button>
+                       )}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleDirectPurchase(finalPrice, paymentMethod)}
+                      className="h-16 bg-[#25D366] text-white rounded-[1.5rem] font-black uppercase tracking-[0.15em] text-[10px] hover:scale-[1.02] active:scale-95 transition-all shadow-lg flex items-center justify-center gap-3 group italic shadow-[#25D366]/20"
+                    >
+                      <ShoppingCart size={18} />
+                      Comprar Agora
+                    </button>
+                  )}
                 </div>
                 <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.3em] text-center opacity-50">Atendimento 100% Humano via WhatsApp</p>
               </div>
@@ -2626,13 +2789,13 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             initial={{ opacity: 0, scale: 0.98, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98, y: 10 }}
-            className="bg-white w-full max-w-4xl rounded-[2rem] border border-gray-100 shadow-[0_30px_60px_rgba(0,0,0,0.05)] flex flex-col md:flex-row relative z-50 overflow-hidden"
+            className="bg-white w-full max-w-4xl max-h-[92vh] rounded-[2rem] border border-gray-100 shadow-[0_30px_60px_rgba(0,0,0,0.05)] flex flex-col md:flex-row relative z-50 overflow-y-auto md:overflow-hidden"
           >
-            <button onClick={() => setSelectedProduct(null)} className="absolute top-6 right-6 z-20 p-2 text-gray-400 hover:text-gray-900 bg-gray-50 rounded-full transition-colors">
+            <button onClick={() => { setSelectedProduct(null); setPreferenceId(null); }} className="absolute top-6 right-6 z-20 p-2 text-gray-400 hover:text-gray-900 bg-gray-50 rounded-full transition-colors">
               <X size={20} />
             </button>
             <div 
-              className="md:w-1/2 p-10 bg-gray-50 flex items-center justify-center relative border-r border-gray-100 overflow-hidden group cursor-zoom-in"
+              className="md:w-1/2 p-6 md:p-10 bg-gray-50 flex items-center justify-center relative border-b md:border-b-0 md:border-r border-gray-100 overflow-hidden group cursor-zoom-in shrink-0"
               onMouseMove={handleMouseMove}
               onMouseLeave={() => setZoomState({ ...zoomState, active: false })}
               onClick={() => setShowLightbox(true)}
@@ -2650,7 +2813,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                 className="w-full mix-blend-multiply drop-shadow-xl" 
               />
             </div>
-            <div className="md:w-1/2 p-10 flex flex-col justify-center space-y-8">
+            <div className="md:w-1/2 p-6 md:p-10 flex flex-col justify-center space-y-6 md:space-y-8">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-widest text-[#f70]">{categories.find((c: any) => c.id === selectedProduct.category_id)?.name || 'Produto'}</span>
                 <h2 className="text-3xl font-black text-gray-900 tracking-tight leading-tight mt-2">{selectedProduct.name}</h2>
@@ -2692,9 +2855,35 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                 <button onClick={() => addToCart(selectedProduct, selectedVariation)} className="h-14 w-14 shrink-0 bg-white border-2 border-gray-100 hover:border-[#f70] hover:text-[#f70] rounded-2xl flex items-center justify-center text-gray-400 transition-colors shadow-sm">
                   <ShoppingBag size={20} />
                 </button>
-                <button onClick={() => handleDirectPurchase(finalPrice, paymentMethod)} className="flex-1 h-14 bg-[#25D366] hover:bg-[#1da851] text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 transition-colors shadow-lg shadow-[#25D366]/20">
-                  <ShoppingCart size={18} /> Comprar Agora
-                </button>
+                {preferenceId ? (
+                  <div className="flex-1 flex flex-col items-center justify-center gap-2">
+                     <div id={brickId} className={cn("w-full transition-all", (brickLoading || brickError) ? 'h-0 opacity-0 overflow-hidden' : 'min-h-[56px] opacity-100')} />
+                     {brickLoading && (
+                       <div className="flex flex-col items-center gap-2">
+                         <div className="w-3 h-3 border-2 border-gray-200 border-t-gray-900 rounded-full animate-spin" />
+                         <span className="text-[9px] font-bold uppercase tracking-widest">Processando...</span>
+                         <button 
+                            onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
+                            className="text-[8px] font-bold text-gray-400 uppercase hover:underline"
+                          >
+                            Problemas ao carregar? Clique aqui
+                          </button>
+                       </div>
+                     )}
+                     {brickError && (
+                       <button
+                         onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
+                         className="flex-1 h-14 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-black transition-all flex items-center justify-center gap-2"
+                       >
+                         <ExternalLink size={16} /> Link de Pagamento
+                       </button>
+                     )}
+                  </div>
+                ) : (
+                  <button onClick={() => handleDirectPurchase(finalPrice, paymentMethod)} className="flex-1 h-14 bg-[#25D366] hover:bg-[#1da851] text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 transition-colors shadow-lg shadow-[#25D366]/20">
+                    <ShoppingCart size={18} /> Comprar Agora
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>
@@ -2722,13 +2911,13 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="bg-[#0b0b0b] w-full max-w-5xl h-[95vh] md:h-[90vh] rounded-[2rem] border border-white/10 shadow-[0_0_100px_rgba(255,255,255,0.05)] flex flex-col md:flex-row relative z-50 transition-all"
+            className="bg-[#0b0b0b] w-full max-w-5xl min-h-[92vh] md:min-h-0 md:h-[90vh] rounded-[2rem] border border-white/10 shadow-[0_0_100px_rgba(255,255,255,0.05)] flex flex-col md:flex-row relative z-50 overflow-y-auto md:overflow-hidden"
           >
-            <button onClick={() => setSelectedProduct(null)} className="absolute top-3 right-6 z-20 p-3 text-gray-400 hover:text-white bg-white/5 rounded-full backdrop-blur-md transition-colors border border-white/10">
+            <button onClick={() => { setSelectedProduct(null); setPreferenceId(null); }} className="absolute top-3 right-6 z-20 p-3 text-gray-400 hover:text-white bg-white/5 rounded-full backdrop-blur-md transition-colors border border-white/10">
               <X size={20} />
             </button>
             <div 
-              className="h-[40vh] md:h-auto md:w-1/2 p-6 md:p-12 bg-gradient-to-br from-[#111] to-[#050505] flex items-center justify-center relative border-r border-white/5 overflow-hidden group cursor-zoom-in shrink-0"
+              className="h-[40vh] md:h-auto md:w-1/2 p-6 md:p-12 bg-gradient-to-br from-[#111] to-[#050505] flex items-center justify-center relative border-b md:border-b-0 md:border-r border-white/5 overflow-hidden group cursor-zoom-in shrink-0"
               onMouseMove={handleMouseMove}
               onMouseLeave={() => setZoomState({ ...zoomState, active: false })}
               onClick={() => setShowLightbox(true)}
@@ -2747,7 +2936,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                 className="w-full drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)] scale-105 relative z-10" 
               />
             </div>
-            <div className="flex-1 md:w-1/2 flex flex-col bg-[#0b0b0b] h-0 md:h-full relative overflow-hidden">
+            <div className="flex-1 md:w-1/2 flex flex-col bg-[#0b0b0b] min-h-0 md:h-full relative overflow-hidden">
               <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar relative space-y-6">
                 <span className="text-[9px] font-black uppercase tracking-[0.4em] text-gray-500 line-through decoration-white/20">SELECAO PREMIUM</span>
                 <h2 className="text-4xl md:text-5xl font-light text-white tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>{selectedProduct.name}</h2>
@@ -2772,7 +2961,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   </div>
                 )}
 
-                <div className="sticky top-0 z-30 -mx-1 px-1 py-4 bg-[#0b0b0b]/90 backdrop-blur-md border-b border-white/5 mb-4">
+                <div className="md:sticky md:top-0 z-30 -mx-1 px-1 py-4 bg-[#0b0b0b] md:bg-[#0b0b0b]/90 md:backdrop-blur-md border-b border-white/5 mb-4">
                   <p className="text-gray-500 uppercase tracking-widest text-[9px] font-bold mb-1">Valor Total</p>
                   <p className="text-4xl font-light text-white tracking-tighter leading-none" style={{ fontFamily: "'Playfair Display', serif" }}>R$ {finalPrice.toFixed(2).replace('.', ',')}</p>
                 </div>
@@ -2783,9 +2972,37 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   <button onClick={() => setPaymentMethod('pix')} className={cn("flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded border transition-all", paymentMethod === 'pix' ? 'border-[var(--theme-primary)] text-[var(--theme-primary)] bg-[var(--theme-primary)]/10' : 'border-white/10 text-gray-500 hover:border-white/30')}>Pix -{Number(selectedProduct.pix_discount_percent || 10)}%</button>
                   <button onClick={() => setPaymentMethod('card')} className={cn("flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded border transition-all", paymentMethod === 'card' ? 'border-white text-white bg-white/10' : 'border-white/10 text-gray-500 hover:border-white/30')}>Cartao</button>
                 </div>
-                <button onClick={() => handleDirectPurchase(finalPrice, paymentMethod)} className="w-full h-16 bg-white hover:bg-gray-200 text-black rounded font-black uppercase tracking-[0.3em] text-[10px] transition-all flex items-center justify-center gap-4 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-                  Confirmar Agora <ChevronRight size={14} />
-                </button>
+                {preferenceId ? (
+                   <div className="w-full flex flex-col items-center justify-center gap-2">
+                      <div id={brickId} className={cn("w-full transition-all", (brickLoading || brickError) ? 'h-0 opacity-0 overflow-hidden' : 'min-h-[64px] opacity-100')} />
+                      {brickLoading && (
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="flex items-center gap-2 text-gray-500 animate-pulse">
+                            <div className="w-4 h-4 border-2 border-gray-100 border-t-white rounded-full animate-spin" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest">Finalizando...</span>
+                          </div>
+                          <button 
+                            onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
+                            className="text-[9px] font-black text-white/50 uppercase tracking-[0.2em] hover:text-white transition-colors"
+                          >
+                            Manual Link [Safe Mode]
+                          </button>
+                        </div>
+                      )}
+                      {brickError && (
+                        <button
+                          onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
+                          className="w-full h-16 bg-white text-black rounded font-black uppercase tracking-[0.3em] text-[10px] hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                        >
+                          <ExternalLink size={16} /> Pagar Agora (Link Seguro)
+                        </button>
+                      )}
+                   </div>
+                ) : (
+                  <button onClick={() => handleDirectPurchase(finalPrice, paymentMethod)} className="w-full h-16 bg-white hover:bg-gray-200 text-black rounded font-black uppercase tracking-[0.3em] text-[10px] transition-all flex items-center justify-center gap-4 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                    Confirmar Agora <ChevronRight size={14} />
+                  </button>
+                )}
                 <button onClick={() => addToCart(selectedProduct, selectedVariation)} className="w-full text-center text-[8px] font-black tracking-[0.2em] uppercase text-gray-500 hover:text-white transition-colors flex items-center justify-center gap-2">
                   <ShoppingBag size={12} /> Adicionar ao Carrinho
                 </button>
@@ -2815,9 +3032,9 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 30 }}
-            className="bg-[#0f172a] w-full max-w-5xl h-[95vh] md:h-[90vh] rounded-3xl border border-blue-500/30 shadow-[0_0_50px_rgba(59,130,246,0.2)] flex flex-col md:flex-row relative z-50 overflow-hidden"
+            className="bg-[#0f1115] w-full max-w-5xl min-h-[92vh] md:min-h-0 md:h-[90vh] rounded-3xl border border-blue-500/30 shadow-[0_0_50px_rgba(59,130,246,0.2)] flex flex-col md:flex-row relative z-50 overflow-y-auto md:overflow-hidden"
           >
-            <button onClick={() => setSelectedProduct(null)} className="absolute top-3 right-6 z-20 p-2 text-blue-400 hover:text-white bg-blue-500/10 rounded-xl transition-all border border-blue-500/20">
+            <button onClick={() => { setSelectedProduct(null); setPreferenceId(null); }} className="absolute top-3 right-6 z-20 p-2 text-blue-400 hover:text-white bg-blue-500/10 rounded-xl transition-all border border-blue-500/20">
               <X size={20} />
             </button>
             <div 
@@ -2919,9 +3136,37 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   <button onClick={() => setPaymentMethod('pix')} className={cn("flex-1 py-3 text-[10px] font-black uppercase rounded-lg border transition-all", paymentMethod === 'pix' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600')}>Pix</button>
                   <button onClick={() => setPaymentMethod('card')} className={cn("flex-1 py-3 text-[10px] font-black uppercase rounded-lg border transition-all", paymentMethod === 'card' ? 'bg-blue-500/10 border-blue-500 text-blue-400' : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600')}>Card</button>
                 </div>
-                <button onClick={() => handleDirectPurchase(finalPrice, paymentMethod)} className={getButtonStyle("w-full h-14 bg-gradient-to-r from-blue-600 to-fuchsia-600 hover:from-blue-500 hover:to-fuchsia-500 text-white font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(59,130,246,0.3)] transition-all transform hover:scale-[1.02]")}>
-                  <Zap size={18} fill="currentColor" /> Initiate Purchase
-                </button>
+                {preferenceId ? (
+                   <div className="w-full flex flex-col items-center justify-center gap-2">
+                      <div id={brickId} className={cn("w-full transition-all", (brickLoading || brickError) ? 'h-0 opacity-0 overflow-hidden' : 'min-h-[56px] opacity-100')} />
+                      {brickLoading && (
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="flex items-center gap-2 text-blue-400 animate-pulse">
+                            <div className="w-4 h-4 border-2 border-blue-500 border-t-fuchsia-500 rounded-full animate-spin" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">Initiating System...</span>
+                          </div>
+                          <button 
+                            onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
+                            className="text-[9px] font-black text-blue-400/50 uppercase tracking-[0.2em] hover:text-blue-400 transition-colors"
+                          >
+                            Manual Bypass [Click Here]
+                          </button>
+                        </div>
+                      )}
+                      {brickError && (
+                        <button
+                          onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
+                          className="w-full h-14 bg-gradient-to-r from-blue-600 to-fuchsia-600 text-white font-black uppercase tracking-widest text-[10px] hover:from-blue-500 hover:to-fuchsia-500 transition-all flex items-center justify-center gap-2"
+                        >
+                          <ExternalLink size={16} /> Checkout Link (Secure)
+                        </button>
+                      )}
+                   </div>
+                ) : (
+                  <button onClick={() => handleDirectPurchase(finalPrice, paymentMethod)} className={getButtonStyle("w-full h-14 bg-gradient-to-r from-blue-600 to-fuchsia-600 hover:from-blue-500 hover:to-fuchsia-500 text-white font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(59,130,246,0.3)] transition-all transform hover:scale-[1.02]")}>
+                    <Zap size={18} fill="currentColor" /> Initiate Purchase
+                  </button>
+                )}
                 <div className="flex items-center justify-center gap-4 text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] pt-2">
                   <span className="flex items-center gap-1"><ShieldCheck size={12} /> Secure</span>
                   <span className="w-1 h-1 bg-slate-700 rounded-full" />
@@ -3071,12 +3316,40 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   </motion.div>
                 )}
 
-                <button onClick={() => handleDirectPurchase(finalPrice, paymentMethod)} className="w-full h-16 bg-[#25D366] hover:bg-[#1da851] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-3 transition-colors shadow-lg shadow-[#25D366]/20">
-                  <ShoppingCart size={20} /> Garantir Minha Oferta
-                </button>
+                {preferenceId ? (
+                   <div className="w-full flex flex-col items-center justify-center gap-2">
+                       <div id={brickId} className={cn("w-full transition-all", (brickLoading || brickError) ? 'h-0 opacity-0 overflow-hidden' : 'min-h-[64px] opacity-100')} />
+                       {brickLoading && (
+                         <div className="flex flex-col items-center gap-3">
+                           <div className="flex items-center gap-2 text-red-600 animate-pulse">
+                             <div className="w-4 h-4 border-2 border-gray-200 border-t-red-600 rounded-full animate-spin" />
+                             <span className="text-[10px] font-black uppercase tracking-widest">Carregando Oferta...</span>
+                           </div>
+                           <button 
+                              onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
+                              className="text-[9px] font-black text-red-600/60 uppercase tracking-widest hover:text-red-600 transition-colors"
+                            >
+                              Não quer esperar? Clique aqui
+                            </button>
+                         </div>
+                       )}
+                       {brickError && (
+                         <button
+                           onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
+                           className="w-full h-16 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-red-700 transition-all flex items-center justify-center gap-2"
+                         >
+                           <ExternalLink size={16} /> Pagar Agora (Link Seguro)
+                         </button>
+                       )}
+                   </div>
+                ) : (
+                  <button onClick={() => handleDirectPurchase(finalPrice, paymentMethod)} className="w-full h-16 bg-[#25D366] hover:bg-[#1da851] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-3 transition-colors shadow-lg shadow-[#25D366]/20">
+                    <ShoppingCart size={20} /> Garantir Minha Oferta
+                  </button>
+                )}
               </div>
             </div>
-            <button onClick={() => setSelectedProduct(null)} className="absolute top-12 right-6 p-2 text-white hover:text-gray-200">
+            <button onClick={() => { setSelectedProduct(null); setPreferenceId(null); }} className="absolute top-12 right-6 p-2 text-white hover:text-gray-200">
               <X size={20} />
             </button>
           </motion.div>

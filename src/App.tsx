@@ -363,6 +363,117 @@ const PaymentSettingsView = ({ session, storeId, onAction }: { session: any, sto
   );
 };
 
+const MercadoPagoSettings = ({ storeId, onAction }: { storeId: string | null, onAction: (msg: string) => void }) => {
+  const [integration, setIntegration] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [publicKey, setPublicKey] = useState('');
+
+  const fetchIntegration = async () => {
+    if (!storeId) return;
+    setLoading(true);
+    const { data } = await supabase
+      .from('payment_integrations')
+      .select('*')
+      .eq('store_id', storeId)
+      .eq('provider', 'mercadopago')
+      .single();
+    if (data) {
+      setIntegration(data);
+      setPublicKey(data.public_key || '');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchIntegration();
+  }, [storeId]);
+
+  const handleSavePublicKey = async () => {
+    if (!storeId || !integration) return;
+    setIsSaving(true);
+    const { error } = await supabase
+      .from('payment_integrations')
+      .update({ public_key: publicKey })
+      .eq('id', integration.id);
+    
+    if (error) {
+      onAction('Erro ao salvar Public Key');
+    } else {
+      onAction('Public Key salva com sucesso!');
+      fetchIntegration();
+    }
+    setIsSaving(false);
+  };
+
+  if (loading) return <div className="p-4 animate-pulse">Carregando...</div>;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-bold text-gray-900">Mercado Pago</h3>
+          <p className="text-xs text-gray-500 italic">Checkout transparente e Bricks</p>
+        </div>
+        <div className={cn(
+          "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2",
+          integration ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-gray-50 text-gray-400 border border-gray-100"
+        )}>
+          <div className={cn("w-2 h-2 rounded-full", integration ? "bg-emerald-500 animate-pulse" : "bg-gray-300")} />
+          {integration ? "Conectado" : "Não configurado"}
+        </div>
+      </div>
+
+      {integration ? (
+        <div className="space-y-4">
+          <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-blue-600 font-bold">MP</div>
+              <div>
+                <p className="text-sm font-bold text-gray-900">{integration.mp_nickname || 'Vendedor'}</p>
+                <p className="text-[10px] text-gray-400">{integration.mp_email || '-'}</p>
+              </div>
+            </div>
+            
+            <div className="pt-2 space-y-2 border-t border-gray-200">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Public Key (Necessário para Checkout Interno)</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={publicKey}
+                  onChange={(e) => setPublicKey(e.target.value)}
+                  placeholder="APP_USR-..."
+                  className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+                />
+                <button
+                  onClick={handleSavePublicKey}
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 disabled:opacity-50 transition-all"
+                >
+                  {isSaving ? '...' : 'Salvar'}
+                </button>
+              </div>
+              <p className="text-[9px] text-gray-500 leading-tight italic">
+                Encontre na aba "Credenciais de Produção" no painel do Mercado Pago.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="p-6 bg-amber-50 rounded-2xl border border-amber-100">
+          <p className="text-xs font-black text-amber-700 uppercase tracking-widest mb-2 flex items-center gap-2">
+            <AlertCircle size={14} />
+            Configuração necessária
+          </p>
+          <p className="text-sm text-amber-700 leading-relaxed italic">
+            Para ativar o checkout interno, conecte sua conta do Mercado Pago no dashboard principal.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: string | null, onAction: (msg: string) => void }) => {
   const [orderTab, setOrderTab] = useState('Todos');
   const [orders, setOrders] = useState<any[]>([]);
@@ -736,14 +847,14 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(val) =>
-                  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val)
+                  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(Number(val))
                 }
                 tick={{ fontSize: 12, fill: '#9CA3AF' }}
                 dx={-10}
               />
               <Tooltip
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                formatter={(val) => [new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val), 'Faturamento']}
+                formatter={(val: any) => [new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(val)), 'Faturamento']}
               />
               <Area
                 type="monotone"
