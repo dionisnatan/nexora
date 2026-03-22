@@ -173,9 +173,9 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
       // Fallback timer: if brick doesn't load in 6 seconds, show error/fallback
       fallbackTimer = setTimeout(() => {
         if (isMounted && brickLoading) {
-           console.log('[MP Brick] Timeout reached, showing fallback');
-           setBrickLoading(false);
-           setBrickError(true);
+          console.log('[MP Brick] Timeout reached, showing fallback');
+          setBrickLoading(false);
+          setBrickError(true);
         }
       }, 6000);
 
@@ -406,7 +406,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
       });
 
       if (error) throw error;
-      
+
       const options = data?.options || [];
       const formattedOptions = options.map((opt: any) => ({
         id: opt.id,
@@ -497,10 +497,10 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
     setFavorites(prev => {
       const isFav = prev.find(p => p.id === product.id);
-      const newFavorites = isFav 
+      const newFavorites = isFav
         ? prev.filter(p => p.id !== product.id)
         : [...prev, product];
-      
+
       // Persist to Supabase
       supabase.auth.updateUser({
         data: { favorites: newFavorites }
@@ -557,15 +557,15 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             .single();
 
           if (error || !data) throw new Error('Catálogo não encontrado');
-          
+
           storeData = { ...data, name: data.title };
 
           const { data: prods } = await supabase
-              .from('catalog_products')
-              .select('*')
-              .eq('catalog_id', data.id)
-              .eq('is_active', true)
-              .order('created_at', { ascending: false });
+            .from('catalog_products')
+            .select('*')
+            .eq('catalog_id', data.id)
+            .eq('is_active', true)
+            .order('created_at', { ascending: false });
           setProducts(prods || []);
           setCategorias([]);
         } else {
@@ -578,7 +578,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
           if (error || !data) throw new Error('Loja não encontrada');
 
           storeData = data;
-          
+
           const { data: cats } = await supabase.from('categories').select('*').eq('store_id', storeData.id).order('name');
           setCategorias(cats || []);
 
@@ -630,19 +630,19 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
           >
             <X size={32} />
           </button>
-          
+
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             className="relative z-50 max-w-5xl w-full h-full flex flex-col items-center justify-center p-8"
           >
-            
+
             <div className="w-full h-full flex items-center justify-center overflow-hidden touch-none select-none relative">
               <AnimatePresence mode="wait">
-                <motion.img 
+                <motion.img
                   key={activeImageIndex}
-                  src={currentImage} 
+                  src={currentImage}
                   initial={{ opacity: 0, x: 50 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -50 }}
@@ -659,12 +659,12 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                       setActiveImageIndex((activeImageIndex - 1 + images.length) % images.length);
                     }
                   }}
-                  className="max-w-full max-h-full object-contain drop-shadow-[0_0_50px_rgba(255,255,255,0.1)] cursor-grab active:cursor-grabbing relative z-10" 
-                  alt={selectedProduct.name} 
+                  className="max-w-full max-h-full object-contain drop-shadow-[0_0_50px_rgba(255,255,255,0.1)] cursor-grab active:cursor-grabbing relative z-10"
+                  alt={selectedProduct.name}
                   draggable={false}
                 />
               </AnimatePresence>
-              
+
               {/* Navigation arrows for desktop hints */}
               {images.length > 1 && (
                 <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-4 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
@@ -790,7 +790,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
     } else if (section === 'Categorias' || section === 'NAVEGAR CATEGORIAS') {
       setShowOnlyPromos(!showOnlyPromos);
       if (!showOnlyPromos) {
-         document.getElementById('mega-products')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.getElementById('mega-products')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     } else if (section === 'Produtos') {
       setSearchQuery('');
@@ -808,7 +808,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
     const topBarBg = isBlue ? 'bg-[#1868D5]' : 'bg-[var(--theme-primary)]';
     const headerBg = 'bg-white';
     const bottomNavBg = 'bg-white';
-    
+
     return (
       <header className="w-full font-sans shadow-sm z-50 relative">
         {/* Top Bar */}
@@ -891,8 +891,8 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   <span className="text-gray-900 text-xs font-black">{customerSession ? 'Meu Perfil' : 'Entrar'}</span>
                 </div>
               </div>
-              
-              <div 
+
+              <div
                 className="relative cursor-pointer group hover:text-[var(--theme-primary)] transition-colors hidden md:block"
                 onClick={() => { setActiveDashboardTab('favorites'); setShowOrders(true); }}
               >
@@ -945,7 +945,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                 ))}
               </nav>
             </div>
-            
+
             <div className="flex items-center gap-2 font-bold text-sm text-[var(--theme-primary)] hover:opacity-80 transition-opacity cursor-pointer">
               <Zap size={16} />
               Oferta do Dia
@@ -959,44 +959,44 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
   const renderMegaHero = () => {
     const isBlue = megaVariant === 'Blue';
     const btnColor = isBlue ? 'bg-[#1868D5]' : 'bg-[var(--theme-primary)]';
-    
+
     // Use Featured Product if available, fallback to top product if no banner available
-    const fallbackProduct = store.featured_product_id 
-       ? (products.find(p => p.id === store.featured_product_id) || products[0] || {}) 
-       : (products[0] || {});
-    
+    const fallbackProduct = store.featured_product_id
+      ? (products.find(p => p.id === store.featured_product_id) || products[0] || {})
+      : (products[0] || {});
+
     return (
       <div className="bg-[#eff5f9] pt-12 pb-16 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center relative z-10">
           <div className="flex-1 w-full order-2 md:order-1 flex justify-center mt-8 md:mt-0 relative">
-             <AnimatePresence mode="wait">
-               <motion.img 
-                  key={heroImageIndex}
-                  initial={{ opacity: 0, x: -20 }} 
-                  animate={{ opacity: 1, x: 0 }} 
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.3 }}
-                  drag="x"
-                  dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={0.4}
-                  onDragEnd={(_e, info) => {
-                    const threshold = 50;
-                    const images = fallbackProduct.image_url?.split(',') || [];
-                    if (info.offset.x < -threshold) {
-                      // Swipe Left -> Next
-                      setHeroImageIndex(prev => (prev + 1) % images.length);
-                      setIsHeroAutoPlaying(false);
-                    } else if (info.offset.x > threshold) {
-                      // Swipe Right -> Prev
-                      setHeroImageIndex(prev => (prev - 1 + images.length) % images.length);
-                      setIsHeroAutoPlaying(false);
-                    }
-                  }}
-                  src={fallbackProduct.image_url?.split(',')[heroImageIndex]} 
-                  className="max-w-xs md:max-w-md lg:max-w-lg object-contain relative z-10 drop-shadow-2xl h-[300px] md:h-[450px] cursor-grab active:cursor-grabbing" 
-                  style={{ mixBlendMode: 'multiply' }}
-                />
-             </AnimatePresence>
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={heroImageIndex}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.3 }}
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.4}
+                onDragEnd={(_e, info) => {
+                  const threshold = 50;
+                  const images = fallbackProduct.image_url?.split(',') || [];
+                  if (info.offset.x < -threshold) {
+                    // Swipe Left -> Next
+                    setHeroImageIndex(prev => (prev + 1) % images.length);
+                    setIsHeroAutoPlaying(false);
+                  } else if (info.offset.x > threshold) {
+                    // Swipe Right -> Prev
+                    setHeroImageIndex(prev => (prev - 1 + images.length) % images.length);
+                    setIsHeroAutoPlaying(false);
+                  }
+                }}
+                src={fallbackProduct.image_url?.split(',')[heroImageIndex]}
+                className="max-w-xs md:max-w-md lg:max-w-lg object-contain relative z-10 drop-shadow-2xl h-[300px] md:h-[450px] cursor-grab active:cursor-grabbing"
+                style={{ mixBlendMode: 'multiply' }}
+              />
+            </AnimatePresence>
           </div>
           <div className="flex-1 space-y-4 max-w-xl order-1 md:order-2 text-center md:text-left">
             <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-red-500 font-bold tracking-wide">
@@ -1004,16 +1004,16 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             </motion.p>
             <motion.h2 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-4xl md:text-5xl lg:text-6xl font-black text-[#1a1a1a] leading-[1.1] tracking-tight">
               {store.name} <br />
-              Mega Oferta 
+              Mega Oferta
             </motion.h2>
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="flex items-center gap-3 justify-center md:justify-start py-4">
               <span className="text-xl font-bold text-gray-500">A partir de</span>
               <span className="text-4xl text-red-500 font-black tracking-tighter">R$ {Number(fallbackProduct.price || 149.99).toFixed(2).replace('.', ',')}</span>
             </motion.div>
-            <motion.button 
-              initial={{ opacity: 0, scale: 0.9 }} 
-              animate={{ opacity: 1, scale: 1 }} 
-              transition={{ delay: 0.3 }} 
+            <motion.button
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 }}
               onClick={() => fallbackProduct.id && setSelectedProduct(fallbackProduct)}
               className={getButtonStyle(cn("text-white font-bold uppercase text-xs px-8 py-3 shadow hover:brightness-110 transition-all", btnColor))}
             >
@@ -1022,21 +1022,21 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
           </div>
         </div>
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 z-20">
-            {fallbackProduct.image_url?.split(',').map((_: any, i: number) => (
-              <button
-                key={i}
-                onClick={() => {
-                  setHeroImageIndex(i);
-                  setIsHeroAutoPlaying(false); // Stop auto-play on manual click
-                }}
-                className={cn(
-                  "w-2.5 h-2.5 rounded-full transition-all duration-300",
-                  heroImageIndex === i 
-                    ? (isBlue ? "bg-[#1868D5] w-6" : "bg-[var(--theme-primary)] w-6") 
-                    : "bg-gray-300 hover:bg-gray-400"
-                )}
-              />
-            ))}
+          {fallbackProduct.image_url?.split(',').map((_: any, i: number) => (
+            <button
+              key={i}
+              onClick={() => {
+                setHeroImageIndex(i);
+                setIsHeroAutoPlaying(false); // Stop auto-play on manual click
+              }}
+              className={cn(
+                "w-2.5 h-2.5 rounded-full transition-all duration-300",
+                heroImageIndex === i
+                  ? (isBlue ? "bg-[#1868D5] w-6" : "bg-[var(--theme-primary)] w-6")
+                  : "bg-gray-300 hover:bg-gray-400"
+              )}
+            />
+          ))}
         </div>
       </div>
     );
@@ -1049,48 +1049,48 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
           <h3 className="text-xl font-black text-gray-900 border-b-2 border-gray-100 pb-2 mb-8 inline-block pr-6 relative after:absolute after:bottom-[-2px] after:left-0 after:w-16 after:h-0.5 after:bg-[#1868D5]" style={megaVariant !== 'Blue' ? { '--tw-after-bg': themeColor } as any : {}}>
             Comprar por Categoria
           </h3>
-                    <div className="relative group">
+          <div className="relative group">
             <button onClick={() => scrollCategories('left')} className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white shadow-[0_0_15px_rgba(0,0,0,0.1)] rounded-full flex items-center justify-center text-gray-600 hover:text-[#1868D5] hover:scale-110 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-0 focus:outline-none" style={megaVariant !== 'Blue' ? { color: themeColor } as any : {}}>
               <ChevronDown size={20} className="rotate-90" />
             </button>
             <div ref={categoriesScrollRef} className="flex gap-4 md:gap-8 overflow-x-auto no-scrollbar pb-4 items-start justify-start scroll-smooth">
-            {categories.map((cat, i) => {
-              const isActive = activeCategory === cat.id;
-              const isHovered = hoveredCategory === cat.id;
-              const isBlueTheme = megaVariant === 'Blue';
-              const highlight = isActive || isHovered;
-              return (
-                <div
-                  key={cat.id || i}
-                  onClick={() => setActiveCategory(activeCategory === cat.id ? null : cat.id)}
-                  onMouseEnter={() => setHoveredCategory(cat.id)}
-                  onMouseLeave={() => setHoveredCategory(null)}
-                  className="flex flex-col items-center gap-4 cursor-pointer min-w-[100px] shrink-0"
-                >
+              {categories.map((cat, i) => {
+                const isActive = activeCategory === cat.id;
+                const isHovered = hoveredCategory === cat.id;
+                const isBlueTheme = megaVariant === 'Blue';
+                const highlight = isActive || isHovered;
+                return (
                   <div
-                    className="w-24 h-24 rounded-full border flex items-center justify-center overflow-hidden bg-white transition-all duration-200"
-                    style={{
-                      borderColor: highlight ? (isBlueTheme ? '#1868D5' : themeColor) : '#e5e7eb',
-                      boxShadow: highlight ? `0 0 20px rgba(0,0,0,0.07)` : 'none',
-                    }}
+                    key={cat.id || i}
+                    onClick={() => setActiveCategory(activeCategory === cat.id ? null : cat.id)}
+                    onMouseEnter={() => setHoveredCategory(cat.id)}
+                    onMouseLeave={() => setHoveredCategory(null)}
+                    className="flex flex-col items-center gap-4 cursor-pointer min-w-[100px] shrink-0"
                   >
-                    {cat.image_url ? (
-                      <img src={cat.image_url} className="w-full h-full object-cover transition-transform duration-300 transform group-hover:scale-110" alt={cat.name} />
-                    ) : (
-                      React.createElement(CATEGORY_ICONS[cat.icon] || Package, { 
-                        size: 32, 
-                        style: { color: highlight ? (isBlueTheme ? '#1868D5' : themeColor) : '#d1d5db' },
-                        className: "transition-colors duration-200"
-                      })
-                    )}
+                    <div
+                      className="w-24 h-24 rounded-full border flex items-center justify-center overflow-hidden bg-white transition-all duration-200"
+                      style={{
+                        borderColor: highlight ? (isBlueTheme ? '#1868D5' : themeColor) : '#e5e7eb',
+                        boxShadow: highlight ? `0 0 20px rgba(0,0,0,0.07)` : 'none',
+                      }}
+                    >
+                      {cat.image_url ? (
+                        <img src={cat.image_url} className="w-full h-full object-cover transition-transform duration-300 transform group-hover:scale-110" alt={cat.name} />
+                      ) : (
+                        React.createElement(CATEGORY_ICONS[cat.icon] || Package, {
+                          size: 32,
+                          style: { color: highlight ? (isBlueTheme ? '#1868D5' : themeColor) : '#d1d5db' },
+                          className: "transition-colors duration-200"
+                        })
+                      )}
+                    </div>
+                    <span
+                      className="text-xs font-bold text-center w-full truncate transition-colors duration-200"
+                      style={{ color: highlight ? (isBlueTheme ? '#1868D5' : themeColor) : '#374151' }}
+                    >{cat.name}</span>
                   </div>
-                  <span
-                    className="text-xs font-bold text-center w-full truncate transition-colors duration-200"
-                    style={{ color: highlight ? (isBlueTheme ? '#1868D5' : themeColor) : '#374151' }}
-                  >{cat.name}</span>
-                </div>
-              );
-            })}
+                );
+              })}
             </div>
             <button onClick={() => scrollCategories('right')} className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white shadow-[0_0_15px_rgba(0,0,0,0.1)] rounded-full flex items-center justify-center text-gray-600 hover:text-[#1868D5] hover:scale-110 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-0 focus:outline-none" style={megaVariant !== 'Blue' ? { color: themeColor } as any : {}}>
               <ChevronDown size={20} className="-rotate-90" />
@@ -1114,7 +1114,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
     return (
       <section id="mega-promos" className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-                    <h3 className="text-xl font-black text-[#1a1a1a] border-b-2 border-gray-100 pb-2 mb-8 inline-block pr-6 relative after:absolute after:bottom-[-2px] after:left-0 after:w-16 after:h-0.5 after:bg-[#1868D5]" style={megaVariant !== 'Blue' ? { '--tw-after-bg': themeColor } as any : {}}>
+          <h3 className="text-xl font-black text-[#1a1a1a] border-b-2 border-gray-100 pb-2 mb-8 inline-block pr-6 relative after:absolute after:bottom-[-2px] after:left-0 after:w-16 after:h-0.5 after:bg-[#1868D5]" style={megaVariant !== 'Blue' ? { '--tw-after-bg': themeColor } as any : {}}>
             Produtos em Alta
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1134,9 +1134,9 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   </button>
                 </div>
                 {p.prod?.image_url && (
-                   <div className="w-28 h-28 shrink-0 relative z-10 group-hover:scale-105 transition-transform">
-                      <img src={p.prod.image_url?.split(',')[0]} className="w-full h-full object-contain mix-blend-multiply drop-shadow-md" />
-                   </div>
+                  <div className="w-28 h-28 shrink-0 relative z-10 group-hover:scale-105 transition-transform">
+                    <img src={p.prod.image_url?.split(',')[0]} className="w-full h-full object-contain mix-blend-multiply drop-shadow-md" />
+                  </div>
                 )}
               </div>
             ))}
@@ -1163,12 +1163,12 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
         {/* Hover Quick View / Heart */}
         <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0">
-           <button onClick={(e) => { e.stopPropagation(); toggleFavorite(product); }} className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
-              <Heart size={14} className={favorites.some(f => f.id === product.id) ? 'fill-current text-red-500' : ''} />
-           </button>
-           <button onClick={(e) => { e.stopPropagation(); addToCart(product, null); }} className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center text-gray-500 hover:text-[var(--theme-primary)] hover:bg-[var(--theme-primary)]/10 transition-colors">
-              <ShoppingCart size={14} />
-           </button>
+          <button onClick={(e) => { e.stopPropagation(); toggleFavorite(product); }} className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
+            <Heart size={14} className={favorites.some(f => f.id === product.id) ? 'fill-current text-red-500' : ''} />
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); addToCart(product, null); }} className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center text-gray-500 hover:text-[var(--theme-primary)] hover:bg-[var(--theme-primary)]/10 transition-colors">
+            <ShoppingCart size={14} />
+          </button>
         </div>
 
         {/* Image */}
@@ -1180,7 +1180,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
         <div className="w-full text-left space-y-1">
           <p className="text-[10px] font-medium text-gray-400 capitalize">{categories.find(c => c.id === product.category_id)?.name || 'Eletrônicos'}</p>
           <h4 className="text-xs font-bold text-[#1a1a1a] line-clamp-2 leading-snug group-hover:text-[var(--theme-primary)] transition-colors">{product.name}</h4>
-          
+
           <div className="flex text-[#FFB300] gap-0.5">
             {[1, 2, 3, 4, 5].map(i => <Star key={i} size={10} fill={i <= 4 ? "currentColor" : "none"} />)}
             <span className="text-[9px] font-medium text-gray-400 ml-1">(12)</span>
@@ -1211,8 +1211,8 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               <div key={i} className="flex items-center gap-4 px-2 md:px-6 py-4 md:py-0 text-[#1a1a1a]">
                 <item.icon size={32} strokeWidth={1.5} className="text-gray-400" />
                 <div className="flex flex-col">
-                   <h5 className="text-[11px] md:text-xs font-black uppercase mb-0.5">{item.title}</h5>
-                   <p className="text-[9px] md:text-[10px] text-gray-500 font-medium">{item.subtitle}</p>
+                  <h5 className="text-[11px] md:text-xs font-black uppercase mb-0.5">{item.title}</h5>
+                  <p className="text-[9px] md:text-[10px] text-gray-500 font-medium">{item.subtitle}</p>
                 </div>
               </div>
             ))}
@@ -1229,104 +1229,104 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
     return (
       <footer id="mega-footer" className="bg-[#f8f9fa] pt-16 pb-8 border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-4">
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-             <div className="space-y-4">
-                {store.logo_url ? (
-                  <img src={store.logo_url} alt={store.name} className="h-8 md:h-12 object-contain" />
-                ) : (
-                  <span className="text-2xl font-black text-[#1a1a1a]">{store.name}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+            <div className="space-y-4">
+              {store.logo_url ? (
+                <img src={store.logo_url} alt={store.name} className="h-8 md:h-12 object-contain" />
+              ) : (
+                <span className="text-2xl font-black text-[#1a1a1a]">{store.name}</span>
+              )}
+              <p className="text-xs text-gray-500 leading-relaxed">{store.description || "Sua melhor escolha com entrega rápida e garantia total. Produtos que facilitam o seu dia a dia."}</p>
+              <div className="flex items-center gap-2">
+                {store.facebook_url && (
+                  <a href={store.facebook_url} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-[#1877F2] hover:border-[#1877F2] transition-all cursor-pointer">
+                    <Facebook size={14} />
+                  </a>
                 )}
-                <p className="text-xs text-gray-500 leading-relaxed">{store.description || "Sua melhor escolha com entrega rápida e garantia total. Produtos que facilitam o seu dia a dia."}</p>
-                <div className="flex items-center gap-2">
-                   {store.facebook_url && (
-                     <a href={store.facebook_url} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-[#1877F2] hover:border-[#1877F2] transition-all cursor-pointer">
-                        <Facebook size={14} />
-                     </a>
-                   )}
-                   {store.instagram_url && (
-                     <a href={store.instagram_url} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-[#E4405F] hover:border-[#E4405F] transition-all cursor-pointer">
-                        <Instagram size={14} />
-                     </a>
-                   )}
-                   {store.youtube_url && (
-                     <a href={store.youtube_url} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-[#FF0000] hover:border-[#FF0000] transition-all cursor-pointer">
-                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M19.812 5.418c.861.23 1.538.907 1.768 1.768C21.998 8.746 22 12 22 12s0 3.255-.418 4.814a2.504 2.504 0 0 1-1.768 1.768c-1.56.419-7.814.419-7.814.419s-6.255 0-7.814-.419a2.505 2.505 0 0 1-1.768-1.768C2 15.255 2 12 2 12s0-3.255.417-4.814a2.507 2.507 0 0 1 1.768-1.768C5.744 5 11.998 5 11.998 5s6.255 0 7.814.418ZM15.194 12 10 15V9l5.194 3Z" clipRule="evenodd"></path></svg>
-                     </a>
-                   )}
-                   {store.telegram_url && (
-                     <a href={store.telegram_url} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-[#0088cc] hover:border-[#0088cc] transition-all cursor-pointer">
-                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" /></svg>
-                     </a>
-                   )}
-                   {store.x_url && (
-                     <a href={store.x_url} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-black hover:border-black transition-all cursor-pointer">
-                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
-                     </a>
-                   )}
-                </div>
-             </div>
-             
-             <div className="space-y-4">
-                <h5 className="text-sm font-black text-[#1a1a1a]">Atendimento</h5>
-                <ul className="space-y-2 text-xs text-gray-500 font-medium">
-                  <li><a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--theme-primary)] flex items-center gap-1"><MessageCircle size={14}/> Fale Conosco</a></li>
-                  <li className="hover:text-[var(--theme-primary)] cursor-pointer">Trocas e Devoluções</li>
-                  <li className="hover:text-[var(--theme-primary)] cursor-pointer">Informações de Envio</li>
-                  <li className="hover:text-[var(--theme-primary)] cursor-pointer">Rastreie seu Pedido</li>
-                  <li className="hover:text-[var(--theme-primary)] cursor-pointer">Políticas de Privacidade</li>
-                </ul>
-             </div>
+                {store.instagram_url && (
+                  <a href={store.instagram_url} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-[#E4405F] hover:border-[#E4405F] transition-all cursor-pointer">
+                    <Instagram size={14} />
+                  </a>
+                )}
+                {store.youtube_url && (
+                  <a href={store.youtube_url} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-[#FF0000] hover:border-[#FF0000] transition-all cursor-pointer">
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M19.812 5.418c.861.23 1.538.907 1.768 1.768C21.998 8.746 22 12 22 12s0 3.255-.418 4.814a2.504 2.504 0 0 1-1.768 1.768c-1.56.419-7.814.419-7.814.419s-6.255 0-7.814-.419a2.505 2.505 0 0 1-1.768-1.768C2 15.255 2 12 2 12s0-3.255.417-4.814a2.507 2.507 0 0 1 1.768-1.768C5.744 5 11.998 5 11.998 5s6.255 0 7.814.418ZM15.194 12 10 15V9l5.194 3Z" clipRule="evenodd"></path></svg>
+                  </a>
+                )}
+                {store.telegram_url && (
+                  <a href={store.telegram_url} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-[#0088cc] hover:border-[#0088cc] transition-all cursor-pointer">
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" /></svg>
+                  </a>
+                )}
+                {store.x_url && (
+                  <a href={store.x_url} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-black hover:border-black transition-all cursor-pointer">
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+                  </a>
+                )}
+              </div>
+            </div>
 
-             <div className="space-y-4">
-                <h5 className="text-sm font-black text-[#1a1a1a]">Categorias</h5>
-                <ul className="space-y-2 text-xs text-gray-500 font-medium">
-                  {categories.slice(0, 5).map(c => (
-                    <li key={c.id} className="hover:text-[var(--theme-primary)] cursor-pointer" onClick={() => { setActiveCategory(c.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>{c.name}</li>
-                  ))}
-                  <li className="hover:text-[var(--theme-primary)] cursor-pointer text-[var(--theme-primary)] font-bold" onClick={() => { setActiveCategory(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Ver todas...</li>
-                </ul>
-             </div>
+            <div className="space-y-4">
+              <h5 className="text-sm font-black text-[#1a1a1a]">Atendimento</h5>
+              <ul className="space-y-2 text-xs text-gray-500 font-medium">
+                <li><a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--theme-primary)] flex items-center gap-1"><MessageCircle size={14} /> Fale Conosco</a></li>
+                <li className="hover:text-[var(--theme-primary)] cursor-pointer">Trocas e Devoluções</li>
+                <li className="hover:text-[var(--theme-primary)] cursor-pointer">Informações de Envio</li>
+                <li className="hover:text-[var(--theme-primary)] cursor-pointer">Rastreie seu Pedido</li>
+                <li className="hover:text-[var(--theme-primary)] cursor-pointer">Políticas de Privacidade</li>
+              </ul>
+            </div>
 
-             <div className="space-y-4">
-                <h5 className="text-sm font-black text-[#1a1a1a]">Suporte</h5>
-                <p className="text-xs text-gray-500 leading-relaxed">Precisa de ajuda? Entre em contato diretamente com a nossa equipe.</p>
-                <div className="flex flex-col gap-3">
-                   {store.whatsapp && (
-                     <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 hover:bg-[#128C7E] transition-all font-bold shadow-sm group">
-                       <MessageCircle size={16} className="group-hover:scale-110 transition-transform" />
-                       <span className="text-xs">WhatsApp</span>
-                     </a>
-                   )}
-                   {store.email && (
-                     <a href={`mailto:${store.email}`} className="bg-white border text-gray-700 px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 transition-all font-bold shadow-sm group">
-                       <Mail size={16} className="group-hover:scale-110 transition-transform text-gray-400" />
-                       <span className="text-xs">E-mail</span>
-                     </a>
-                   )}
-                   {store.address && (
-                     <div className="flex items-start gap-2 text-gray-500 mt-2">
-                       <MapPin size={14} className="mt-0.5 shrink-0" />
-                       <span className="text-xs leading-tight">{store.address}</span>
-                     </div>
-                   )}
-                </div>
-             </div>
-           </div>
+            <div className="space-y-4">
+              <h5 className="text-sm font-black text-[#1a1a1a]">Categorias</h5>
+              <ul className="space-y-2 text-xs text-gray-500 font-medium">
+                {categories.slice(0, 5).map(c => (
+                  <li key={c.id} className="hover:text-[var(--theme-primary)] cursor-pointer" onClick={() => { setActiveCategory(c.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>{c.name}</li>
+                ))}
+                <li className="hover:text-[var(--theme-primary)] cursor-pointer text-[var(--theme-primary)] font-bold" onClick={() => { setActiveCategory(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Ver todas...</li>
+              </ul>
+            </div>
 
-           <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-             <div className="text-center md:text-left">
-               <p className="text-xs text-gray-500 font-medium">© {new Date().getFullYear()} {store.name} - Todos os direitos reservados.</p>
-               {store.cnpj && <p className="text-[10px] text-gray-400 mt-1">CNPJ: {store.cnpj}</p>}
-             </div>
-             
-             <div className="flex items-center gap-4">
-                 <div className="flex items-center gap-3 grayscale opacity-60">
-                   <img src="https://raw.githubusercontent.com/gilbarbara/logos/master/logos/visa.svg" className="h-3.5" alt="Visa" />
-                   <img src="https://raw.githubusercontent.com/gilbarbara/logos/master/logos/mastercard.svg" className="h-5" alt="Mastercard" />
-                   <img src="https://logodownload.org/wp-content/uploads/2020/02/pix-logo-1.png" className="h-3.5" alt="Pix" />
-                 </div>
-             </div>
-           </div>
+            <div className="space-y-4">
+              <h5 className="text-sm font-black text-[#1a1a1a]">Suporte</h5>
+              <p className="text-xs text-gray-500 leading-relaxed">Precisa de ajuda? Entre em contato diretamente com a nossa equipe.</p>
+              <div className="flex flex-col gap-3">
+                {store.whatsapp && (
+                  <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 hover:bg-[#128C7E] transition-all font-bold shadow-sm group">
+                    <MessageCircle size={16} className="group-hover:scale-110 transition-transform" />
+                    <span className="text-xs">WhatsApp</span>
+                  </a>
+                )}
+                {store.email && (
+                  <a href={`mailto:${store.email}`} className="bg-white border text-gray-700 px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 transition-all font-bold shadow-sm group">
+                    <Mail size={16} className="group-hover:scale-110 transition-transform text-gray-400" />
+                    <span className="text-xs">E-mail</span>
+                  </a>
+                )}
+                {store.address && (
+                  <div className="flex items-start gap-2 text-gray-500 mt-2">
+                    <MapPin size={14} className="mt-0.5 shrink-0" />
+                    <span className="text-xs leading-tight">{store.address}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="text-center md:text-left">
+              <p className="text-xs text-gray-500 font-medium">© {new Date().getFullYear()} {store.name} - Todos os direitos reservados.</p>
+              {store.cnpj && <p className="text-[10px] text-gray-400 mt-1">CNPJ: {store.cnpj}</p>}
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 grayscale opacity-60">
+                <img src="https://raw.githubusercontent.com/gilbarbara/logos/master/logos/visa.svg" className="h-3.5" alt="Visa" />
+                <img src="https://raw.githubusercontent.com/gilbarbara/logos/master/logos/mastercard.svg" className="h-5" alt="Mastercard" />
+                <img src="https://logodownload.org/wp-content/uploads/2020/02/pix-logo-1.png" className="h-3.5" alt="Pix" />
+              </div>
+            </div>
+          </div>
         </div>
       </footer>
     );
@@ -1690,7 +1690,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
         </div>
       );
     }
-    
+
     if (isMegaStore) {
       const isBlue = megaVariant === 'Blue';
       const primaryColor = isBlue ? '#1868D5' : themeColor;
@@ -1805,142 +1805,142 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
     return (
       <div className="w-full">
-      {/* Top Bar */}
-      <div className="bg-[#1a1a1a] text-[10px] text-gray-400 py-1.5 border-b border-white/5 hidden md:block">
-        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center font-bold uppercase tracking-widest">
-          <div className="flex gap-4">
-            <span className="flex items-center gap-1"><ShieldCheck size={10} className="text-emerald-500" /> Compra Segura</span>
-            <span className="flex items-center gap-1"><Truck size={10} className="text-indigo-500" /> Entrega em todo o Brasil</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Bar */}
-      <div className="bg-[#0b0b0b] py-4 border-b border-white/5 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 flex items-center gap-4 md:gap-8">
-          <div className="flex items-center gap-3 shrink-0 cursor-pointer" onClick={() => { setActiveCategory(null); setSearchQuery(''); }}>
-            {store.logo_url ? (
-              <img src={store.logo_url} alt={store.name} className="h-10 w-10 md:h-12 md:w-12 object-contain rounded-lg shadow-2xl" />
-            ) : (
-              <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg flex items-center justify-center bg-white text-black font-black text-xl shadow-2xl">
-                {store.name?.charAt(0)}
-              </div>
-            )}
-            <div className="hidden sm:flex flex-col">
-              <span className="text-xl md:text-2xl font-black tracking-tighter text-white italic leading-none">{store.name}</span>
-              <span className="text-[8px] font-black text-[#f70] tracking-[0.3em] uppercase opacity-80">Marketplace Premium</span>
+        {/* Top Bar */}
+        <div className="bg-[#1a1a1a] text-[10px] text-gray-400 py-1.5 border-b border-white/5 hidden md:block">
+          <div className="max-w-7xl mx-auto px-4 flex justify-between items-center font-bold uppercase tracking-widest">
+            <div className="flex gap-4">
+              <span className="flex items-center gap-1"><ShieldCheck size={10} className="text-emerald-500" /> Compra Segura</span>
+              <span className="flex items-center gap-1"><Truck size={10} className="text-indigo-500" /> Entrega em todo o Brasil</span>
             </div>
           </div>
+        </div>
 
-          {/* Search Bar */}
-          <div className="flex-1 max-w-2xl relative group">
-            <input
-              type="text"
-              placeholder="O que você está procurando?"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white h-10 md:h-12 pl-4 md:pl-6 pr-12 rounded-md text-sm font-bold text-black focus:ring-4 focus:ring-[var(--theme-primary)]/20 transition-all outline-none"
-            />
-            <button className="absolute right-0 top-0 h-10 md:h-12 w-14 flex items-center justify-center text-gray-400 hover:text-[var(--theme-primary)] transition-colors">
-              <Search size={20} />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-4 md:gap-8 text-white shrink-0">
-            <div
-              onClick={() => customerSession ? setShowOrders(true) : setIsAuthModalOpen(true)}
-              className="flex items-center gap-3 group cursor-pointer hidden md:flex"
-            >
-              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
-                <User size={20} className="text-gray-400 group-hover:text-white" />
-              </div>
-              <div className="hidden lg:flex flex-col">
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
-                  {customerSession ? 'Olá, Cliente' : 'Minha Conta'}
-                </span>
-                <span className="text-xs font-black uppercase">
-                  {customerSession ? 'Meus Pedidos' : 'Entrar'}
-                </span>
+        {/* Main Bar */}
+        <div className="bg-[#0b0b0b] py-4 border-b border-white/5 sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 flex items-center gap-4 md:gap-8">
+            <div className="flex items-center gap-3 shrink-0 cursor-pointer" onClick={() => { setActiveCategory(null); setSearchQuery(''); }}>
+              {store.logo_url ? (
+                <img src={store.logo_url} alt={store.name} className="h-10 w-10 md:h-12 md:w-12 object-contain rounded-lg shadow-2xl" />
+              ) : (
+                <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg flex items-center justify-center bg-white text-black font-black text-xl shadow-2xl">
+                  {store.name?.charAt(0)}
+                </div>
+              )}
+              <div className="hidden sm:flex flex-col">
+                <span className="text-xl md:text-2xl font-black tracking-tighter text-white italic leading-none">{store.name}</span>
+                <span className="text-[8px] font-black text-[#f70] tracking-[0.3em] uppercase opacity-80">Marketplace Premium</span>
               </div>
             </div>
 
-            <button
-              onClick={() => { setActiveDashboardTab('favorites'); setShowOrders(true); }}
-              className="p-2 text-gray-400 hover:text-[var(--theme-primary)] transition-colors relative"
-            >
-              <Heart size={20} className={favorites.length > 0 ? "fill-current text-[var(--theme-primary)]" : ""} />
-              {favorites.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#f70] text-white text-[8px] font-black rounded-full flex items-center justify-center shadow-sm">
-                  {favorites.length}
-                </span>
-              )}
-            </button>
+            {/* Search Bar */}
+            <div className="flex-1 max-w-2xl relative group">
+              <input
+                type="text"
+                placeholder="O que você está procurando?"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white h-10 md:h-12 pl-4 md:pl-6 pr-12 rounded-md text-sm font-bold text-black focus:ring-4 focus:ring-[var(--theme-primary)]/20 transition-all outline-none"
+              />
+              <button className="absolute right-0 top-0 h-10 md:h-12 w-14 flex items-center justify-center text-gray-400 hover:text-[var(--theme-primary)] transition-colors">
+                <Search size={20} />
+              </button>
+            </div>
 
-            <button
-              onClick={() => setIsCartOpen(true)}
-              className="p-2 text-gray-400 hover:text-gray-900 transition-colors relative"
-            >
-              <ShoppingBag size={20} />
-              {cart.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#f70] text-white text-[8px] font-black rounded-full flex items-center justify-center shadow-sm">
-                  {cart.reduce((acc, item) => acc + item.quantity, 0)}
-                </span>
-              )}
-            </button>
+            <div className="flex items-center gap-4 md:gap-8 text-white shrink-0">
+              <div
+                onClick={() => customerSession ? setShowOrders(true) : setIsAuthModalOpen(true)}
+                className="flex items-center gap-3 group cursor-pointer hidden md:flex"
+              >
+                <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                  <User size={20} className="text-gray-400 group-hover:text-white" />
+                </div>
+                <div className="hidden lg:flex flex-col">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
+                    {customerSession ? 'Olá, Cliente' : 'Minha Conta'}
+                  </span>
+                  <span className="text-xs font-black uppercase">
+                    {customerSession ? 'Meus Pedidos' : 'Entrar'}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => { setActiveDashboardTab('favorites'); setShowOrders(true); }}
+                className="p-2 text-gray-400 hover:text-[var(--theme-primary)] transition-colors relative"
+              >
+                <Heart size={20} className={favorites.length > 0 ? "fill-current text-[var(--theme-primary)]" : ""} />
+                {favorites.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#f70] text-white text-[8px] font-black rounded-full flex items-center justify-center shadow-sm">
+                    {favorites.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setIsCartOpen(true)}
+                className="p-2 text-gray-400 hover:text-gray-900 transition-colors relative"
+              >
+                <ShoppingBag size={20} />
+                {cart.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#f70] text-white text-[8px] font-black rounded-full flex items-center justify-center shadow-sm">
+                    {cart.reduce((acc, item) => acc + item.quantity, 0)}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Categorias Bar */}
-      <div className="bg-[#111] py-2 border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-4 flex items-center gap-4 md:gap-8">
-          <div className="relative group/dept">
-            <button className="flex items-center gap-3 px-4 md:px-6 py-2 bg-[#1a1a1a] rounded text-[10px] md:text-[11px] font-black text-white hover:bg-[#222] transition-colors group">
-              <div className="space-y-1 w-4">
-                <div className="h-0.5 w-full bg-[var(--theme-primary)] group-hover:bg-white transition-colors" />
-                <div className="h-0.5 w-full bg-[var(--theme-primary)] group-hover:bg-white transition-colors" />
-                <div className="h-0.5 w-2/3 bg-[var(--theme-primary)] group-hover:bg-white transition-colors" />
+        {/* Categorias Bar */}
+        <div className="bg-[#111] py-2 border-b border-white/5">
+          <div className="max-w-7xl mx-auto px-4 flex items-center gap-4 md:gap-8">
+            <div className="relative group/dept">
+              <button className="flex items-center gap-3 px-4 md:px-6 py-2 bg-[#1a1a1a] rounded text-[10px] md:text-[11px] font-black text-white hover:bg-[#222] transition-colors group">
+                <div className="space-y-1 w-4">
+                  <div className="h-0.5 w-full bg-[var(--theme-primary)] group-hover:bg-white transition-colors" />
+                  <div className="h-0.5 w-full bg-[var(--theme-primary)] group-hover:bg-white transition-colors" />
+                  <div className="h-0.5 w-2/3 bg-[var(--theme-primary)] group-hover:bg-white transition-colors" />
+                </div>
+                <span className="hidden sm:inline">DEPARTAMENTOS</span>
+                <span className="sm:hidden">CATEGORIAS</span>
+              </button>
+              <div className="absolute top-full left-0 w-64 bg-white shadow-2xl rounded-b-xl opacity-0 translate-y-2 pointer-events-none group-hover/dept:opacity-100 group-hover/dept:translate-y-0 group-hover/dept:pointer-events-auto transition-all z-[100] border border-gray-100 py-2">
+                {categories.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => { setActiveCategory(activeCategory === cat.id ? null : cat.id); setSearchQuery(''); }}
+                    className={`w-full text-left px-6 py-3 text-xs font-bold uppercase tracking-wider hover:bg-gray-50 flex items-center justify-between group/item ${activeCategory === cat.id ? 'text-[var(--theme-primary)]' : 'text-gray-600'}`}
+                  >
+                    {cat.name}
+                    <ChevronRight size={14} className="text-gray-300 group-hover/item:text-[var(--theme-primary)]" />
+                  </button>
+                ))}
+                {categories.length === 0 && (
+                  <p className="px-6 py-4 text-[10px] text-gray-400 font-bold uppercase italic">Sem categorias</p>
+                )}
               </div>
-              <span className="hidden sm:inline">DEPARTAMENTOS</span>
-              <span className="sm:hidden">CATEGORIAS</span>
-            </button>
-            <div className="absolute top-full left-0 w-64 bg-white shadow-2xl rounded-b-xl opacity-0 translate-y-2 pointer-events-none group-hover/dept:opacity-100 group-hover/dept:translate-y-0 group-hover/dept:pointer-events-auto transition-all z-[100] border border-gray-100 py-2">
-              {categories.map(cat => (
+            </div>
+
+            <nav className="flex items-center gap-4 md:gap-6 overflow-x-auto no-scrollbar scroll-smooth">
+              <button
+                onClick={() => { setActiveCategory(null); setSearchQuery(''); }}
+                className={`text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-colors ${!activeCategory && !searchQuery ? 'text-[var(--theme-primary)]' : 'text-white hover:text-[var(--theme-primary)]'}`}
+              >
+                Início
+              </button>
+              {categories.slice(0, 6).map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => { setActiveCategory(activeCategory === cat.id ? null : cat.id); setSearchQuery(''); }}
-                  className={`w-full text-left px-6 py-3 text-xs font-bold uppercase tracking-wider hover:bg-gray-50 flex items-center justify-between group/item ${activeCategory === cat.id ? 'text-[var(--theme-primary)]' : 'text-gray-600'}`}
+                  className={`text-[10px] md:text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-colors ${activeCategory === cat.id ? 'text-[var(--theme-primary)]' : 'text-white hover:text-[var(--theme-primary)] hidden lg:block'}`}
                 >
                   {cat.name}
-                  <ChevronRight size={14} className="text-gray-300 group-hover/item:text-[var(--theme-primary)]" />
                 </button>
               ))}
-              {categories.length === 0 && (
-                <p className="px-6 py-4 text-[10px] text-gray-400 font-bold uppercase italic">Sem categorias</p>
-              )}
-            </div>
+            </nav>
           </div>
-
-          <nav className="flex items-center gap-4 md:gap-6 overflow-x-auto no-scrollbar scroll-smooth">
-            <button
-              onClick={() => { setActiveCategory(null); setSearchQuery(''); }}
-              className={`text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-colors ${!activeCategory && !searchQuery ? 'text-[var(--theme-primary)]' : 'text-white hover:text-[var(--theme-primary)]'}`}
-            >
-              Início
-            </button>
-            {categories.slice(0, 6).map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => { setActiveCategory(activeCategory === cat.id ? null : cat.id); setSearchQuery(''); }}
-                className={`text-[10px] md:text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-colors ${activeCategory === cat.id ? 'text-[var(--theme-primary)]' : 'text-white hover:text-[var(--theme-primary)] hidden lg:block'}`}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </nav>
         </div>
       </div>
-    </div>
     );
   };
 
@@ -2043,7 +2043,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
     const pixDiscount = Number(selectedProduct.pix_discount_percent !== null && selectedProduct.pix_discount_percent !== undefined ? selectedProduct.pix_discount_percent : 10) / 100;
     const pixPrice = finalPrice * (1 - pixDiscount);
     const installmentPrice = finalPrice / 12;
-    
+
     // Check all products that are part of this transaction
     const productsPayload = cart.length > 0 ? cart : [selectedProduct];
     const canShip = productsPayload.every(p => p.has_shipping_data !== false);
@@ -2110,7 +2110,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               </div>
 
               {/* Main Image View */}
-              <div 
+              <div
                 className="aspect-[4/3] w-full rounded-[2rem] bg-white shadow-inner flex items-center justify-center p-8 group relative overflow-hidden cursor-zoom-in"
                 onMouseMove={handleMouseMove}
                 onMouseLeave={() => setZoomState({ ...zoomState, active: false })}
@@ -2120,14 +2120,14 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   <motion.img
                     key={activeImageIndex}
                     initial={{ opacity: 0, x: 20 }}
-                    animate={{ 
-                      opacity: 1, 
+                    animate={{
+                      opacity: 1,
                       x: 0,
                       scale: zoomState.active ? 1.5 : 1,
                       transformOrigin: `${zoomState.x}% ${zoomState.y}%`
                     }}
-                    transition={{ 
-                      opacity: { duration: 0.3 }, 
+                    transition={{
+                      opacity: { duration: 0.3 },
                       scale: { duration: 0.2 },
                       transformOrigin: { duration: 0 }
                     }}
@@ -2215,7 +2215,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                     <div className="space-y-1">
                       {(selectedProduct.compare_at_price || selectedVariation?.compare_at_price) && (
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest line-through">
-                        De: R$ {Number(selectedVariation?.compare_at_price || selectedProduct.compare_at_price).toFixed(2).replace('.', ',')}
+                          De: R$ {Number(selectedVariation?.compare_at_price || selectedProduct.compare_at_price).toFixed(2).replace('.', ',')}
                         </p>
                       )}
                       <p className="text-3xl font-black text-gray-900 tracking-tighter italic leading-none">R$ {finalPrice.toFixed(2).replace('.', ',')}</p>
@@ -2369,51 +2369,51 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   </div>
 
                   <div className="pt-2">
-                      <button
-                        onClick={() => setShowInstallments(!showInstallments)}
-                        className="w-full text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-[#f70] transition-colors flex items-center justify-center gap-2 group/parc py-3 rounded-xl hover:bg-orange-50/50"
-                      >
-                        {showInstallments ? '- Ocultar Detalhes das Parcelas' : '+ Ver Detalhes do Parcelamento'}
-                        <ChevronDown size={14} className={`transition-transform duration-300 ${showInstallments ? 'rotate-180 text-[#f70]' : ''}`} />
-                      </button>
+                    <button
+                      onClick={() => setShowInstallments(!showInstallments)}
+                      className="w-full text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-[#f70] transition-colors flex items-center justify-center gap-2 group/parc py-3 rounded-xl hover:bg-orange-50/50"
+                    >
+                      {showInstallments ? '- Ocultar Detalhes das Parcelas' : '+ Ver Detalhes do Parcelamento'}
+                      <ChevronDown size={14} className={`transition-transform duration-300 ${showInstallments ? 'rotate-180 text-[#f70]' : ''}`} />
+                    </button>
 
-                      <AnimatePresence>
-                        {showInstallments && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="grid grid-cols-2 gap-2 pt-4">
-                              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(num => (
-                                <button
-                                  key={num}
-                                  type="button"
-                                  onClick={() => setSelectedInstallments(num)}
-                                  className={cn(
-                                    "p-3 rounded-xl flex justify-between items-center transition-all",
-                                    selectedInstallments === num
-                                      ? 'bg-orange-50 border-2 border-[#f70] shadow-md ring-2 ring-orange-100'
-                                      : 'bg-white border border-gray-100 shadow-sm hover:border-[#f70] hover:shadow-md'
-                                  )}
-                                >
-                                  <span className={cn("text-[10px] font-bold", selectedInstallments === num ? 'text-[#f70]' : 'text-gray-400')}>{num}x</span>
-                                  <span className="text-[11px] font-black text-gray-900">R$ {(finalPrice / num).toFixed(2).replace('.', ',')}</span>
-                                  {selectedInstallments === num && <Check size={10} className="text-[#f70] shrink-0" strokeWidth={4} />}
-                                </button>
-                              ))}
-                            </div>
-                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center mt-4 flex items-center justify-center gap-2">
-                              <ShieldCheck size={10} className="text-emerald-500" />
-                              Pagamento Seguro
-                            </p>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
+                    <AnimatePresence>
+                      {showInstallments && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="grid grid-cols-2 gap-2 pt-4">
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(num => (
+                              <button
+                                key={num}
+                                type="button"
+                                onClick={() => setSelectedInstallments(num)}
+                                className={cn(
+                                  "p-3 rounded-xl flex justify-between items-center transition-all",
+                                  selectedInstallments === num
+                                    ? 'bg-orange-50 border-2 border-[#f70] shadow-md ring-2 ring-orange-100'
+                                    : 'bg-white border border-gray-100 shadow-sm hover:border-[#f70] hover:shadow-md'
+                                )}
+                              >
+                                <span className={cn("text-[10px] font-bold", selectedInstallments === num ? 'text-[#f70]' : 'text-gray-400')}>{num}x</span>
+                                <span className="text-[11px] font-black text-gray-900">R$ {(finalPrice / num).toFixed(2).replace('.', ',')}</span>
+                                {selectedInstallments === num && <Check size={10} className="text-[#f70] shrink-0" strokeWidth={4} />}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center mt-4 flex items-center justify-center gap-2">
+                            <ShieldCheck size={10} className="text-emerald-500" />
+                            Pagamento Seguro
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
 
-                {/* Escolha como pagar Section */}
+                  {/* Escolha como pagar Section */}
                   <div className="p-4 rounded-[1.5rem] bg-gray-50/50 border-2 border-dashed border-gray-200/60">
                     <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2 font-black">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#f70] animate-pulse" />
@@ -2541,112 +2541,112 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
                     {/* Shipping Address fields (only show for shipping mode) */}
                     {currentDeliveryMode === 'shipping' && (
-                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#f70] animate-pulse" />
-                      Endereço de Entrega
-                    </p>
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#f70] animate-pulse" />
+                        Endereço de Entrega
+                      </p>
                     )}
 
                     {currentDeliveryMode === 'shipping' && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="col-span-2 space-y-1">
-                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Nome completo *</label>
-                        <input
-                          type="text"
-                          required
-                          value={checkoutAddress.fullName}
-                          onChange={e => setCheckoutAddress(prev => ({ ...prev, fullName: e.target.value }))}
-                          placeholder="Ex: João Silva"
-                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Telefone</label>
-                        <input
-                          type="text"
-                          value={checkoutAddress.phone}
-                          onChange={e => setCheckoutAddress(prev => ({ ...prev, phone: e.target.value }))}
-                          placeholder="(11) 99999-9999"
-                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all"
-                        />
-                      </div>
-                      <div className="space-y-1 relative">
-                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">CEP *</label>
-                        <div className="relative">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="col-span-2 space-y-1">
+                          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Nome completo *</label>
                           <input
                             type="text"
                             required
-                            maxLength={9}
-                            value={checkoutAddress.cep}
-                            onChange={e => handleCheckoutCepLookup(e.target.value)}
-                            placeholder="00000-000"
-                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all pr-8"
+                            value={checkoutAddress.fullName}
+                            onChange={e => setCheckoutAddress(prev => ({ ...prev, fullName: e.target.value }))}
+                            placeholder="Ex: João Silva"
+                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all"
                           />
-                          {cepLoading && <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 border-2 border-[#f70]/30 border-t-[#f70] rounded-full animate-spin" />}
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Telefone</label>
+                          <input
+                            type="text"
+                            value={checkoutAddress.phone}
+                            onChange={e => setCheckoutAddress(prev => ({ ...prev, phone: e.target.value }))}
+                            placeholder="(11) 99999-9999"
+                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all"
+                          />
+                        </div>
+                        <div className="space-y-1 relative">
+                          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">CEP *</label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              required
+                              maxLength={9}
+                              value={checkoutAddress.cep}
+                              onChange={e => handleCheckoutCepLookup(e.target.value)}
+                              placeholder="00000-000"
+                              className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all pr-8"
+                            />
+                            {cepLoading && <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 border-2 border-[#f70]/30 border-t-[#f70] rounded-full animate-spin" />}
+                          </div>
+                        </div>
+                        <div className="col-span-2 space-y-1">
+                          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Rua</label>
+                          <input
+                            type="text"
+                            value={checkoutAddress.street}
+                            onChange={e => setCheckoutAddress(prev => ({ ...prev, street: e.target.value }))}
+                            placeholder="Preenchido automaticamente"
+                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Número *</label>
+                          <input
+                            type="text"
+                            required
+                            value={checkoutAddress.number}
+                            onChange={e => setCheckoutAddress(prev => ({ ...prev, number: e.target.value }))}
+                            placeholder="Ex: 123"
+                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Complemento</label>
+                          <input
+                            type="text"
+                            value={checkoutAddress.complement}
+                            onChange={e => setCheckoutAddress(prev => ({ ...prev, complement: e.target.value }))}
+                            placeholder="Apto, Bloco..."
+                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Bairro</label>
+                          <input
+                            type="text"
+                            value={checkoutAddress.neighborhood}
+                            onChange={e => setCheckoutAddress(prev => ({ ...prev, neighborhood: e.target.value }))}
+                            placeholder="Bairro"
+                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Cidade</label>
+                          <input
+                            type="text"
+                            value={checkoutAddress.city}
+                            readOnly
+                            placeholder="Preenchido pelo CEP"
+                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold opacity-70"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Estado</label>
+                          <input
+                            type="text"
+                            value={checkoutAddress.state}
+                            readOnly
+                            placeholder="UF"
+                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold opacity-70"
+                          />
                         </div>
                       </div>
-                      <div className="col-span-2 space-y-1">
-                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Rua</label>
-                        <input
-                          type="text"
-                          value={checkoutAddress.street}
-                          onChange={e => setCheckoutAddress(prev => ({ ...prev, street: e.target.value }))}
-                          placeholder="Preenchido automaticamente"
-                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Número *</label>
-                        <input
-                          type="text"
-                          required
-                          value={checkoutAddress.number}
-                          onChange={e => setCheckoutAddress(prev => ({ ...prev, number: e.target.value }))}
-                          placeholder="Ex: 123"
-                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Complemento</label>
-                        <input
-                          type="text"
-                          value={checkoutAddress.complement}
-                          onChange={e => setCheckoutAddress(prev => ({ ...prev, complement: e.target.value }))}
-                          placeholder="Apto, Bloco..."
-                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Bairro</label>
-                        <input
-                          type="text"
-                          value={checkoutAddress.neighborhood}
-                          onChange={e => setCheckoutAddress(prev => ({ ...prev, neighborhood: e.target.value }))}
-                          placeholder="Bairro"
-                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f70]/20 transition-all"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Cidade</label>
-                        <input
-                          type="text"
-                          value={checkoutAddress.city}
-                          readOnly
-                          placeholder="Preenchido pelo CEP"
-                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold opacity-70"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Estado</label>
-                        <input
-                          type="text"
-                          value={checkoutAddress.state}
-                          readOnly
-                          placeholder="UF"
-                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold opacity-70"
-                        />
-                      </div>
-                    </div>
                     )}
 
                     {/* Shipping Options (only for shipping mode) */}
@@ -2726,31 +2726,31 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   </button>
                   {preferenceId ? (
                     <div className="h-24 w-full flex flex-col items-center justify-center gap-2">
-                       <div id={brickId} className={cn("w-full transition-all", (brickLoading || brickError) ? 'h-0 opacity-0 overflow-hidden' : 'min-h-[64px] opacity-100')} />
-                       {brickLoading && (
-                         <div className="flex flex-col items-center gap-3">
-                           <div className="flex items-center gap-2 text-gray-500 animate-pulse">
-                             <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
-                             <span className="text-[10px] font-bold uppercase tracking-widest">Preparando Checkout...</span>
-                           </div>
-                           {preferenceId && (
-                             <button 
-                               onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
-                               className="text-[9px] font-black text-blue-500 uppercase tracking-tighter hover:underline"
-                             >
-                               Não carregou? Clique aqui para pagar
-                             </button>
-                           )}
-                         </div>
-                       )}
-                       {brickError && (
-                         <button
-                           onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
-                           className="w-full h-14 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
-                         >
-                           <ExternalLink size={16} /> Pagar Agora (Link Seguro)
-                         </button>
-                       )}
+                      <div id={brickId} className={cn("w-full transition-all", (brickLoading || brickError) ? 'h-0 opacity-0 overflow-hidden' : 'min-h-[64px] opacity-100')} />
+                      {brickLoading && (
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="flex items-center gap-2 text-gray-500 animate-pulse">
+                            <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest">Preparando Checkout...</span>
+                          </div>
+                          {preferenceId && (
+                            <button
+                              onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
+                              className="text-[9px] font-black text-blue-500 uppercase tracking-tighter hover:underline"
+                            >
+                              Não carregou? Clique aqui para pagar
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {brickError && (
+                        <button
+                          onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
+                          className="w-full h-14 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+                        >
+                          <ExternalLink size={16} /> Pagar Agora (Link Seguro)
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <button
@@ -2794,23 +2794,23 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             <button onClick={() => { setSelectedProduct(null); setPreferenceId(null); }} className="absolute top-6 right-6 z-20 p-2 text-gray-400 hover:text-gray-900 bg-gray-50 rounded-full transition-colors">
               <X size={20} />
             </button>
-            <div 
+            <div
               className="w-full md:w-1/2 p-6 pt-20 md:p-10 bg-gray-50 flex items-center justify-center relative border-b md:border-b-0 md:border-r border-gray-100 overflow-hidden group cursor-zoom-in shrink-0"
               onMouseMove={handleMouseMove}
               onMouseLeave={() => setZoomState({ ...zoomState, active: false })}
               onClick={() => setShowLightbox(true)}
             >
-              <motion.img 
-                animate={{ 
+              <motion.img
+                animate={{
                   scale: zoomState.active ? 1.5 : 1,
                   transformOrigin: `${zoomState.x}% ${zoomState.y}%`
                 }}
-                transition={{ 
+                transition={{
                   scale: { duration: 0.2 },
                   transformOrigin: { duration: 0 }
                 }}
-                src={selectedProduct.image_url.split(',')[0]} 
-                className="w-full mix-blend-multiply drop-shadow-xl" 
+                src={selectedProduct.image_url.split(',')[0]}
+                className="w-full mix-blend-multiply drop-shadow-xl"
               />
             </div>
             <div className="w-full md:w-1/2 p-6 md:p-10 flex flex-col justify-center space-y-6 md:space-y-8">
@@ -2857,27 +2857,27 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                 </button>
                 {preferenceId ? (
                   <div className="flex-1 flex flex-col items-center justify-center gap-2">
-                     <div id={brickId} className={cn("w-full transition-all", (brickLoading || brickError) ? 'h-0 opacity-0 overflow-hidden' : 'min-h-[56px] opacity-100')} />
-                     {brickLoading && (
-                       <div className="flex flex-col items-center gap-2">
-                         <div className="w-3 h-3 border-2 border-gray-200 border-t-gray-900 rounded-full animate-spin" />
-                         <span className="text-[9px] font-bold uppercase tracking-widest">Processando...</span>
-                         <button 
-                            onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
-                            className="text-[8px] font-bold text-gray-400 uppercase hover:underline"
-                          >
-                            Problemas ao carregar? Clique aqui
-                          </button>
-                       </div>
-                     )}
-                     {brickError && (
-                       <button
-                         onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
-                         className="flex-1 h-14 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-black transition-all flex items-center justify-center gap-2"
-                       >
-                         <ExternalLink size={16} /> Link de Pagamento
-                       </button>
-                     )}
+                    <div id={brickId} className={cn("w-full transition-all", (brickLoading || brickError) ? 'h-0 opacity-0 overflow-hidden' : 'min-h-[56px] opacity-100')} />
+                    {brickLoading && (
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-3 h-3 border-2 border-gray-200 border-t-gray-900 rounded-full animate-spin" />
+                        <span className="text-[9px] font-bold uppercase tracking-widest">Processando...</span>
+                        <button
+                          onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
+                          className="text-[8px] font-bold text-gray-400 uppercase hover:underline"
+                        >
+                          Problemas ao carregar? Clique aqui
+                        </button>
+                      </div>
+                    )}
+                    {brickError && (
+                      <button
+                        onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
+                        className="flex-1 h-14 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-black transition-all flex items-center justify-center gap-2"
+                      >
+                        <ExternalLink size={16} /> Link de Pagamento
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <button onClick={() => handleDirectPurchase(finalPrice, paymentMethod)} className="flex-1 h-14 bg-[#25D366] hover:bg-[#1da851] text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 transition-colors shadow-lg shadow-[#25D366]/20">
@@ -2916,24 +2916,24 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             <button onClick={() => { setSelectedProduct(null); setPreferenceId(null); }} className="absolute top-3 right-6 z-20 p-3 text-gray-400 hover:text-white bg-white/5 rounded-full backdrop-blur-md transition-colors border border-white/10">
               <X size={20} />
             </button>
-            <div 
+            <div
               className="w-full md:w-1/2 p-6 pt-20 md:p-12 bg-gradient-to-br from-[#111] to-[#050505] flex items-center justify-center relative border-b md:border-b-0 md:border-r border-white/5 overflow-hidden group cursor-zoom-in shrink-0"
               onMouseMove={handleMouseMove}
               onMouseLeave={() => setZoomState({ ...zoomState, active: false })}
               onClick={() => setShowLightbox(true)}
             >
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03),transparent_70%)] pointer-events-none" />
-              <motion.img 
-                animate={{ 
+              <motion.img
+                animate={{
                   scale: zoomState.active ? 1.5 : 1,
                   transformOrigin: `${zoomState.x}% ${zoomState.y}%`
                 }}
-                transition={{ 
+                transition={{
                   scale: { duration: 0.2 },
                   transformOrigin: { duration: 0 }
                 }}
-                src={selectedProduct.image_url.split(',')[0]} 
-                className="w-full drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)] scale-105 relative z-10" 
+                src={selectedProduct.image_url.split(',')[0]}
+                className="w-full drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)] scale-105 relative z-10"
               />
             </div>
             <div className="w-full md:w-1/2 flex flex-col bg-[#0b0b0b] md:h-full relative overflow-visible md:overflow-hidden">
@@ -2973,31 +2973,31 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   <button onClick={() => setPaymentMethod('card')} className={cn("flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded border transition-all", paymentMethod === 'card' ? 'border-white text-white bg-white/10' : 'border-white/10 text-gray-500 hover:border-white/30')}>Cartao</button>
                 </div>
                 {preferenceId ? (
-                   <div className="w-full flex flex-col items-center justify-center gap-2">
-                      <div id={brickId} className={cn("w-full transition-all", (brickLoading || brickError) ? 'h-0 opacity-0 overflow-hidden' : 'min-h-[64px] opacity-100')} />
-                      {brickLoading && (
-                        <div className="flex flex-col items-center gap-3">
-                          <div className="flex items-center gap-2 text-gray-500 animate-pulse">
-                            <div className="w-4 h-4 border-2 border-gray-100 border-t-white rounded-full animate-spin" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest">Finalizando...</span>
-                          </div>
-                          <button 
-                            onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
-                            className="text-[9px] font-black text-white/50 uppercase tracking-[0.2em] hover:text-white transition-colors"
-                          >
-                            Manual Link [Safe Mode]
-                          </button>
+                  <div className="w-full flex flex-col items-center justify-center gap-2">
+                    <div id={brickId} className={cn("w-full transition-all", (brickLoading || brickError) ? 'h-0 opacity-0 overflow-hidden' : 'min-h-[64px] opacity-100')} />
+                    {brickLoading && (
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="flex items-center gap-2 text-gray-500 animate-pulse">
+                          <div className="w-4 h-4 border-2 border-gray-100 border-t-white rounded-full animate-spin" />
+                          <span className="text-[10px] font-bold uppercase tracking-widest">Finalizando...</span>
                         </div>
-                      )}
-                      {brickError && (
                         <button
                           onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
-                          className="w-full h-16 bg-white text-black rounded font-black uppercase tracking-[0.3em] text-[10px] hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                          className="text-[9px] font-black text-white/50 uppercase tracking-[0.2em] hover:text-white transition-colors"
                         >
-                          <ExternalLink size={16} /> Pagar Agora (Link Seguro)
+                          Manual Link [Safe Mode]
                         </button>
-                      )}
-                   </div>
+                      </div>
+                    )}
+                    {brickError && (
+                      <button
+                        onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
+                        className="w-full h-16 bg-white text-black rounded font-black uppercase tracking-[0.3em] text-[10px] hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                      >
+                        <ExternalLink size={16} /> Pagar Agora (Link Seguro)
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   <button onClick={() => handleDirectPurchase(finalPrice, paymentMethod)} className="w-full h-16 bg-white hover:bg-gray-200 text-black rounded font-black uppercase tracking-[0.3em] text-[10px] transition-all flex items-center justify-center gap-4 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
                     Confirmar Agora <ChevronRight size={14} />
@@ -3037,24 +3037,24 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             <button onClick={() => { setSelectedProduct(null); setPreferenceId(null); }} className="absolute top-3 right-6 z-20 p-2 text-blue-400 hover:text-white bg-blue-500/10 rounded-xl transition-all border border-blue-500/20">
               <X size={20} />
             </button>
-            <div 
+            <div
               className="w-full md:w-1/2 p-8 pt-20 bg-[#020617] flex flex-col items-center justify-center relative border-b md:border-b-0 md:border-r border-blue-500/10 overflow-hidden group cursor-zoom-in shrink-0"
               onMouseMove={handleMouseMove}
               onMouseLeave={() => setZoomState({ ...zoomState, active: false })}
               onClick={() => setShowLightbox(true)}
             >
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.1),transparent_70%)] pointer-events-none" />
-              <motion.img 
-                animate={{ 
+              <motion.img
+                animate={{
                   scale: zoomState.active ? 1.5 : 1,
                   transformOrigin: `${zoomState.x}% ${zoomState.y}%`
                 }}
-                transition={{ 
+                transition={{
                   scale: { duration: 0.2 },
                   transformOrigin: { duration: 0 }
                 }}
-                src={selectedProduct.image_url.split(',')[0]} 
-                className="w-full drop-shadow-[0_0_30px_rgba(59,130,246,0.3)] relative z-10" 
+                src={selectedProduct.image_url.split(',')[0]}
+                className="w-full drop-shadow-[0_0_30px_rgba(59,130,246,0.3)] relative z-10"
               />
               <div className="mt-8 flex gap-2">
                 <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-widest border border-blue-500/30 rounded-lg">Alto Desempenho</span>
@@ -3064,45 +3064,45 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             <div className="w-full md:w-1/2 flex flex-col bg-slate-900/50 backdrop-blur-sm md:h-full relative overflow-visible md:overflow-hidden">
               <div className="w-full md:flex-1 md:overflow-y-auto p-6 md:p-8 custom-scrollbar relative">
                 <div className="space-y-6">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Sistema Integrado</span>
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                      <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Sistema Integrado</span>
+                    </div>
+                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">{selectedProduct.name}</h2>
+                    {selectedProduct.description && (
+                      <p className="text-slate-400 text-xs mt-4 leading-relaxed line-clamp-3 hover:line-clamp-none transition-all cursor-pointer">
+                        {selectedProduct.description}
+                      </p>
+                    )}
                   </div>
-                  <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">{selectedProduct.name}</h2>
-                  {selectedProduct.description && (
-                    <p className="text-slate-400 text-xs mt-4 leading-relaxed line-clamp-3 hover:line-clamp-none transition-all cursor-pointer">
-                      {selectedProduct.description}
-                    </p>
-                  )}
-                </div>
 
-                {selectedProduct.product_variations?.length > 0 && (
-                  <div className="space-y-3">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Selecione Config.</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {selectedProduct.product_variations.map((v: any) => (
-                        <button
-                          key={v.id}
-                          onClick={() => setSelectedVariation(v)}
-                          className={cn("p-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border",
-                            selectedVariation?.id === v.id ? "bg-blue-600 border-blue-400 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]" : "bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500"
-                          )}
-                        >
-                          {v.value}
-                        </button>
-                      ))}
+                  {selectedProduct.product_variations?.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Selecione Config.</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {selectedProduct.product_variations.map((v: any) => (
+                          <button
+                            key={v.id}
+                            onClick={() => setSelectedVariation(v)}
+                            className={cn("p-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border",
+                              selectedVariation?.id === v.id ? "bg-blue-600 border-blue-400 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]" : "bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500"
+                            )}
+                          >
+                            {v.value}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="md:sticky md:top-0 z-30 -mx-1 px-1 py-4 bg-[#020617] md:bg-[#020617]/90 md:backdrop-blur-md rounded-2xl border border-blue-500/20 mb-4">
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Valor Final</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl font-black text-white tracking-tighter">R$ {finalPrice.toFixed(2).replace('.', ',')}</span>
+                      <span className="text-blue-400 text-xs font-black uppercase leading-none">Subir Nível</span>
                     </div>
                   </div>
-                )}
-
-                <div className="md:sticky md:top-0 z-30 -mx-1 px-1 py-4 bg-[#020617] md:bg-[#020617]/90 md:backdrop-blur-md rounded-2xl border border-blue-500/20 mb-4">
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Valor Final</p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-black text-white tracking-tighter">R$ {finalPrice.toFixed(2).replace('.', ',')}</span>
-                    <span className="text-blue-400 text-xs font-black uppercase leading-none">Subir Nível</span>
-                  </div>
-                </div>
                   <div className="mt-4 pt-4 border-t border-slate-800 flex justify-between items-center">
                     <div className="flex flex-col">
                       <span className="text-[10px] font-black text-emerald-400 uppercase">Desconto Pix</span>
@@ -3115,7 +3115,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   </div>
 
                   {paymentMethod === 'card' && (
-                    <motion.div 
+                    <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       className="mt-4 pt-4 border-t border-slate-800 grid grid-cols-2 gap-2"
@@ -3137,31 +3137,31 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   <button onClick={() => setPaymentMethod('card')} className={cn("flex-1 py-3 text-[10px] font-black uppercase rounded-lg border transition-all", paymentMethod === 'card' ? 'bg-blue-500/10 border-blue-500 text-blue-400' : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600')}>Card</button>
                 </div>
                 {preferenceId ? (
-                   <div className="w-full flex flex-col items-center justify-center gap-2">
-                      <div id={brickId} className={cn("w-full transition-all", (brickLoading || brickError) ? 'h-0 opacity-0 overflow-hidden' : 'min-h-[56px] opacity-100')} />
-                      {brickLoading && (
-                        <div className="flex flex-col items-center gap-3">
-                          <div className="flex items-center gap-2 text-blue-400 animate-pulse">
-                            <div className="w-4 h-4 border-2 border-blue-500 border-t-fuchsia-500 rounded-full animate-spin" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Initiating System...</span>
-                          </div>
-                          <button 
-                            onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
-                            className="text-[9px] font-black text-blue-400/50 uppercase tracking-[0.2em] hover:text-blue-400 transition-colors"
-                          >
-                            Manual Bypass [Click Here]
-                          </button>
+                  <div className="w-full flex flex-col items-center justify-center gap-2">
+                    <div id={brickId} className={cn("w-full transition-all", (brickLoading || brickError) ? 'h-0 opacity-0 overflow-hidden' : 'min-h-[56px] opacity-100')} />
+                    {brickLoading && (
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="flex items-center gap-2 text-blue-400 animate-pulse">
+                          <div className="w-4 h-4 border-2 border-blue-500 border-t-fuchsia-500 rounded-full animate-spin" />
+                          <span className="text-[10px] font-black uppercase tracking-widest">Initiating System...</span>
                         </div>
-                      )}
-                      {brickError && (
                         <button
                           onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
-                          className="w-full h-14 bg-gradient-to-r from-blue-600 to-fuchsia-600 text-white font-black uppercase tracking-widest text-[10px] hover:from-blue-500 hover:to-fuchsia-500 transition-all flex items-center justify-center gap-2"
+                          className="text-[9px] font-black text-blue-400/50 uppercase tracking-[0.2em] hover:text-blue-400 transition-colors"
                         >
-                          <ExternalLink size={16} /> Checkout Link (Secure)
+                          Manual Bypass [Click Here]
                         </button>
-                      )}
-                   </div>
+                      </div>
+                    )}
+                    {brickError && (
+                      <button
+                        onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
+                        className="w-full h-14 bg-gradient-to-r from-blue-600 to-fuchsia-600 text-white font-black uppercase tracking-widest text-[10px] hover:from-blue-500 hover:to-fuchsia-500 transition-all flex items-center justify-center gap-2"
+                      >
+                        <ExternalLink size={16} /> Checkout Link (Secure)
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   <button onClick={() => handleDirectPurchase(finalPrice, paymentMethod)} className={getButtonStyle("w-full h-14 bg-gradient-to-r from-blue-600 to-fuchsia-600 hover:from-blue-500 hover:to-fuchsia-500 text-white font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(59,130,246,0.3)] transition-all transform hover:scale-[1.02]")}>
                     <Zap size={18} fill="currentColor" /> Initiate Purchase
@@ -3214,23 +3214,23 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             </div>
 
             <div className="flex flex-col md:flex-row md:overflow-y-auto md:max-h-[85vh] custom-scrollbar">
-              <div 
+              <div
                 className="w-full md:w-1/2 p-8 pt-16 bg-gray-50 flex items-center justify-center overflow-hidden group cursor-zoom-in relative shrink-0"
                 onMouseMove={handleMouseMove}
                 onMouseLeave={() => setZoomState({ ...zoomState, active: false })}
                 onClick={() => setShowLightbox(true)}
               >
-                <motion.img 
-                  animate={{ 
+                <motion.img
+                  animate={{
                     scale: zoomState.active ? 1.5 : 1,
                     transformOrigin: `${zoomState.x}% ${zoomState.y}%`
                   }}
-                  transition={{ 
+                  transition={{
                     scale: { duration: 0.2 },
                     transformOrigin: { duration: 0 }
                   }}
-                  src={selectedProduct.image_url.split(',')[0]} 
-                  className="w-full drop-shadow-2xl" 
+                  src={selectedProduct.image_url.split(',')[0]}
+                  className="w-full drop-shadow-2xl"
                 />
               </div>
               <div className="w-full md:w-1/2 p-6 md:p-8 space-y-6">
@@ -3302,7 +3302,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                 </div>
 
                 {paymentMethod === 'card' && (
-                  <motion.div 
+                  <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     className="grid grid-cols-2 gap-2"
@@ -3317,31 +3317,31 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                 )}
 
                 {preferenceId ? (
-                   <div className="w-full flex flex-col items-center justify-center gap-2">
-                       <div id={brickId} className={cn("w-full transition-all", (brickLoading || brickError) ? 'h-0 opacity-0 overflow-hidden' : 'min-h-[64px] opacity-100')} />
-                       {brickLoading && (
-                         <div className="flex flex-col items-center gap-3">
-                           <div className="flex items-center gap-2 text-red-600 animate-pulse">
-                             <div className="w-4 h-4 border-2 border-gray-200 border-t-red-600 rounded-full animate-spin" />
-                             <span className="text-[10px] font-black uppercase tracking-widest">Carregando Oferta...</span>
-                           </div>
-                           <button 
-                              onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
-                              className="text-[9px] font-black text-red-600/60 uppercase tracking-widest hover:text-red-600 transition-colors"
-                            >
-                              Não quer esperar? Clique aqui
-                            </button>
-                         </div>
-                       )}
-                       {brickError && (
-                         <button
-                           onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
-                           className="w-full h-16 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-red-700 transition-all flex items-center justify-center gap-2"
-                         >
-                           <ExternalLink size={16} /> Pagar Agora (Link Seguro)
-                         </button>
-                       )}
-                   </div>
+                  <div className="w-full flex flex-col items-center justify-center gap-2">
+                    <div id={brickId} className={cn("w-full transition-all", (brickLoading || brickError) ? 'h-0 opacity-0 overflow-hidden' : 'min-h-[64px] opacity-100')} />
+                    {brickLoading && (
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="flex items-center gap-2 text-red-600 animate-pulse">
+                          <div className="w-4 h-4 border-2 border-gray-200 border-t-red-600 rounded-full animate-spin" />
+                          <span className="text-[10px] font-black uppercase tracking-widest">Carregando Oferta...</span>
+                        </div>
+                        <button
+                          onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
+                          className="text-[9px] font-black text-red-600/60 uppercase tracking-widest hover:text-red-600 transition-colors"
+                        >
+                          Não quer esperar? Clique aqui
+                        </button>
+                      </div>
+                    )}
+                    {brickError && (
+                      <button
+                        onClick={() => mpInitPoint && (window.location.href = mpInitPoint)}
+                        className="w-full h-16 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-red-700 transition-all flex items-center justify-center gap-2"
+                      >
+                        <ExternalLink size={16} /> Pagar Agora (Link Seguro)
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   <button onClick={() => handleDirectPurchase(finalPrice, paymentMethod)} className="w-full h-16 bg-[#25D366] hover:bg-[#1da851] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-3 transition-colors shadow-lg shadow-[#25D366]/20">
                     <ShoppingCart size={20} /> Garantir Minha Oferta
@@ -3391,7 +3391,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-0.5">Notificação</p>
               <p className="text-xs font-bold text-white leading-tight">{notification.message}</p>
             </div>
-            <button 
+            <button
               onClick={() => setNotification(null)}
               className="p-1 hover:bg-white/5 rounded-lg text-gray-500 transition-colors"
             >
@@ -3444,25 +3444,25 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
         <div className="max-w-md mx-auto min-h-screen bg-white shadow-2xl relative">
           <div className="p-8 text-center" style={{ backgroundColor: (store.theme_color || '#5551FF') + '15' }}>
             {store.logo_url ? (
-               <img src={store.logo_url} alt="Logo" className="w-20 h-20 rounded-2xl object-cover mx-auto mb-4 shadow-lg" />
+              <img src={store.logo_url} alt="Logo" className="w-20 h-20 rounded-2xl object-cover mx-auto mb-4 shadow-lg" />
             ) : (
-               <div className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center text-white shadow-lg" style={{ backgroundColor: store.theme_color || '#5551FF' }}>
-                 <Store size={32} />
-               </div>
+              <div className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center text-white shadow-lg" style={{ backgroundColor: store.theme_color || '#5551FF' }}>
+                <Store size={32} />
+              </div>
             )}
             <h1 className="text-2xl font-black text-gray-900">{store.name || 'Meu Catálogo'}</h1>
             {store.description && <p className="text-sm text-gray-500 mt-2">{store.description}</p>}
             <div className="flex items-center justify-center gap-3 mt-4">
-               {store.whatsapp && (
-                 <a href={`https://wa.me/${store.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-full hover:bg-green-100 transition-colors">
-                   <MessageCircle size={14} /> WhatsApp
-                 </a>
-               )}
-               {store.instagram_url && (
-                 <a href={store.instagram_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-pink-600 bg-pink-50 px-3 py-1.5 rounded-full hover:bg-pink-100 transition-colors">
-                   <Instagram size={14} /> Instagram
-                 </a>
-               )}
+              {store.whatsapp && (
+                <a href={`https://wa.me/${store.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-full hover:bg-green-100 transition-colors">
+                  <MessageCircle size={14} /> WhatsApp
+                </a>
+              )}
+              {store.instagram_url && (
+                <a href={store.instagram_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-pink-600 bg-pink-50 px-3 py-1.5 rounded-full hover:bg-pink-100 transition-colors">
+                  <Instagram size={14} /> Instagram
+                </a>
+              )}
             </div>
           </div>
           <div className="p-6">
@@ -3487,15 +3487,15 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                       <p className="text-[11px] font-bold text-gray-900 line-clamp-2 leading-tight flex-1">{p.name}</p>
                       <div className="mt-2 text-left">
                         {(p.compare_at_price) && (
-                           <p className="text-[9px] font-bold text-gray-400 line-through mb-0.5">R$ {Number(p.compare_at_price).toFixed(2).replace('.', ',')}</p>
+                          <p className="text-[9px] font-bold text-gray-400 line-through mb-0.5">R$ {Number(p.compare_at_price).toFixed(2).replace('.', ',')}</p>
                         )}
                         <p className="text-xs font-black" style={{ color: store.theme_color || '#5551FF' }}>
-                           R$ {Number(p.price).toFixed(2).replace('.', ',')}
+                          R$ {Number(p.price).toFixed(2).replace('.', ',')}
                         </p>
                       </div>
                     </div>
-                    <div 
-                      className="w-full py-3 text-[9px] font-black uppercase tracking-widest text-white text-center hover:opacity-90 transition-opacity" 
+                    <div
+                      className="w-full py-3 text-[9px] font-black uppercase tracking-widest text-white text-center hover:opacity-90 transition-opacity"
                       style={{ backgroundColor: store.theme_color || '#5551FF' }}
                     >
                       Ver Detalhes
@@ -3506,7 +3506,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             )}
           </div>
           <div className="p-6 text-center text-[9px] font-bold text-gray-300 uppercase tracking-widest pb-12">
-             Powered by Nexora
+            Powered by Nexora
           </div>
         </div>
 
@@ -3532,67 +3532,67 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   <button onClick={() => setCatalogProductDetails(null)} className="absolute top-4 right-4 z-10 p-2 bg-white/50 backdrop-blur-md rounded-full text-gray-900 hover:bg-white transition-colors">
                     <X size={20} />
                   </button>
-                  
+
                   {catalogProductDetails.image_url ? (
                     <>
-                       <div className="w-full h-full flex items-center justify-center overflow-hidden touch-none select-none relative">
-                         <AnimatePresence mode="wait">
-                           <motion.img 
-                             key={catalogImageIndex}
-                             src={catalogProductDetails.image_url.split(',')[catalogImageIndex]} 
-                             alt={catalogProductDetails.name} 
-                             className="w-full h-full object-cover absolute inset-0" 
-                             initial={{ opacity: 0, x: 50 }}
-                             animate={{ opacity: 1, x: 0 }}
-                             exit={{ opacity: 0, x: -50 }}
-                             transition={{ duration: 0.2 }}
-                             drag="x"
-                             dragConstraints={{ left: 0, right: 0 }}
-                             dragElastic={0.6}
-                             onDragEnd={(_e, { offset, velocity }) => {
-                               const images = catalogProductDetails.image_url.split(',');
-                               const swipe = offset.x;
-                               const threshold = 70;
-                               if (swipe < -threshold || (swipe < -20 && velocity.x < -100)) {
-                                 setCatalogImageIndex((catalogImageIndex + 1) % images.length);
-                               } else if (swipe > threshold || (swipe > 20 && velocity.x > 100)) {
-                                 setCatalogImageIndex((catalogImageIndex - 1 + images.length) % images.length);
-                               }
-                             }}
-                           />
-                         </AnimatePresence>
-                         {catalogProductDetails.image_url.split(',').length > 1 && (
-                           <>
-                             <button
-                               onClick={(e) => { e.stopPropagation(); setCatalogImageIndex((catalogImageIndex - 1 + catalogProductDetails.image_url.split(',').length) % catalogProductDetails.image_url.split(',').length); }}
-                               className="absolute left-2 z-20 p-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full text-white transition-colors"
-                             >
-                               <ChevronLeft size={20} />
-                             </button>
-                             <button
-                               onClick={(e) => { e.stopPropagation(); setCatalogImageIndex((catalogImageIndex + 1) % catalogProductDetails.image_url.split(',').length); }}
-                               className="absolute right-2 z-20 p-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full text-white transition-colors"
-                             >
-                               <ChevronRight size={20} />
-                             </button>
-                           </>
-                         )}
-                       </div>
-                       {catalogProductDetails.image_url.split(',').length > 1 && (
-                         <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 z-10">
-                           {catalogProductDetails.image_url.split(',').map((_: any, idx: number) => (
-                             <button
-                               key={idx}
-                               onClick={() => setCatalogImageIndex(idx)}
-                               className={cn(
-                                 "h-1.5 rounded-full transition-all",
-                                 catalogImageIndex === idx ? "w-6" : "w-1.5 opacity-50 text-white"
-                               )}
-                               style={{ backgroundColor: catalogImageIndex === idx ? (store.theme_color || '#5551FF') : 'white' }}
-                             />
-                           ))}
-                         </div>
-                       )}
+                      <div className="w-full h-full flex items-center justify-center overflow-hidden touch-none select-none relative">
+                        <AnimatePresence mode="wait">
+                          <motion.img
+                            key={catalogImageIndex}
+                            src={catalogProductDetails.image_url.split(',')[catalogImageIndex]}
+                            alt={catalogProductDetails.name}
+                            className="w-full h-full object-cover absolute inset-0"
+                            initial={{ opacity: 0, x: 50 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -50 }}
+                            transition={{ duration: 0.2 }}
+                            drag="x"
+                            dragConstraints={{ left: 0, right: 0 }}
+                            dragElastic={0.6}
+                            onDragEnd={(_e, { offset, velocity }) => {
+                              const images = catalogProductDetails.image_url.split(',');
+                              const swipe = offset.x;
+                              const threshold = 70;
+                              if (swipe < -threshold || (swipe < -20 && velocity.x < -100)) {
+                                setCatalogImageIndex((catalogImageIndex + 1) % images.length);
+                              } else if (swipe > threshold || (swipe > 20 && velocity.x > 100)) {
+                                setCatalogImageIndex((catalogImageIndex - 1 + images.length) % images.length);
+                              }
+                            }}
+                          />
+                        </AnimatePresence>
+                        {catalogProductDetails.image_url.split(',').length > 1 && (
+                          <>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setCatalogImageIndex((catalogImageIndex - 1 + catalogProductDetails.image_url.split(',').length) % catalogProductDetails.image_url.split(',').length); }}
+                              className="absolute left-2 z-20 p-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full text-white transition-colors"
+                            >
+                              <ChevronLeft size={20} />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setCatalogImageIndex((catalogImageIndex + 1) % catalogProductDetails.image_url.split(',').length); }}
+                              className="absolute right-2 z-20 p-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full text-white transition-colors"
+                            >
+                              <ChevronRight size={20} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                      {catalogProductDetails.image_url.split(',').length > 1 && (
+                        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 z-10">
+                          {catalogProductDetails.image_url.split(',').map((_: any, idx: number) => (
+                            <button
+                              key={idx}
+                              onClick={() => setCatalogImageIndex(idx)}
+                              className={cn(
+                                "h-1.5 rounded-full transition-all",
+                                catalogImageIndex === idx ? "w-6" : "w-1.5 opacity-50 text-white"
+                              )}
+                              style={{ backgroundColor: catalogImageIndex === idx ? (store.theme_color || '#5551FF') : 'white' }}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-300">
@@ -3600,7 +3600,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                     </div>
                   )}
                 </div>
-                
+
                 <div className="p-6 overflow-y-auto flex-1 bg-white">
                   <h2 className="text-xl font-black text-gray-900 leading-tight mb-2">{catalogProductDetails.name}</h2>
                   <div className="flex items-end gap-2 mb-6">
@@ -3613,7 +3613,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                       </p>
                     )}
                   </div>
-                  
+
                   {catalogProductDetails.description && (
                     <div className="mb-6">
                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Descrição</p>
@@ -3681,7 +3681,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
       <main className="min-h-[80vh]">
         {renderHero()}
         {isMegaStore && renderMegaCategorias()}
-        
+
 
         {/* Categorias Bar (Mobile Quick Nav) */}
         {template !== 'Pure Minimal' && (
@@ -3822,9 +3822,9 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
       {/* Professional Footer */}
       {isMegaStore ? renderMegaFooter() : (
         <footer className="bg-[#0b0b0b] text-white">
-        {renderTrustSection()}
+          {renderTrustSection()}
 
-        <div className="max-w-7xl mx-auto px-4 py-20 border-t border-white/5">
+          <div className="max-w-7xl mx-auto px-4 py-20 border-t border-white/5">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-20">
               <div className="space-y-6 md:col-span-1">
                 <div className="flex items-center gap-3">
@@ -3846,16 +3846,16 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M19.812 5.418c.861.23 1.538.907 1.768 1.768C21.998 8.746 22 12 22 12s0 3.255-.418 4.814a2.504 2.504 0 0 1-1.768 1.768c-1.56.419-7.814.419-7.814.419s-6.255 0-7.814-.419a2.505 2.505 0 0 1-1.768-1.768C2 15.255 2 12 2 12s0-3.255.417-4.814a2.507 2.507 0 0 1 1.768-1.768C5.744 5 11.998 5 11.998 5s6.255 0 7.814.418ZM15.194 12 10 15V9l5.194 3Z" clipRule="evenodd"></path></svg>
                     </a>
                   )}
-                   {store.telegram_url && (
-                     <a href={store.telegram_url} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#0088cc] hover:text-white text-gray-400 transition-all cursor-pointer">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" /></svg>
-                     </a>
-                   )}
-                   {store.x_url && (
-                     <a href={store.x_url} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white hover:text-black text-gray-400 transition-all cursor-pointer">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
-                     </a>
-                   )}
+                  {store.telegram_url && (
+                    <a href={store.telegram_url} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#0088cc] hover:text-white text-gray-400 transition-all cursor-pointer">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" /></svg>
+                    </a>
+                  )}
+                  {store.x_url && (
+                    <a href={store.x_url} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white hover:text-black text-gray-400 transition-all cursor-pointer">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+                    </a>
+                  )}
                 </div>
               </div>
 
@@ -4044,7 +4044,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{store.razao_social || store.name.toUpperCase()} | CNPJ: {store.cnpj || '00.000.000/0001-00'}</p>
               <p className="text-[9px] font-bold text-gray-600 uppercase tracking-widest">© {new Date().getFullYear()} Todos os direitos reservados. Nexora.Commerce Platform</p>
             </div>
-            </div>
+          </div>
         </footer>
       )}
       {/* Floating WhatsApp Button */}
@@ -4191,11 +4191,10 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   <button
                     key={tab}
                     onClick={() => setActiveDashboardTab(tab)}
-                    className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${
-                      activeDashboardTab === tab
+                    className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeDashboardTab === tab
                         ? 'bg-white shadow-sm text-gray-900'
                         : 'text-gray-400 hover:text-gray-600'
-                    }`}
+                      }`}
                   >
                     {tab === 'profile' ? 'Dados' : tab === 'orders' ? 'Pedidos' : 'Favoritos'}
                   </button>
@@ -4420,5 +4419,5 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
   );
 };
 
+// Main StorefrontView Component Export
 export default StorefrontView;
-
