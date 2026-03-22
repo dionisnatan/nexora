@@ -3948,32 +3948,39 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
           const saveOrderAndGetId = async (method: string): Promise<string> => {
             if (cartOrderId) return cartOrderId;
-            if (customerSession?.user) {
-              try {
-                const total = method === 'pix' ? cartFinalPixTotal : cartFinalTotal;
-                const { data } = await supabase.from('orders').insert([{
-                  customer_id: customerSession.user.id,
-                  store_id: store.id,
-                  total,
-                  pix_total: cartFinalPixTotal,
-                  items: cart,
-                  customer_email: customerSession.user.email,
-                  shipping_address: {
-                    fullName: cartCustomerName,
-                    phone: cartCustomerPhone,
-                    street: cartDeliveryAddress,
-                    neighborhood: cartNeighborhood,
-                    postalCode: cartCep,
-                    ...(selectedShipping ? { shippingMethod: selectedShipping.name, shippingCost: selectedShipping.price } : cartShippingZone ? { shippingZone: cartShippingZone.label } : {})
-                  },
-                  status: 'Pendente'
-                }]).select('id').single();
-                if (data?.id) {
-                  setCartOrderId(data.id);
-                  fetchCustomerOrders();
-                  return data.id;
-                }
-              } catch (err) { console.error('Error saving order:', err); }
+            try {
+              const total = method === 'pix' ? cartFinalPixTotal : cartFinalTotal;
+              
+              // Consolidate address info
+              const addressParts = [
+                cartDeliveryAddress ? `End: ${cartDeliveryAddress}` : '',
+                cartNeighborhood ? `Bairro: ${cartNeighborhood}` : '',
+                cartCep ? `CEP: ${cartCep}` : '',
+                selectedShipping ? `Frete: ${selectedShipping.name}` : cartShippingZone ? `Zona: ${cartShippingZone.label}` : ''
+              ].filter(Boolean).join(' | ');
+
+              const { data, error } = await supabase.from('orders').insert([{
+                customer_id: customerSession?.user?.id || null, // Allow guest
+                store_id: store.id,
+                total,
+                pix_total: cartFinalPixTotal,
+                items: cart,
+                customer_name: cartCustomerName,
+                customer_email: customerSession?.user?.email || null,
+                customer_whatsapp: cartCustomerPhone,
+                address: addressParts,
+                status: 'Pendente'
+              }]).select('id').single();
+              
+              if (error) throw error;
+              if (data?.id) {
+                setCartOrderId(data.id);
+                if (customerSession?.user) fetchCustomerOrders();
+                return data.id;
+              }
+            } catch (err) { 
+              console.error('Error saving order:', err);
+              // Fallback for some non-critical insert errors
             }
             return '';
           };
@@ -3983,6 +3990,8 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               showNotification('Preencha seu nome antes de continuar.', 'error');
               return;
             }
+            // Create order automatically when entering payment step
+            saveOrderAndGetId('whatsapp'); // Use 'whatsapp' as initial/placeholder method
             setCartCheckoutStep('payment');
           };
 

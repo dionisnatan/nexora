@@ -106,12 +106,14 @@ const SidebarItem = ({
   icon: Icon,
   label,
   active,
-  onClick
+  onClick,
+  badge
 }: {
   icon: any,
   label: string,
   active?: boolean,
-  onClick: () => void
+  onClick: () => void,
+  badge?: number
 }) => (
   <button
     onClick={onClick}
@@ -125,6 +127,11 @@ const SidebarItem = ({
     <div className="flex items-center gap-3">
       <Icon size={18} className={cn(active ? "text-[#5551FF]" : "text-[#9CA3AF] group-hover:text-gray-600")} />
       <span className="text-sm font-medium">{label}</span>
+      {badge !== undefined && badge > 0 && (
+        <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+          {badge}
+        </span>
+      )}
     </div>
     {active && <div className="w-1.5 h-1.5 rounded-full bg-[#5551FF]" />}
   </button>
@@ -499,7 +506,32 @@ const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: str
       }
     }
     fetchOrders();
-    return () => { isMounted = false; };
+
+    // Subscribe to real-time order updates
+    const channel = supabase
+      .channel('orders-changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'orders',
+        filter: storeId ? `store_id=eq.${storeId}` : undefined
+      }, (payload) => {
+        if (!isMounted) return;
+        if (payload.eventType === 'INSERT') {
+          setOrders(prev => [payload.new, ...prev]);
+          onAction('🔔 Novo pedido recebido!');
+        } else if (payload.eventType === 'UPDATE') {
+          setOrders(prev => prev.map(o => o.id === payload.new.id ? payload.new : o));
+        } else if (payload.eventType === 'DELETE') {
+          setOrders(prev => prev.filter(o => o.id === payload.old.id));
+        }
+      })
+      .subscribe();
+
+    return () => { 
+      isMounted = false;
+      supabase.removeChannel(channel);
+    };
   }, [storeId]);
 
   const filteredOrders = orders.filter(order => orderTab === 'Todos' || order.status === orderTab);
@@ -3006,6 +3038,36 @@ export default function App() {
   const [storeData, setStoreData] = useState<any>(null);
   const [storesList, setStoresList] = useState<any[]>([]);
   const [activeStoreId, setActiveStoreId] = useState<string | null>(localStorage.getItem('nexora_active_store_id'));
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+
+  // Global pending orders counter
+  useEffect(() => {
+    if (!activeStoreId) return;
+
+    async function fetchPendingCount() {
+      const { data } = await supabase
+        .from('orders')
+        .select('id', { count: 'exact' })
+        .eq('store_id', activeStoreId)
+        .eq('status', 'Pendente');
+      setPendingOrdersCount(data?.length || 0);
+    }
+    fetchPendingCount();
+
+    const channel = supabase
+      .channel('pending-count')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'orders',
+        filter: `store_id=eq.${activeStoreId}`
+      }, () => {
+        fetchPendingCount();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [activeStoreId]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [storeSlug, setStoreSlug] = useState<string | null>(null);
   const [customDomain, setCustomDomain] = useState<string>('');
@@ -3280,7 +3342,13 @@ export default function App() {
               {userProfile?.plan !== 'free' && (
                 <>
                   <SidebarItem icon={Package} label="Produtos" active={currentView === 'produtos'} onClick={() => { setCurrentView('produtos'); setIsSidebarOpen(false); }} />
-                  <SidebarItem icon={ShoppingBag} label="Pedidos" active={currentView === 'pedidos'} onClick={() => { setCurrentView('pedidos'); setIsSidebarOpen(false); }} />
+                  <SidebarItem 
+                icon={ShoppingBag} 
+                label="Pedidos" 
+                active={currentView === 'pedidos'} 
+                badge={pendingOrdersCount}
+                onClick={() => { setCurrentView('pedidos'); setIsSidebarOpen(false); }} 
+              />
                   <SidebarItem icon={Wallet} label="Pagamentos" active={currentView === 'pagamentos'} onClick={() => { setCurrentView('pagamentos'); setIsSidebarOpen(false); }} />
                 </>
               )}
