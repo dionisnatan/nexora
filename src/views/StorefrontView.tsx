@@ -2063,7 +2063,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, y: 50, scale: 0.95 }}
-            className="bg-white w-full max-w-5xl min-h-[92vh] md:min-h-0 md:h-[90vh] rounded-[2.5rem] shadow-[0_50px_100px_rgba(0,0,0,0.1)] flex flex-col md:flex-row relative z-50 overflow-y-auto md:overflow-hidden"
+            className="bg-white w-full max-w-5xl h-[95vh] md:h-[90vh] rounded-[2.5rem] shadow-[0_50px_100px_rgba(0,0,0,0.1)] flex flex-col md:flex-row relative z-50 overflow-y-auto md:overflow-hidden"
           >
             {/* Top Toolbar */}
             <div className="absolute top-3 right-6 z-[60] flex items-center gap-3">
@@ -2789,7 +2789,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             initial={{ opacity: 0, scale: 0.98, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98, y: 10 }}
-            className="bg-white w-full max-w-4xl max-h-[92vh] rounded-[2rem] border border-gray-100 shadow-[0_30px_60px_rgba(0,0,0,0.05)] flex flex-col md:flex-row relative z-50 overflow-y-auto md:overflow-hidden"
+            className="bg-white w-full max-w-4xl h-[95vh] md:h-[90vh] rounded-[2rem] border border-gray-100 shadow-[0_30px_60px_rgba(0,0,0,0.05)] flex flex-col md:flex-row relative z-50 overflow-y-auto md:overflow-hidden"
           >
             <button onClick={() => { setSelectedProduct(null); setPreferenceId(null); }} className="absolute top-6 right-6 z-20 p-2 text-gray-400 hover:text-gray-900 bg-gray-50 rounded-full transition-colors">
               <X size={20} />
@@ -2911,7 +2911,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="bg-[#0b0b0b] w-full max-w-5xl min-h-[92vh] md:min-h-0 md:h-[90vh] rounded-[2rem] border border-white/10 shadow-[0_0_100px_rgba(255,255,255,0.05)] flex flex-col md:flex-row relative z-50 overflow-y-auto md:overflow-hidden"
+            className="bg-[#0b0b0b] w-full max-w-5xl h-[95vh] md:h-[90vh] rounded-[2rem] border border-white/10 shadow-[0_0_100px_rgba(255,255,255,0.05)] flex flex-col md:flex-row relative z-50 overflow-y-auto md:overflow-hidden"
           >
             <button onClick={() => { setSelectedProduct(null); setPreferenceId(null); }} className="absolute top-3 right-6 z-20 p-3 text-gray-400 hover:text-white bg-white/5 rounded-full backdrop-blur-md transition-colors border border-white/10">
               <X size={20} />
@@ -3032,7 +3032,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 30 }}
-            className="bg-[#0f1115] w-full max-w-5xl min-h-[92vh] md:min-h-0 md:h-[90vh] rounded-3xl border border-blue-500/30 shadow-[0_0_50px_rgba(59,130,246,0.2)] flex flex-col md:flex-row relative z-50 overflow-y-auto md:overflow-hidden"
+            className="bg-[#0f1115] w-full max-w-5xl h-[95vh] md:h-[90vh] rounded-3xl border border-blue-500/30 shadow-[0_0_50px_rgba(59,130,246,0.2)] flex flex-col md:flex-row relative z-50 overflow-y-auto md:overflow-hidden"
           >
             <button onClick={() => { setSelectedProduct(null); setPreferenceId(null); }} className="absolute top-3 right-6 z-20 p-2 text-blue-400 hover:text-white bg-blue-500/10 rounded-xl transition-all border border-blue-500/20">
               <X size={20} />
@@ -3198,7 +3198,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             initial={{ opacity: 0, y: 100 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
-            className="bg-white w-full max-w-4xl max-h-[92vh] md:max-h-none rounded-[2.5rem] shadow-2xl flex flex-col relative z-50 overflow-y-auto md:overflow-hidden"
+            className="bg-white w-full max-w-4xl h-[95vh] md:h-[90vh] rounded-[2.5rem] shadow-2xl flex flex-col relative z-50 overflow-y-auto md:overflow-hidden"
           >
             {/* Urgency Header */}
             <div className="bg-red-600 text-white py-3 px-6 flex items-center justify-between">
