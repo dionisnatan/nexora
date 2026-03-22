@@ -850,24 +850,24 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
         </div>
 
         {/* Main Header */}
-        <div className={cn("py-6 border-b border-gray-100", headerBg)}>
-          <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-8">
+        <div className={cn("py-3 md:py-6 border-b border-gray-100", headerBg)}>
+          <div className="max-w-7xl mx-auto px-4 flex flex-wrap md:flex-nowrap items-center justify-between gap-y-3 md:gap-8">
             {/* Logo */}
             <div className="flex items-center gap-2 cursor-pointer shrink-0" onClick={() => { setActiveCategory(null); setSearchQuery(''); }}>
               {store.logo_url ? (
-                <img src={store.logo_url} alt={store.name} className="h-10 object-contain" />
+                <img src={store.logo_url} alt={store.name} className="h-8 md:h-10 object-contain" />
               ) : (
                 <div className="flex items-center gap-2">
-                  <div className={cn("h-8 w-8 rounded bg-[var(--theme-primary)] flex items-center justify-center text-white font-black text-xl shadow-md", isBlue && "bg-[#1868D5]")}>
+                  <div className={cn("h-7 w-7 md:h-8 md:w-8 rounded bg-[var(--theme-primary)] flex items-center justify-center text-white font-black text-lg md:text-xl shadow-md", isBlue && "bg-[#1868D5]")}>
                     <Package size={20} />
                   </div>
-                  <span className="text-2xl font-black tracking-tight text-[#1a1a1a]">{store.name}</span>
+                  <span className="text-xl md:text-2xl font-black tracking-tight text-[#1a1a1a]">{store.name}</span>
                 </div>
               )}
             </div>
 
             {/* Middle Search Bar */}
-            <div className="flex-1 max-w-3xl hidden md:flex relative items-center border-2 border-slate-200 rounded-lg overflow-hidden h-[46px] group hover:border-[var(--theme-primary)] focus-within:border-[var(--theme-primary)] transition-colors" style={!isBlue ? { '--tw-ring-color': themeColor } as any : {}}>
+            <div className="w-full md:flex-1 order-last md:order-none max-w-3xl flex relative items-center border-2 border-slate-200 rounded-lg overflow-hidden h-[40px] md:h-[46px] group hover:border-[var(--theme-primary)] focus-within:border-[var(--theme-primary)] transition-colors" style={!isBlue ? { '--tw-ring-color': themeColor } as any : {}}>
               <div className="relative h-full flex items-center bg-gray-50 border-r border-gray-200 min-w-[150px] group-hover:bg-gray-100 transition-colors">
                 <select
                   value={activeCategory || ''}
@@ -1064,7 +1064,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             <button onClick={() => scrollCategories('left')} className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white shadow-[0_0_15px_rgba(0,0,0,0.1)] rounded-full flex items-center justify-center text-gray-600 hover:text-[#1868D5] hover:scale-110 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-0 focus:outline-none" style={megaVariant !== 'Blue' ? { color: themeColor } as any : {}}>
               <ChevronDown size={20} className="rotate-90" />
             </button>
-            <div ref={categoriesScrollRef} className="flex gap-4 md:gap-8 overflow-x-auto no-scrollbar pb-4 items-start justify-start scroll-smooth">
+            <div ref={categoriesScrollRef} className="grid grid-cols-4 md:flex gap-y-6 gap-x-2 md:gap-8 md:overflow-x-auto no-scrollbar pb-4 items-start md:justify-start scroll-smooth w-full">
               {categories.map((cat, i) => {
                 const isActive = activeCategory === cat.id;
                 const isHovered = hoveredCategory === cat.id;
@@ -1076,10 +1076,10 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                     onClick={() => setActiveCategory(activeCategory === cat.id ? null : cat.id)}
                     onMouseEnter={() => setHoveredCategory(cat.id)}
                     onMouseLeave={() => setHoveredCategory(null)}
-                    className="flex flex-col items-center gap-4 cursor-pointer min-w-[100px] shrink-0"
+                    className="flex flex-col items-center gap-2 md:gap-4 cursor-pointer w-full md:min-w-[100px] shrink-0"
                   >
                     <div
-                      className="w-24 h-24 rounded-full border flex items-center justify-center overflow-hidden bg-white transition-all duration-200"
+                      className="w-16 h-16 md:w-24 md:h-24 rounded-full border flex items-center justify-center overflow-hidden bg-white transition-all duration-200"
                       style={{
                         borderColor: highlight ? (isBlueTheme ? '#1868D5' : themeColor) : '#e5e7eb',
                         boxShadow: highlight ? `0 0 20px rgba(0,0,0,0.07)` : 'none',
@@ -1089,14 +1089,14 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                         <img src={cat.image_url} className="w-full h-full object-cover transition-transform duration-300 transform group-hover:scale-110" alt={cat.name} />
                       ) : (
                         React.createElement(CATEGORY_ICONS[cat.icon] || Package, {
-                          size: 32,
+                          size: 28,
                           style: { color: highlight ? (isBlueTheme ? '#1868D5' : themeColor) : '#d1d5db' },
                           className: "transition-colors duration-200"
                         })
                       )}
                     </div>
                     <span
-                      className="text-xs font-bold text-center w-full truncate transition-colors duration-200"
+                      className="text-[10px] md:text-xs font-bold text-center w-full leading-tight line-clamp-2 md:truncate transition-colors duration-200"
                       style={{ color: highlight ? (isBlueTheme ? '#1868D5' : themeColor) : '#374151' }}
                     >{cat.name}</span>
                   </div>
@@ -1826,14 +1826,16 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
           </div>
         </div>
 
-        {/* Main Bar */}
-        <div className="bg-[#0b0b0b] py-4 border-b border-white/5 sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 flex items-center gap-4 md:gap-8">
-            <div className="flex items-center gap-3 shrink-0 cursor-pointer" onClick={() => { setActiveCategory(null); setSearchQuery(''); }}>
+        {/* Sticky Wrapper for Header + Categories */}
+        <div className="sticky top-0 z-50 flex flex-col w-full shadow-md">
+          {/* Main Bar */}
+          <div className="bg-[#0b0b0b] py-3 md:py-4 border-b border-white/5">
+          <div className="max-w-7xl mx-auto px-4 flex flex-wrap md:flex-nowrap items-center justify-between md:gap-8 gap-y-3">
+            <div className="flex items-center gap-2 md:gap-3 shrink-0 cursor-pointer" onClick={() => { setActiveCategory(null); setSearchQuery(''); }}>
               {store.logo_url ? (
-                <img src={store.logo_url} alt={store.name} className="h-10 w-10 md:h-12 md:w-12 object-contain rounded-lg shadow-2xl" />
+                <img src={store.logo_url} alt={store.name} className="h-8 w-8 md:h-12 md:w-12 object-contain rounded-md md:rounded-lg shadow-2xl" />
               ) : (
-                <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg flex items-center justify-center bg-white text-black font-black text-xl shadow-2xl">
+                <div className="h-8 w-8 md:h-12 md:w-12 rounded-lg flex items-center justify-center bg-white text-black font-black text-lg md:text-xl shadow-2xl">
                   {store.name?.charAt(0)}
                 </div>
               )}
@@ -1844,7 +1846,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             </div>
 
             {/* Search Bar */}
-            <div className="flex-1 max-w-2xl relative group">
+            <div className="w-full md:flex-1 order-last md:order-none relative group max-w-2xl">
               <input
                 type="text"
                 placeholder="O que você está procurando?"
@@ -1903,17 +1905,17 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
         </div>
 
         {/* Categorias Bar */}
-        <div className="bg-[#111] py-2 border-b border-white/5">
+        <div className="bg-[#111] py-2 md:py-3 border-b border-white/5 w-full">
           <div className="max-w-7xl mx-auto px-4 flex items-center gap-4 md:gap-8">
-            <div className="relative group/dept">
-              <button className="flex items-center gap-3 px-4 md:px-6 py-2 bg-[#1a1a1a] rounded text-[10px] md:text-[11px] font-black text-white hover:bg-[#222] transition-colors group">
-                <div className="space-y-1 w-4">
+            <div className="relative group/dept shrink-0">
+              <button className="flex items-center gap-2 md:gap-3 px-3 md:px-6 py-1.5 md:py-2 bg-[#1a1a1a] rounded-full md:rounded text-[10px] md:text-[11px] font-black text-white hover:bg-[#222] transition-colors group border border-white/10">
+                <div className="space-y-1 w-3 md:w-4">
                   <div className="h-0.5 w-full bg-[var(--theme-primary)] group-hover:bg-white transition-colors" />
                   <div className="h-0.5 w-full bg-[var(--theme-primary)] group-hover:bg-white transition-colors" />
                   <div className="h-0.5 w-2/3 bg-[var(--theme-primary)] group-hover:bg-white transition-colors" />
                 </div>
                 <span className="hidden sm:inline">DEPARTAMENTOS</span>
-                <span className="sm:hidden">CATEGORIAS</span>
+                <span className="sm:hidden">MENU</span>
               </button>
               <div className="absolute top-full left-0 w-64 bg-white shadow-2xl rounded-b-xl opacity-0 translate-y-2 pointer-events-none group-hover/dept:opacity-100 group-hover/dept:translate-y-0 group-hover/dept:pointer-events-auto transition-all z-[100] border border-gray-100 py-2">
                 {categories.map(cat => (
@@ -1932,18 +1934,18 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               </div>
             </div>
 
-            <nav className="flex items-center gap-4 md:gap-6 overflow-x-auto no-scrollbar scroll-smooth">
+            <nav className="flex items-center gap-3 md:gap-6 overflow-x-auto no-scrollbar scroll-smooth w-full pr-4 pb-1 md:pb-0">
               <button
                 onClick={() => { setActiveCategory(null); setSearchQuery(''); }}
-                className={`text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-colors ${!activeCategory && !searchQuery ? 'text-[var(--theme-primary)]' : 'text-white hover:text-[var(--theme-primary)]'}`}
+                className={`text-[10px] md:text-[11px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${!activeCategory && !searchQuery ? 'bg-[var(--theme-primary)] text-white' : 'bg-white/5 text-white hover:bg-white/10'}`}
               >
                 Início
               </button>
-              {categories.slice(0, 6).map(cat => (
+              {categories.slice(0, 8).map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => { setActiveCategory(activeCategory === cat.id ? null : cat.id); setSearchQuery(''); }}
-                  className={`text-[10px] md:text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-colors ${activeCategory === cat.id ? 'text-[var(--theme-primary)]' : 'text-white hover:text-[var(--theme-primary)] hidden lg:block'}`}
+                  className={`text-[10px] md:text-[11px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${activeCategory === cat.id ? 'bg-[var(--theme-primary)] text-white' : 'bg-white/5 text-white hover:bg-white/10'}`}
                 >
                   {cat.name}
                 </button>
@@ -1951,6 +1953,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             </nav>
           </div>
         </div>
+        </div> {/* End Sticky Wrapper */}
       </div>
     );
   };
