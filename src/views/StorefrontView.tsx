@@ -108,6 +108,18 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
   const [mpInitPoint, setMpInitPoint] = useState<string | null>(null);
   const [brickId] = useState(() => `mp-brick-${Math.random().toString(36).substr(2, 9)}`);
   const [showBrickFallback, setShowBrickFallback] = useState(false);
+  // Cart checkout customer info
+  const [cartCustomerName, setCartCustomerName] = useState('');
+  const [cartCustomerPhone, setCartCustomerPhone] = useState('');
+  const [cartDeliveryAddress, setCartDeliveryAddress] = useState('');
+  const [cartNeighborhood, setCartNeighborhood] = useState('');
+  const [cartShippingZone, setCartShippingZone] = useState<{ label: string; price: number } | null>(null);
+  const [cartCheckoutStep, setCartCheckoutStep] = useState<'cart' | 'payment' | 'success'>('cart');
+  const [cartPaymentMethod, setCartPaymentMethod] = useState<'pix' | 'card' | 'whatsapp'>('pix');
+  const [cartOrderId, setCartOrderId] = useState<string>('');
+  const [cartBrickId] = useState(() => `cart-mp-brick-${Math.random().toString(36).substr(2, 9)}`);
+  const [cartBrickLoading, setCartBrickLoading] = useState(false);
+  const [cartCep, setCartCep] = useState('');
 
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setNotification({ message, type });
@@ -394,6 +406,30 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
           state: data.uf || prev.state,
           cep: cleanCep.replace(/(\d{5})(\d{3})/, '$1-$2')
         }));
+        // Calculate shipping options after CEP is found
+        calculateShipping(cleanCep);
+      } else {
+        showNotification('CEP não encontrado', 'error');
+      }
+    } catch (e) {
+      console.error('Erro ao buscar CEP:', e);
+    } finally {
+      setCepLoading(false);
+    }
+  };
+
+  const handleCartCepLookup = async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, '');
+    setCartCep(cep);
+    if (cleanCep.length !== 8) return;
+    setCepLoading(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setCartDeliveryAddress(data.logradouro || '');
+        setCartNeighborhood(data.bairro || '');
+        setCartCep(cleanCep.replace(/(\d{5})(\d{3})/, '$1-$2'));
         // Calculate shipping options after CEP is found
         calculateShipping(cleanCep);
       } else {
@@ -3861,111 +3897,579 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
         {renderTrustSection()}
       </main>
 
-      {/* Cart Drawer */}
+      {/* Cart Drawer — Multi-Step Checkout */}
       <AnimatePresence>
-        {isCartOpen && (
-          <div className="fixed inset-0 z-[150] flex justify-end">
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setIsCartOpen(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-              className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col"
-            >
-              <div className="p-8 border-b border-gray-100 flex items-center justify-between">
-                <h3 className="text-xl font-black italic uppercase italic">Seu Carrinho</h3>
-                <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
-                  <X size={20} />
-                </button>
-              </div>
+        {isCartOpen && (() => {
+          const shippingZones: { label: string; price: number }[] = store.shipping_zones?.length > 0
+            ? store.shipping_zones
+            : [
+                { label: 'Cidade Baixa', price: 5 },
+                { label: 'Cidade Alta', price: 10 },
+                { label: 'Zona Sul', price: 12 },
+                { label: 'Zona Norte', price: 15 },
+                { label: 'Outro / Consultar', price: 0 },
+              ];
+          const shippingCost = selectedShipping ? selectedShipping.price : (cartShippingZone?.price ?? 0);
+          const cartFinalTotal = cartTotal + shippingCost;
+          const cartFinalPixTotal = cartPixTotal + shippingCost;
+          const totalItemsQty = cart.reduce((a: number, i: any) => a + i.quantity, 0);
 
-              <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
-                {cart.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-30">
-                    <ShoppingBag size={64} strokeWidth={1} />
-                    <p className="font-black uppercase tracking-widest text-xs italic">Carrinho Vazio</p>
-                  </div>
-                ) : (
-                  cart.map((item) => (
-                    <div key={item.cartItemId} className="flex gap-4 group">
-                      <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gray-50 flex-shrink-0">
-                        <img src={item.image_url?.split(',')[0]} alt={item.name} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        <h4 className="font-black uppercase text-[10px] line-clamp-1 italic">{item.name}</h4>
-                        {item.selectedVariation && (
-                          <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{item.selectedVariation.name}: {item.selectedVariation.value}</p>
+          // Build WhatsApp message string (reused across steps)
+          const buildWhatsAppMessage = () => {
+            const itemsList = cart.map((item: any) => {
+              const variation = item.selectedVariation ? ` [${item.selectedVariation.name}: ${item.selectedVariation.value}]` : '';
+              const skuStr = item.sku ? ` (SKU: ${item.sku})` : '';
+              return `• ${item.quantity}x ${item.name}${skuStr}${variation} — R$ ${(Number(item.price) * item.quantity).toFixed(2).replace('.', ',')}`;
+            }).join('\n');
+            const shippingLabel = selectedShipping ? `📦 *Frete (${selectedShipping.name}):*` : `🚚 *Frete (${cartShippingZone?.label || 'A organizar'}):*`;
+            const shippingLine = (selectedShipping || cartShippingZone)
+              ? `${shippingLabel} R$ ${shippingCost.toFixed(2).replace('.', ',')}`
+              : '🚚 *Frete:* A consultar';
+            const addressLine = cartDeliveryAddress.trim()
+              ? `📍 *Endereço:* ${cartDeliveryAddress.trim()}${cartNeighborhood.trim() ? ` — ${cartNeighborhood.trim()}` : ''}`
+              : cartNeighborhood.trim() ? `📍 *Bairro:* ${cartNeighborhood.trim()}` : '';
+            return [
+              `🛒 *Novo Pedido — ${store.name}*`,
+              '',
+              '*Produtos:*',
+              itemsList,
+              '',
+              `💰 *Subtotal:* R$ ${cartTotal.toFixed(2).replace('.', ',')}`,
+              shippingLine,
+              `✅ *Total:* R$ ${cartFinalTotal.toFixed(2).replace('.', ',')}`,
+              `💚 *Total no Pix:* R$ ${cartFinalPixTotal.toFixed(2).replace('.', ',')}`,
+              '',
+              `👤 *Cliente:* ${cartCustomerName.trim()}`,
+              cartCustomerPhone.trim() ? `📱 *Telefone:* ${cartCustomerPhone.trim()}` : '',
+              cartCep.trim() ? `📮 *CEP:* ${cartCep.trim()}` : '',
+              addressLine,
+            ].filter(Boolean).join('\n');
+          };
+
+          const saveOrderAndGetId = async (method: string): Promise<string> => {
+            if (cartOrderId) return cartOrderId;
+            if (customerSession?.user) {
+              try {
+                const total = method === 'pix' ? cartFinalPixTotal : cartFinalTotal;
+                const { data } = await supabase.from('orders').insert([{
+                  customer_id: customerSession.user.id,
+                  store_id: store.id,
+                  total,
+                  pix_total: cartFinalPixTotal,
+                  items: cart,
+                  customer_email: customerSession.user.email,
+                  shipping_address: {
+                    fullName: cartCustomerName,
+                    phone: cartCustomerPhone,
+                    street: cartDeliveryAddress,
+                    neighborhood: cartNeighborhood,
+                    postalCode: cartCep,
+                    ...(selectedShipping ? { shippingMethod: selectedShipping.name, shippingCost: selectedShipping.price } : cartShippingZone ? { shippingZone: cartShippingZone.label } : {})
+                  },
+                  status: 'Pendente'
+                }]).select('id').single();
+                if (data?.id) {
+                  setCartOrderId(data.id);
+                  fetchCustomerOrders();
+                  return data.id;
+                }
+              } catch (err) { console.error('Error saving order:', err); }
+            }
+            return '';
+          };
+
+          const handleGoToCheckout = () => {
+            if (!cartCustomerName.trim()) {
+              showNotification('Preencha seu nome antes de continuar.', 'error');
+              return;
+            }
+            setCartCheckoutStep('payment');
+          };
+
+          const handleCartWhatsApp = async () => {
+            if (!cartCustomerName.trim()) {
+              showNotification('Por favor, informe seu nome para continuar.', 'error');
+              return;
+            }
+            const phone = store.whatsapp?.replace(/\D/g, '');
+            if (!phone) { showNotification('WhatsApp da loja não configurado.', 'error'); return; }
+            await saveOrderAndGetId('whatsapp');
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(buildWhatsAppMessage())}`, '_blank');
+            setCartCheckoutStep('success');
+          };
+
+          const handleCartPaymentConfirm = async () => {
+            if (!cartCustomerName.trim()) {
+              showNotification('Preencha seu nome antes de continuar.', 'error');
+              return;
+            }
+            const phone = store.whatsapp?.replace(/\D/g, '');
+
+            if (cartPaymentMethod === 'whatsapp') {
+              if (!phone) { showNotification('WhatsApp da loja não configurado.', 'error'); return; }
+              await saveOrderAndGetId('whatsapp');
+              window.open(`https://wa.me/${phone}?text=${encodeURIComponent(buildWhatsAppMessage())}`, '_blank');
+              setCartCheckoutStep('success');
+              return;
+            }
+
+            // Pix or Card via Mercado Pago
+            try {
+              const method = cartPaymentMethod;
+              const ordId = await saveOrderAndGetId(method);
+              const amount = method === 'pix' ? cartFinalPixTotal : cartFinalTotal;
+              const title = cart.map((i: any) => i.name).join(', ').substring(0, 80);
+
+              const { data, error } = await supabase.functions.invoke('mp-create-payment', {
+                body: {
+                  store_id: store.id,
+                  amount,
+                  title,
+                  payer_email: customerSession?.user?.email,
+                  order_id: ordId
+                }
+              });
+
+              if (error) throw error;
+              if (data?.init_point) {
+                window.open(data.init_point, '_blank');
+                setCartCheckoutStep('success');
+              } else if (data?.preference_id) {
+                // Show MP Brick if possible
+                setPreferenceId(data.preference_id);
+                setMpInitPoint(data.init_point || null);
+                setCartCheckoutStep('success');
+              } else {
+                throw new Error('Link de pagamento não retornado');
+              }
+            } catch (mpErr: any) {
+              console.error('MP error:', mpErr);
+              // Fallback: send WhatsApp
+              showNotification('Pagamento online indisponível. Usando WhatsApp como alternativa.', 'info');
+              if (phone) {
+                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(buildWhatsAppMessage())}`, '_blank');
+              }
+              setCartCheckoutStep('success');
+            }
+          };
+
+          const closeCart = () => {
+            setIsCartOpen(false);
+            setCartCheckoutStep('cart');
+            setCartOrderId('');
+            setShippingOptions([]);
+            setSelectedShipping(null);
+          };
+
+          // --- Step indicator label ---
+          const stepLabels: Record<string, string> = {
+            cart: 'Carrinho',
+            payment: 'Pagamento',
+            success: 'Confirmação'
+          };
+
+          return (
+            <div className="fixed inset-0 z-[150] flex justify-end">
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={closeCart}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col overflow-hidden"
+              >
+                {/* === HEADER === */}
+                <div className="px-6 py-4 border-b border-gray-100 bg-white shrink-0">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      {cartCheckoutStep !== 'cart' && cartCheckoutStep !== 'success' && (
+                        <button
+                          onClick={() => setCartCheckoutStep('cart')}
+                          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"
+                        >
+                          <ChevronLeft size={18} />
+                        </button>
+                      )}
+                      <div>
+                        <h3 className="text-base font-black text-gray-900">{stepLabels[cartCheckoutStep]}</h3>
+                        {cartCheckoutStep === 'cart' && (
+                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{totalItemsQty} {totalItemsQty === 1 ? 'item' : 'itens'}</p>
                         )}
-                        <div className="flex items-center justify-between pt-2">
-                          <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-1">
-                            <button onClick={() => updateCartQuantity(item.cartItemId, -1)} className="p-1 hover:bg-white rounded shadow-sm transition-all"><Minus size={12} /></button>
-                            <span className="text-[10px] font-black w-4 text-center">{item.quantity}</span>
-                            <button onClick={() => updateCartQuantity(item.cartItemId, 1)} className="p-1 hover:bg-white rounded shadow-sm transition-all"><Plus size={12} /></button>
-                          </div>
-                          <button onClick={() => removeFromCart(item.cartItemId)} className="text-gray-400 hover:text-red-500 transition-colors">
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
-
-              {cart.length > 0 && (
-                <div className="p-8 bg-gray-50 border-t border-gray-100 space-y-6">
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-end">
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Subtotal</span>
-                      <span className="text-xl font-black italic">R$ {cartTotal.toFixed(2).replace('.', ',')}</span>
-                    </div>
-                    <div className="flex justify-between items-end text-emerald-600">
-                      <span className="text-[10px] font-black uppercase tracking-widest">Total no Pix</span>
-                      <span className="text-2xl font-black italic">R$ {cartPixTotal.toFixed(2).replace('.', ',')}</span>
-                    </div>
+                    <button onClick={closeCart} className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400">
+                      <X size={20} />
+                    </button>
                   </div>
-
-                  <button
-                    onClick={async () => {
-                      const phone = store.whatsapp?.replace(/\D/g, '');
-                      if (phone) {
-                        if (customerSession?.user) {
-                          try {
-                            await supabase.from('orders').insert([{
-                              customer_id: customerSession.user.id,
-                              store_id: store.id,
-                              total: cartTotal,
-                              pix_total: cartPixTotal,
-                              items: cart,
-                              customer_email: customerSession.user.email,
-                              status: 'Pendente'
-                            }]);
-                            fetchCustomerOrders();
-                          } catch (err) { console.error('Error saving order:', err); }
-                        }
-
-                        const itemsList = cart.map(item => {
-                          const variation = item.selectedVariation ? ` [${item.selectedVariation.name}: ${item.selectedVariation.value}]` : '';
-                          const skuStr = item.sku ? ` (SKU: ${item.sku})` : '';
-                          return `- ${item.quantity}x ${item.name}${skuStr}${variation}: R$ ${(item.price * item.quantity).toFixed(2).replace('.', ',')}`;
-                        }).join('\n');
-
-                        const message = `Olá! Quero finalizar meu pedido:\n\n${itemsList}\n\n*TOTAL (Pix): R$ ${cartPixTotal.toFixed(2).replace('.', ',')}*\n*TOTAL (Cartão): R$ ${cartTotal.toFixed(2).replace('.', ',')}*`;
-                        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
-                      }
-                    }}
-                    className={getButtonStyle("w-full h-14 bg-[#25D366] text-white hover:brightness-110 shadow-lg shadow-[#25D366]/20 italic")}
-                  >
-                    <ShoppingCart size={18} />
-                    Finalizar no WhatsApp
-                  </button>
+                  {/* Step progress bar */}
+                  <div className="flex gap-1.5">
+                    {(['cart', 'payment', 'success'] as const).map((s, i) => (
+                      <div key={s} className={cn(
+                        "h-1 rounded-full flex-1 transition-all duration-500",
+                        cartCheckoutStep === 'success' ? "bg-emerald-500" :
+                        i <= ['cart', 'payment', 'success'].indexOf(cartCheckoutStep) ? "bg-[var(--theme-primary)]" : "bg-gray-100"
+                      )} />
+                    ))}
+                  </div>
                 </div>
-              )}
-            </motion.div>
-          </div>
-        )}
+
+                {/* === STEP 1: CART === */}
+                {cartCheckoutStep === 'cart' && (
+                  <>
+                    <div className="flex-1 overflow-y-auto custom-scrollbar">
+                      {cart.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center space-y-3 p-8 opacity-30">
+                          <ShoppingBag size={56} strokeWidth={1} />
+                          <p className="font-black uppercase tracking-widest text-xs">Carrinho Vazio</p>
+                        </div>
+                      ) : (
+                        <div className="p-5 space-y-5">
+                          {/* Products */}
+                          <div className="space-y-3">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">Produtos</p>
+                            {cart.map((item: any) => (
+                              <div key={item.cartItemId} className="flex gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                                <div className="w-16 h-16 rounded-xl overflow-hidden bg-white flex-shrink-0 border border-gray-100">
+                                  <img src={item.image_url?.split(',')[0]} alt={item.name} className="w-full h-full object-cover" />
+                                </div>
+                                <div className="flex-1 min-w-0 space-y-1">
+                                  <h4 className="font-black text-[11px] leading-tight line-clamp-1 text-gray-900">{item.name}</h4>
+                                  {item.sku && <p className="text-[9px] text-gray-400 font-bold">SKU: {item.sku}</p>}
+                                  {item.selectedVariation && <p className="text-[9px] font-bold text-gray-400">{item.selectedVariation.name}: {item.selectedVariation.value}</p>}
+                                  <div className="flex items-center justify-between pt-1">
+                                    <div className="flex items-center gap-2 bg-white rounded-lg p-1 border border-gray-100 shadow-sm">
+                                      <button onClick={() => updateCartQuantity(item.cartItemId, -1)} className="w-5 h-5 flex items-center justify-center rounded text-gray-500 hover:bg-gray-100 transition-colors"><Minus size={10} /></button>
+                                      <span className="text-[11px] font-black w-4 text-center">{item.quantity}</span>
+                                      <button onClick={() => updateCartQuantity(item.cartItemId, 1)} className="w-5 h-5 flex items-center justify-center rounded text-gray-500 hover:bg-gray-100 transition-colors"><Plus size={10} /></button>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-[13px] font-black text-gray-900">R$ {(Number(item.price) * item.quantity).toFixed(2).replace('.', ',')}</span>
+                                      <button onClick={() => removeFromCart(item.cartItemId)} className="text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={13} /></button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Shipping zones */}
+                          <div className="space-y-2">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5"><Truck size={11} /> Região de Entrega</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {shippingZones.map((zone: any) => (
+                                <button
+                                  key={zone.label}
+                                  onClick={() => setCartShippingZone(cartShippingZone?.label === zone.label ? null : zone)}
+                                  className={cn('p-3 rounded-xl text-left border-2 transition-all', cartShippingZone?.label === zone.label ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)]/5' : 'border-gray-100 bg-gray-50 hover:border-gray-200')}
+                                >
+                                  <p className={cn("text-[10px] font-black leading-tight", cartShippingZone?.label === zone.label ? "text-[var(--theme-primary)]" : "text-gray-700")}>{zone.label}</p>
+                                  <p className={cn("text-[11px] font-black mt-0.5", zone.price === 0 ? "text-gray-400" : "text-emerald-600")}>{zone.price === 0 ? 'A combinar' : `R$ ${zone.price.toFixed(2).replace('.', ',')}`}</p>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Customer data */}
+                          <div className="space-y-2">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5"><User size={11} /> Seus Dados</p>
+                            <div className="space-y-2">
+                              <input type="text" placeholder="Seu nome *" value={cartCustomerName} onChange={e => setCartCustomerName(e.target.value)}
+                                className={cn("w-full px-4 py-3 rounded-xl border-2 text-xs font-bold text-gray-900 placeholder:text-gray-300 outline-none transition-colors bg-white", cartCustomerName.trim() ? "border-emerald-300 focus:border-emerald-500" : "border-gray-100 focus:border-[var(--theme-primary)]")} />
+                              <input type="tel" placeholder="Telefone (opcional)" value={cartCustomerPhone} onChange={e => setCartCustomerPhone(e.target.value)}
+                                className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 text-xs font-bold text-gray-900 placeholder:text-gray-300 focus:border-[var(--theme-primary)] outline-none transition-colors bg-white" />
+                              <div className="grid grid-cols-3 gap-2">
+                                <div className="relative col-span-1">
+                                  <input type="text" placeholder="CEP" value={cartCep} onChange={e => handleCartCepLookup(e.target.value)}
+                                    className={cn("w-full px-4 py-3 rounded-xl border-2 border-gray-100 text-xs font-bold text-gray-900 placeholder:text-gray-300 focus:border-[var(--theme-primary)] outline-none transition-colors bg-white", (cepLoading || shippingLoading) && "pr-10")} />
+                                  {(cepLoading || shippingLoading) && (
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                      <div className="w-4 h-4 border-2 border-[var(--theme-primary)]/20 border-t-[var(--theme-primary)] rounded-full animate-spin" />
+                                    </div>
+                                  )}
+                                </div>
+                                <input type="text" placeholder="Bairro (opcional)" value={cartNeighborhood} onChange={e => setCartNeighborhood(e.target.value)}
+                                  className="col-span-2 px-4 py-3 rounded-xl border-2 border-gray-100 text-xs font-bold text-gray-900 placeholder:text-gray-300 focus:border-[var(--theme-primary)] outline-none transition-colors bg-white" />
+                              </div>
+
+                              {/* Dynamic Shipping Options */}
+                              {shippingOptions.length > 0 && (
+                                <div className="space-y-2 py-1">
+                                  <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">Opções de Frete</p>
+                                  <div className="grid grid-cols-1 gap-2">
+                                    {shippingOptions.map((opt: any) => (
+                                      <button
+                                        key={opt.id}
+                                        onClick={() => {
+                                          setSelectedShipping(opt);
+                                          setCartShippingZone(null); // Clear manual zone if dynamic is picked
+                                        }}
+                                        className={cn(
+                                          'p-3 rounded-xl text-left border-2 transition-all flex items-center justify-between',
+                                          selectedShipping?.id === opt.id ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)]/5' : 'border-gray-100 bg-white hover:border-gray-200'
+                                        )}
+                                      >
+                                        <div className="flex items-center gap-3">
+                                          <span className="text-lg">{opt.icon}</span>
+                                          <div>
+                                            <p className={cn("text-[10px] font-black", selectedShipping?.id === opt.id ? "text-[var(--theme-primary)]" : "text-gray-700")}>{opt.name}</p>
+                                            <p className="text-[9px] text-gray-400 font-bold">{opt.days}</p>
+                                          </div>
+                                        </div>
+                                        <p className="text-[11px] font-black text-gray-900">R$ {opt.price.toFixed(2).replace('.', ',')}</p>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              <input type="text" placeholder="Rua e número (opcional)" value={cartDeliveryAddress} onChange={e => setCartDeliveryAddress(e.target.value)}
+                                className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 text-xs font-bold text-gray-900 placeholder:text-gray-300 focus:border-[var(--theme-primary)] outline-none transition-colors bg-white" />
+                            </div>
+                          </div>
+
+                          {/* Order summary mini */}
+                          <div className="rounded-2xl border border-gray-100 overflow-hidden">
+                            <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-100">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">Resumo</p>
+                            </div>
+                            <div className="p-4 space-y-2">
+                              <div className="flex justify-between"><span className="text-[11px] font-bold text-gray-500">Subtotal ({totalItemsQty} itens)</span><span className="text-[12px] font-black">R$ {cartTotal.toFixed(2).replace('.', ',')}</span></div>
+                              <div className="flex justify-between"><span className="text-[11px] font-bold text-gray-500">Frete</span><span className={cn("text-[12px] font-black", cartShippingZone ? "text-gray-900" : "text-gray-400")}>{cartShippingZone ? (cartShippingZone.price === 0 ? 'A combinar' : `R$ ${cartShippingZone.price.toFixed(2).replace('.', ',')}`) : '—'}</span></div>
+                              <div className="h-px bg-gray-100" />
+                              <div className="flex justify-between"><span className="text-[13px] font-black">Total</span><span className="text-[17px] font-black">R$ {cartFinalTotal.toFixed(2).replace('.', ',')}</span></div>
+                              <div className="flex justify-between"><span className="text-[10px] font-black text-emerald-600">Total no Pix</span><span className="text-[15px] font-black text-emerald-600">R$ {cartFinalPixTotal.toFixed(2).replace('.', ',')}</span></div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Cart footer */}
+                    {cart.length > 0 && (
+                      <div className="p-5 border-t border-gray-100 bg-white shrink-0 space-y-2">
+                        {!cartCustomerName.trim() && (
+                          <p className="text-[10px] text-amber-600 font-bold text-center flex items-center justify-center gap-1">
+                            <Info size={12} /> Informe seu nome para continuar
+                          </p>
+                        )}
+                        <button
+                          onClick={handleGoToCheckout}
+                          className={cn(getButtonStyle("w-full h-14 text-white shadow-lg gap-3"), "bg-[var(--theme-primary)] hover:brightness-110")}
+                        >
+                          Continuar para Checkout
+                          <ChevronRight size={18} />
+                        </button>
+                        <button
+                          onClick={handleCartWhatsApp}
+                          className="w-full h-11 rounded-xl border-2 border-[#25D366] text-[#25D366] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[#25D366] hover:text-white transition-all"
+                        >
+                          <MessageCircle size={16} /> Finalizar via WhatsApp
+                        </button>
+                        <button onClick={closeCart} className="w-full text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-gray-500 transition-colors py-1">
+                          ← Continuar Comprando
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* === STEP 2: PAYMENT === */}
+                {cartCheckoutStep === 'payment' && (
+                  <>
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-5">
+                      {/* Mini order summary */}
+                      <div className="rounded-2xl bg-gray-50 border border-gray-100 p-4 space-y-2">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-3">Resumo do Pedido</p>
+                        {cart.map((item: any) => (
+                          <div key={item.cartItemId} className="flex items-center gap-2 text-xs">
+                            <div className="w-8 h-8 rounded-lg overflow-hidden bg-white border border-gray-100 flex-shrink-0">
+                              <img src={item.image_url?.split(',')[0]} alt={item.name} className="w-full h-full object-cover" />
+                            </div>
+                            <span className="flex-1 font-bold text-gray-700 line-clamp-1">{item.quantity}x {item.name}</span>
+                            <span className="font-black text-gray-900">R$ {(Number(item.price) * item.quantity).toFixed(2).replace('.', ',')}</span>
+                          </div>
+                        ))}
+                        <div className="h-px bg-gray-200 mt-2 mb-1" />
+                        {cartShippingZone && cartShippingZone.price > 0 && (
+                          <div className="flex justify-between text-[11px]">
+                            <span className="font-bold text-gray-500">Frete ({cartShippingZone.label})</span>
+                            <span className="font-black">R$ {cartShippingZone.price.toFixed(2).replace('.', ',')}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center pt-1">
+                          <span className="text-[12px] font-black text-gray-900">Total</span>
+                          <span className="text-[18px] font-black text-gray-900">R$ {cartFinalTotal.toFixed(2).replace('.', ',')}</span>
+                        </div>
+                        <div className="text-right text-[10px] font-black text-emerald-600">ou R$ {cartFinalPixTotal.toFixed(2).replace('.', ',')} no Pix</div>
+                      </div>
+
+                      {/* Payment methods */}
+                      <div className="space-y-2">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">Forma de Pagamento</p>
+
+                        {/* PIX */}
+                        <button
+                          onClick={() => setCartPaymentMethod('pix')}
+                          className={cn("w-full p-4 rounded-2xl border-2 text-left flex items-center gap-4 transition-all", cartPaymentMethod === 'pix' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-100 bg-white hover:border-gray-200')}
+                        >
+                          <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center font-black text-sm shrink-0", cartPaymentMethod === 'pix' ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-500')}>PIX</div>
+                          <div className="flex-1">
+                            <p className={cn("text-[12px] font-black", cartPaymentMethod === 'pix' ? 'text-emerald-700' : 'text-gray-900')}>Pagar com Pix</p>
+                            <p className={cn("text-[10px] font-bold", cartPaymentMethod === 'pix' ? 'text-emerald-600' : 'text-gray-400')}>R$ {cartFinalPixTotal.toFixed(2).replace('.', ',')} — aprovação imediata</p>
+                          </div>
+                          {cartPaymentMethod === 'pix' && <Check size={18} className="text-emerald-500 shrink-0" strokeWidth={3} />}
+                        </button>
+
+                        {/* CARD */}
+                        <button
+                          onClick={() => setCartPaymentMethod('card')}
+                          className={cn("w-full p-4 rounded-2xl border-2 text-left flex items-center gap-4 transition-all", cartPaymentMethod === 'card' ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)]/5' : 'border-gray-100 bg-white hover:border-gray-200')}
+                        >
+                          <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shrink-0", cartPaymentMethod === 'card' ? 'bg-[var(--theme-primary)] text-white' : 'bg-gray-100 text-gray-500')}>
+                            <CreditCard size={22} />
+                          </div>
+                          <div className="flex-1">
+                            <p className={cn("text-[12px] font-black", cartPaymentMethod === 'card' ? 'text-[var(--theme-primary)]' : 'text-gray-900')}>Cartão de Crédito</p>
+                            <p className={cn("text-[10px] font-bold", cartPaymentMethod === 'card' ? 'text-[var(--theme-primary)]/70' : 'text-gray-400')}>12x de R$ {(cartFinalTotal / 12).toFixed(2).replace('.', ',')} sem juros</p>
+                          </div>
+                          {cartPaymentMethod === 'card' && <Check size={18} className="text-[var(--theme-primary)] shrink-0" strokeWidth={3} />}
+                        </button>
+
+                        {/* WHATSAPP */}
+                        <button
+                          onClick={() => setCartPaymentMethod('whatsapp')}
+                          className={cn("w-full p-4 rounded-2xl border-2 text-left flex items-center gap-4 transition-all", cartPaymentMethod === 'whatsapp' ? 'border-[#25D366] bg-[#25D366]/5' : 'border-gray-100 bg-white hover:border-gray-200')}
+                        >
+                          <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shrink-0", cartPaymentMethod === 'whatsapp' ? 'bg-[#25D366] text-white' : 'bg-gray-100 text-gray-500')}>
+                            <MessageCircle size={22} />
+                          </div>
+                          <div className="flex-1">
+                            <p className={cn("text-[12px] font-black", cartPaymentMethod === 'whatsapp' ? 'text-[#25D366]' : 'text-gray-900')}>Combinar via WhatsApp</p>
+                            <p className={cn("text-[10px] font-bold", cartPaymentMethod === 'whatsapp' ? 'text-[#25D366]/70' : 'text-gray-400')}>Fale diretamente com a loja</p>
+                          </div>
+                          {cartPaymentMethod === 'whatsapp' && <Check size={18} className="text-[#25D366] shrink-0" strokeWidth={3} />}
+                        </button>
+                      </div>
+
+                      {/* Customer info preview */}
+                      <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100 space-y-1">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-blue-400 mb-2">Dados do Cliente</p>
+                        <p className="text-[11px] font-bold text-gray-700">👤 {cartCustomerName}</p>
+                        {cartCustomerPhone && <p className="text-[11px] font-bold text-gray-500">📱 {cartCustomerPhone}</p>}
+                        {(cartDeliveryAddress || cartNeighborhood || cartCep) && (
+                          <div className="pt-1">
+                            <p className="text-[11px] font-bold text-gray-500 flex items-start gap-1">
+                              <span className="shrink-0 mt-0.5">📍</span>
+                              <span>{[cartDeliveryAddress, cartNeighborhood, cartCep].filter(Boolean).join(' — ')}</span>
+                            </p>
+                            {selectedShipping && (
+                              <p className="text-[11px] font-black text-[var(--theme-primary)] flex items-center gap-1 mt-1">
+                                <Truck size={12} /> {selectedShipping.name} — R$ {selectedShipping.price.toFixed(2).replace('.', ',')}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        {cartShippingZone && <p className="text-[11px] font-bold text-gray-500">🚚 {cartShippingZone.label}</p>}
+                        <button onClick={() => setCartCheckoutStep('cart')} className="text-[9px] font-black text-blue-400 hover:text-blue-600 uppercase tracking-widest mt-1 block">Editar dados ↗</button>
+                      </div>
+                    </div>
+
+                    {/* Payment footer */}
+                    <div className="p-5 border-t border-gray-100 bg-white shrink-0 space-y-2">
+                      <button
+                        onClick={handleCartPaymentConfirm}
+                        disabled={cartBrickLoading}
+                        className={cn(
+                          getButtonStyle("w-full h-14 text-white shadow-lg gap-3"),
+                          cartPaymentMethod === 'whatsapp' ? "bg-[#25D366] hover:brightness-110 shadow-[#25D366]/20" :
+                          cartPaymentMethod === 'card' ? "bg-[var(--theme-primary)] hover:brightness-110" :
+                          "bg-emerald-500 hover:bg-emerald-600",
+                          cartBrickLoading && "opacity-70 cursor-not-allowed"
+                        )}
+                      >
+                        {cartBrickLoading ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            Processando...
+                          </>
+                        ) : cartPaymentMethod === 'whatsapp' ? (
+                          <><MessageCircle size={18} /> Enviar Pedido no WhatsApp</>
+                        ) : cartPaymentMethod === 'card' ? (
+                          <><CreditCard size={18} /> Pagar com Cartão</>
+                        ) : (
+                          <><span className="font-black text-sm">PIX</span> Pagar com Pix</>
+                        )}
+                      </button>
+                      <p className="text-[9px] text-gray-400 font-bold text-center flex items-center justify-center gap-1">
+                        <ShieldCheck size={11} className="text-emerald-500" /> Compra 100% segura e protegida
+                      </p>
+                    </div>
+                  </>
+                )}
+
+                {/* === STEP 3: SUCCESS === */}
+                {cartCheckoutStep === 'success' && (
+                  <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-6">
+                    <motion.div
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                      className="w-24 h-24 rounded-full bg-emerald-50 border-4 border-emerald-200 flex items-center justify-center"
+                    >
+                      <CheckCircle2 size={50} className="text-emerald-500" />
+                    </motion.div>
+
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="space-y-2">
+                      <h3 className="text-2xl font-black text-gray-900">Pedido Realizado!</h3>
+                      <p className="text-sm text-gray-500 font-bold leading-relaxed">
+                        {cartPaymentMethod === 'whatsapp'
+                          ? 'Sua mensagem foi enviada. Aguarde o contato da loja para confirmar seu pedido.'
+                          : 'Seu pedido foi registrado. Complete o pagamento na janela que foi aberta.'}
+                      </p>
+                    </motion.div>
+
+                    {/* Mini order recap */}
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="w-full rounded-2xl border border-gray-100 p-4 text-left space-y-2 bg-gray-50">
+                      <div className="flex justify-between text-[11px]"><span className="font-bold text-gray-500">Total pago</span><span className="font-black text-gray-900">R$ {(cartPaymentMethod === 'pix' ? cartFinalPixTotal : cartFinalTotal).toFixed(2).replace('.', ',')}</span></div>
+                      <div className="flex justify-between text-[11px]"><span className="font-bold text-gray-500">Forma de pagamento</span><span className="font-black text-gray-900 capitalize">{cartPaymentMethod === 'pix' ? 'Pix' : cartPaymentMethod === 'card' ? 'Cartão' : 'WhatsApp'}</span></div>
+                      <div className="flex justify-between text-[11px]"><span className="font-bold text-gray-500">Status</span><span className="font-black text-amber-600">Pendente</span></div>
+                    </motion.div>
+
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }} className="w-full space-y-3">
+                      {customerSession?.user && (
+                        <button
+                          onClick={closeCart}
+                          className={cn(getButtonStyle("w-full h-12 text-white shadow-lg gap-2"), "bg-[var(--theme-primary)]")}
+                        >
+                          <Package size={16} /> Pedido Salvo — Fechar
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          setCart([]);
+                          setCartCustomerName('');
+                          setCartCustomerPhone('');
+                          setCartDeliveryAddress('');
+                          setCartNeighborhood('');
+                          setCartCep('');
+                          setCartShippingZone(null);
+                          setShippingOptions([]);
+                          setSelectedShipping(null);
+                          setCartOrderId('');
+                          closeCart();
+                        }}
+                        className="w-full h-11 rounded-xl border-2 border-gray-100 text-gray-500 font-black text-xs uppercase tracking-widest hover:border-gray-300 hover:text-gray-700 transition-all"
+                      >
+                        Continuar Comprando
+                      </button>
+                    </motion.div>
+                  </div>
+                )}
+              </motion.div>
+            </div>
+          );
+        })()}
       </AnimatePresence>
 
       {renderCheckoutModal()}
