@@ -518,7 +518,7 @@ const MelhorEnvioSettings = ({ storeId, onAction }: { storeId: string | null, on
 
   const handleConnect = () => {
     if (!storeId) return;
-    const ME_CLIENT_ID = '44100';
+    const ME_CLIENT_ID = '23351';
     const clientId = import.meta.env.VITE_MELHOR_ENVIO_CLIENT_ID || ME_CLIENT_ID;
     const redirectUri = encodeURIComponent(`https://zgnwqxcjdbjpzniemrdy.supabase.co/functions/v1/me-oauth-callback`);
     const meOauthUrl = `https://www.melhorenvio.com.br/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=shipping-calculate%20shipping-checkout%20shipping-generate%20users-read&state=${storeId}`;
