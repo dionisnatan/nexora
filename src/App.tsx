@@ -35,6 +35,7 @@ import {
   X,
   BookOpen,
   AlertCircle,
+  AlertTriangle,
   Edit3,
   Clock,
   Wallet,
@@ -163,6 +164,7 @@ const PaymentSettingsView = ({ session, storeId, onAction }: { session: any, sto
   const [integration, setIntegration] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -208,7 +210,7 @@ const PaymentSettingsView = ({ session, storeId, onAction }: { session: any, sto
   };
 
   const handleDisconnect = async () => {
-    if (!window.confirm('Tem certeza? Sua loja não poderá processar pagamentos pelo Mercado Pago.')) return;
+    setShowConfirmModal(false);
     setIsDisconnecting(true);
     try {
       await supabase
@@ -227,6 +229,46 @@ const PaymentSettingsView = ({ session, storeId, onAction }: { session: any, sto
 
   return (
     <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500">
+      {/* Custom Confirm Modal */}
+      <AnimatePresence>
+        {showConfirmModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-6"
+            >
+              <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle size={24} />
+              </div>
+              <div className="text-center space-y-2">
+                <h3 className="text-lg font-black text-gray-900">Desconectar Mercado Pago?</h3>
+                <p className="text-sm text-gray-500">Sua loja não poderá mais processar pagamentos através desta conta. Tem certeza?</p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowConfirmModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-50 text-gray-600 rounded-xl font-bold hover:bg-gray-100 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDisconnect}
+                  className="flex-1 px-4 py-2 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-colors"
+                >
+                  Sim, Desconectar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Pagamentos</h1>
         <p className="text-gray-500">Conecte sua conta Mercado Pago para receber pagamentos diretamente.</p>
@@ -490,6 +532,7 @@ const MelhorEnvioSettings = ({ storeId, onAction }: { storeId: string | null, on
   const [integration, setIntegration] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const fetchIntegration = async () => {
     if (!storeId) return;
@@ -526,7 +569,7 @@ const MelhorEnvioSettings = ({ storeId, onAction }: { storeId: string | null, on
   };
 
   const handleDisconnect = async () => {
-    if (!window.confirm('Tem certeza? Você não poderá mais gerar etiquetas automaticamente para esta loja.')) return;
+    setShowConfirmModal(false);
     setIsDisconnecting(true);
     try {
       await supabase
@@ -545,7 +588,46 @@ const MelhorEnvioSettings = ({ storeId, onAction }: { storeId: string | null, on
   if (loading) return <div className="p-4 animate-pulse">Carregando Melhor Envio...</div>;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6 relative">
+      <AnimatePresence>
+        {showConfirmModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-6"
+            >
+              <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle size={24} />
+              </div>
+              <div className="text-center space-y-2">
+                <h3 className="text-lg font-black text-gray-900">Desconectar Melhor Envio?</h3>
+                <p className="text-sm text-gray-500">Tem certeza? Você não poderá mais gerar etiquetas automaticamente para esta loja.</p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowConfirmModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-50 text-gray-600 rounded-xl font-bold hover:bg-gray-100 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDisconnect}
+                  className="flex-1 px-4 py-2 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-colors"
+                >
+                  Sim, Desconectar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-amber-400 flex items-center justify-center shadow-lg shadow-amber-200/50">
@@ -589,7 +671,7 @@ const MelhorEnvioSettings = ({ storeId, onAction }: { storeId: string | null, on
             </div>
           </div>
           <button
-            onClick={handleDisconnect}
+            onClick={() => setShowConfirmModal(true)}
             disabled={isDisconnecting}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 text-red-500 text-xs font-bold hover:bg-red-50 transition-all disabled:opacity-50"
           >
@@ -3310,7 +3392,13 @@ const AuthView = () => {
 export default function App() {
   const [session, setSession] = useState<any>(null);
   const [isInitializing, setIsInitializing] = useState(true);
-  const [currentView, setCurrentView] = useState<View>('dashboard');
+  const [currentView, setCurrentView] = useState<View>(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mp_connected') || params.get('mp_error') || params.get('me_success') || params.get('me_error')) {
+      return 'pagamentos';
+    }
+    return 'dashboard';
+  });
   const [selectedPlan, setSelecionadoPlan] = useState<any>(null);
   const [toast, setToast] = useState<{ message: string, visible: boolean }>({ message: '', visible: false });
   const [orderTab, setOrderTab] = useState('Todos');
