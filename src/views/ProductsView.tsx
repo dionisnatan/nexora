@@ -66,6 +66,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiImagePrompt, setAiImagePrompt] = useState('');
+  const [aiImageSeed, setAiImageSeed] = useState(Math.floor(Math.random() * 100000));
 
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -267,6 +268,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
         }));
         if (data.image_prompt) {
           setAiImagePrompt(data.image_prompt);
+          setAiImageSeed(Math.floor(Math.random() * 100000));
         }
         onAction("Produto gerado com Inteligência Artificial! ✨");
         setAiPrompt('');
@@ -283,10 +285,19 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
     
     try {
       onAction("Baixando imagem da IA...");
-      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(aiImagePrompt)}?width=1024&height=1024&nologo=true`;
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(aiImagePrompt)}?width=1024&height=1024&nologo=true&seed=${aiImageSeed}`;
       
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`O serviço de imagem falhou (HTTP ${response.status})`);
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.startsWith('image/')) {
+        throw new Error("O serviço não retornou uma imagem válida no momento.");
+      }
+
+      const blob = await response.blob();
       const file = new File([blob], `ai-product-${Date.now()}.jpg`, { type: 'image/jpeg' });
       
       if (imagePreviews.length < 5) {
@@ -299,6 +310,7 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
       }
     } catch (err: any) {
       onAction("Erro ao usar imagem da IA: " + err.message);
+      console.error("AI Image Error:", err);
     }
   };
 
@@ -651,10 +663,12 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
 
                     <div className="relative group rounded-2xl overflow-hidden border-2 border-indigo-100 bg-indigo-50 aspect-video flex items-center justify-center shadow-lg">
                       <img 
-                        src={`https://image.pollinations.ai/prompt/${encodeURIComponent(aiImagePrompt)}?width=1024&height=1024&nologo=true&seed=${Math.floor(Math.random() * 1000)}`} 
+                        key={aiImageSeed}
+                        src={`https://image.pollinations.ai/prompt/${encodeURIComponent(aiImagePrompt)}?width=1024&height=1024&nologo=true&seed=${aiImageSeed}`} 
                         alt="AI Preview" 
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                         onLoad={() => onAction("Imagem gerada com sucesso! ✨")}
+                        onError={() => onAction("Ops! O gerador de imagem está instável. Tente novamente.")}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
                         <p className="text-white text-[10px] font-medium italic">Pré-visualização gerada por IA</p>
@@ -670,6 +684,16 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
                          className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md active:scale-95"
                        >
                          <Check size={14} /> Usar esta Imagem
+                       </button>
+                       <button
+                         type="button"
+                         onClick={() => {
+                           setAiImageSeed(Math.floor(Math.random() * 100000));
+                           onAction("Gerando nova opção de imagem... 🎨");
+                         }}
+                         className="px-4 py-2.5 bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-50 rounded-xl text-xs font-bold flex items-center gap-2 transition-all active:scale-95"
+                       >
+                         <Zap size={14} /> Outra Opção
                        </button>
                     </div>
                     <p className="text-[10px] text-center text-indigo-400 italic">Dica: Se gostar da imagem, clique em "Usar esta Imagem" para adicioná-la ao produto.</p>
