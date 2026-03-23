@@ -278,6 +278,30 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
     }
   };
 
+  const useAIImage = async () => {
+    if (!aiImagePrompt) return;
+    
+    try {
+      onAction("Baixando imagem da IA...");
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(aiImagePrompt)}?width=1024&height=1024&nologo=true`;
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      
+      const file = new File([blob], `ai-product-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      
+      if (imagePreviews.length < 5) {
+        setImageFiles(prev => [...prev, file]);
+        setImagePreviews(prev => [...prev, URL.createObjectURL(file)]);
+        onAction("Imagem da IA adicionada ao produto! ✨");
+        setAiImagePrompt(''); // Reset to close the preview section
+      } else {
+        onAction("Limite de 5 imagens atingido.");
+      }
+    } catch (err: any) {
+      onAction("Erro ao usar imagem da IA: " + err.message);
+    }
+  };
+
   const handleEditProduct = (prod: any) => {
     setEditingProductId(prod.id);
     setNewProduct({
@@ -605,9 +629,50 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
                   </button>
                 </div>
                 {aiImagePrompt && (
-                  <div className="p-3 bg-white/60 rounded-xl border border-indigo-100/50 animate-in fade-in zoom-in-95">
-                    <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1 flex items-center gap-1"><ImageIcon size={12}/> Dica de Prompt para Imagem (Copie):</p>
-                    <p className="text-[11px] text-indigo-900 font-mono select-all bg-white p-2.5 rounded-lg border border-indigo-50 leading-relaxed cursor-text italic">{aiImagePrompt}</p>
+                  <div className="space-y-4 animate-in fade-in zoom-in-95">
+                    <div className="p-3 bg-white/60 rounded-xl border border-indigo-100/50">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1">
+                          <ImageIcon size={12}/> Prompt da Imagem
+                        </p>
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            navigator.clipboard.writeText(aiImagePrompt);
+                            onAction("Prompt copiado! ✨");
+                          }}
+                          className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full hover:bg-indigo-200 transition-colors font-bold"
+                        >
+                          Copiar
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-indigo-900 font-mono select-all bg-white p-2.5 rounded-lg border border-indigo-50 leading-relaxed italic">{aiImagePrompt}</p>
+                    </div>
+
+                    <div className="relative group rounded-2xl overflow-hidden border-2 border-indigo-100 bg-indigo-50 aspect-video flex items-center justify-center shadow-lg">
+                      <img 
+                        src={`https://image.pollinations.ai/prompt/${encodeURIComponent(aiImagePrompt)}?width=1024&height=1024&nologo=true&seed=${Math.floor(Math.random() * 1000)}`} 
+                        alt="AI Preview" 
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        onLoad={() => onAction("Imagem gerada com sucesso! ✨")}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                        <p className="text-white text-[10px] font-medium italic">Pré-visualização gerada por IA</p>
+                      </div>
+                      <div className="absolute top-2 right-2 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-lg">
+                        <Sparkles size={10} /> Preview
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                       <button
+                         type="button"
+                         onClick={useAIImage}
+                         className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md active:scale-95"
+                       >
+                         <Check size={14} /> Usar esta Imagem
+                       </button>
+                    </div>
+                    <p className="text-[10px] text-center text-indigo-400 italic">Dica: Se gostar da imagem, clique em "Usar esta Imagem" para adicioná-la ao produto.</p>
                   </div>
                 )}
               </div>
