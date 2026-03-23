@@ -38,6 +38,8 @@ serve(async (req) => {
     }
 
     // Exchange code for tokens
+    console.log(`[OAuth] Attempting token exchange with code: ${code.substring(0, 5)}...`);
+    
     const tokenResponse = await fetch("https://melhorenvio.com.br/oauth/token", {
       method: "POST",
       headers: {
@@ -54,12 +56,29 @@ serve(async (req) => {
     });
 
     if (!tokenResponse.ok) {
-      const errorBody = await tokenResponse.json().catch(() => ({}));
+      const errorText = await tokenResponse.text();
+      let errorBody;
+      try {
+        errorBody = JSON.parse(errorText);
+      } catch (e) {
+        errorBody = { message: errorText };
+      }
+      
       console.error("[OAuth] Token exchange failed:", errorBody);
-      throw new Error(`Failed to exchange token: ${JSON.stringify(errorBody)}`);
+      
+      // Map common OAuth errors to user-friendly messages
+      let userMessage = "Falha na autenticação com Melhor Envio.";
+      if (errorBody.error === "invalid_client") {
+        userMessage = "Configuração de Client ID ou Secret inválida no servidor. Verifique os segredos no Supabase.";
+      } else if (errorBody.error === "invalid_grant") {
+        userMessage = "O código de autorização expirou ou já foi utilizado. Tente novamente.";
+      }
+      
+      throw new Error(userMessage);
     }
 
     const tokens = await tokenResponse.json();
+    console.log("[OAuth] Tokens received successfully");
 
     // Get user info to save email/name
     const userResponse = await fetch("https://melhorenvio.com.br/api/v2/me", {
@@ -69,6 +88,11 @@ serve(async (req) => {
       },
     });
 
+    if (!userResponse.ok) {
+      console.error("[OAuth] Failed to fetch user info");
+      throw new Error("Falha ao obter informações do usuário do Melhor Envio.");
+    }
+
     const userInfo = await userResponse.json();
 
     // Initialize Supabase
@@ -77,6 +101,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Save tokens
+    console.log(`[OAuth] Saving integration for store: ${store_id}`);
     const { error: upsertError } = await supabase
       .from("me_store_integrations")
       .upsert({
@@ -86,17 +111,22 @@ serve(async (req) => {
         expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
         me_user_id: userInfo.id?.toString(),
         me_email: userInfo.email,
+        updated_at: new Date().toISOString(),
       }, { onConflict: 'store_id' });
 
-    if (upsertError) throw upsertError;
+    if (upsertError) {
+      console.error("[OAuth] Database upsert error:", upsertError);
+      throw upsertError;
+    }
 
     // Redirect back to dashboard
     const dashboardUrl = Deno.env.get("DASHBOARD_URL") || "https://nexora.vercel.app";
     return Response.redirect(`${dashboardUrl}?me_success=true`, 302);
 
   } catch (error: any) {
-    console.error("OAuth Error:", error.message);
+    console.error("[OAuth] Fatal Error:", error.message);
     const dashboardUrl = Deno.env.get("DASHBOARD_URL") || "https://nexora.vercel.app";
+    // Ensure we always redirect with an error param
     return Response.redirect(`${dashboardUrl}?me_error=true&message=${encodeURIComponent(error.message)}`, 302);
   }
 });

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { getValidMeToken } from "../_shared/me-tokens.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,16 +30,13 @@ serve(async (req) => {
     let melhorEnvioToken = Deno.env.get("MELHOR_ENVIO_TOKEN");
     let cepOrigem = from_cep || Deno.env.get("MELHOR_ENVIO_CEP_ORIGEM") || "01000-000";
 
-    // If store_id is provided, try to get store-specific token
+    // If store_id is provided, try to get store-specific token (with auto-refresh)
     if (store_id) {
-      const { data: storeIntegration, error: integrationError } = await supabase
-        .from('me_store_integrations')
-        .select('access_token')
-        .eq('store_id', store_id)
-        .single();
-      
-      if (!integrationError && storeIntegration?.access_token) {
-        melhorEnvioToken = storeIntegration.access_token;
+      try {
+        melhorEnvioToken = await getValidMeToken(supabase, store_id);
+      } catch (e) {
+        console.warn(`[Shipping] Could not get store-specific token for ${store_id}:`, e.message);
+        // Fallback to global token if available, otherwise it will fail below
       }
     }
 

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { getValidMeToken } from "../_shared/me-tokens.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,20 +25,9 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // 1. Fetch store integration token
-    const { data: storeIntegration, error: integrationError } = await supabase
-      .from('me_store_integrations')
-      .select('access_token')
-      .eq('store_id', storeId)
-      .single();
-
-    if (integrationError || !storeIntegration?.access_token) {
-      console.error("[Buy Shipping] Integration error:", integrationError);
-      throw new Error("Loja não possui integração ativa com Melhor Envio.");
-    }
-
-    const meToken = storeIntegration.access_token;
-    console.log("[Buy Shipping] Store token retrieved");
+    // 1. Fetch store integration token (with auto-refresh)
+    const meToken = await getValidMeToken(supabase, storeId);
+    console.log("[Buy Shipping] Valid Melhor Envio token obtained");
 
     // 2. Fetch order data
     const { data: order, error: orderError } = await supabase
