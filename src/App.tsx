@@ -3319,7 +3319,7 @@ const AuthView = () => {
     <div className="flex min-h-screen bg-[#F9FAFB] items-center justify-center p-4">
       <div className="w-full max-w-md bg-white p-8 rounded-3xl border border-gray-100 shadow-xl shadow-indigo-100/20 animate-in fade-in slide-in-from-bottom-8 duration-700">
         <div className="flex items-center gap-4 mb-8 justify-center">
-          <img src="/icon.png" alt="N" className="h-14 w-auto object-contain drop-shadow-md scale-[2.2] ml-4" />
+          <img src="/icon_transparent.png" alt="N" className="h-14 w-auto object-contain drop-shadow-md scale-[2.2] ml-4" />
           <span className="text-[28px] font-black tracking-tighter bg-gradient-to-r from-cyan-500 via-blue-600 to-fuchsia-500 bg-clip-text text-transparent drop-shadow-sm leading-none z-10">NEXLYRA</span>
         </div>
 
@@ -3660,7 +3660,7 @@ export default function App() {
       )}>
         <div className="p-6 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 pl-2">
-            <img src="/icon.png" alt="N" className="h-10 w-auto object-contain drop-shadow-md scale-[2.2] ml-2" />
+            <img src="/icon_transparent.png" alt="N" className="h-10 w-auto object-contain drop-shadow-md scale-[2.2] ml-2" />
             <span className="text-2xl font-black tracking-tighter bg-gradient-to-r from-cyan-500 via-blue-600 to-fuchsia-500 bg-clip-text text-transparent drop-shadow-sm leading-none z-10">NEXLYRA</span>
           </div>
           <button

@@ -1,19 +1,83 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
   <defs>
-    <linearGradient id="grad1" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#9B27D8"/>
-      <stop offset="50%" stop-color="#4040E0"/>
-      <stop offset="100%" stop-color="#00AAFF"/>
+    <!-- Blue to purple gradient (top-right = bright blue, bottom-left = deep purple) -->
+    <linearGradient id="gBody" x1="80%" y1="0%" x2="20%" y2="100%">
+      <stop offset="0%"   stop-color="#00C4FF"/>
+      <stop offset="35%"  stop-color="#2255FF"/>
+      <stop offset="100%" stop-color="#7B0FCC"/>
     </linearGradient>
-    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#00AAFF"/>
-      <stop offset="100%" stop-color="#9B27D8"/>
+
+    <!-- Orbit ring gradient (top bright blue arc) -->
+    <linearGradient id="gOrbit" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#00D8FF"/>
+      <stop offset="50%"  stop-color="#1E66FF"/>
+      <stop offset="100%" stop-color="#5500AA"/>
     </linearGradient>
+
+    <!-- Deep purple/shadow for the right side inner N -->
+    <linearGradient id="gDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#3044DD"/>
+      <stop offset="100%" stop-color="#5A0099"/>
+    </linearGradient>
+
+    <!-- Star color -->
+    <linearGradient id="gStar" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#A0F0FF"/>
+      <stop offset="100%" stop-color="#40CCFF"/>
+    </linearGradient>
+
+    <filter id="dropGlow">
+      <feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="#0088FF" flood-opacity="0.5"/>
+    </filter>
   </defs>
-  <!-- N letterform left stroke -->
-  <path d="M 15 80 L 15 20 L 28 20 L 65 65 L 65 20 L 78 20 L 78 80 L 65 80 L 28 35 L 28 80 Z" fill="url(#grad1)"/>
-  <!-- Swoosh arc -->
-  <path d="M 10 60 Q 50 10 90 40" stroke="url(#grad2)" stroke-width="5" fill="none" stroke-linecap="round"/>
-  <!-- Star sparkle -->
-  <path d="M 85 18 L 87 13 L 89 18 L 94 20 L 89 22 L 87 27 L 85 22 L 80 20 Z" fill="#00CCFF"/>
+
+  <!-- =========================================
+       ORBIT SWOOSH RING (large arc around the N)
+       ========================================= -->
+  <!-- Bottom sweeping arc: left-bottom going right under N -->
+  <path d="M 22 145
+           C 18 155, 30 172, 58 172
+           C 85 172, 115 158, 138 138
+           C 160 118, 174 95, 172 74
+           C 170 54, 155 44, 140 50"
+        stroke="url(#gOrbit)" stroke-width="13" stroke-linecap="round" fill="none"
+        filter="url(#dropGlow)" opacity="0.9"/>
+
+  <!-- Top thin trailing arc going back left (swoosh tail) -->
+  <path d="M 22 145
+           C 14 136, 16 120, 24 110"
+        stroke="url(#gOrbit)" stroke-width="7" stroke-linecap="round" fill="none" opacity="0.5"/>
+
+  <!-- =========================================
+       LETTER N
+       ========================================= -->
+
+  <!-- Left vertical pillar -->
+  <path d="M 34 155 L 34 60
+           C 34 52, 43 48, 50 54
+           L 50 149 Z"
+        fill="url(#gBody)"/>
+
+  <!-- Diagonal slash (left-top to right-bottom) — the connecting bar of N -->
+  <path d="M 48 56 L 58 68 L 124 148 L 113 156 L 46 72 Z"
+        fill="url(#gBody)"/>
+
+  <!-- Right vertical pillar -->
+  <path d="M 115 54 L 130 54
+           L 130 148 L 118 155 L 118 64 Z"
+        fill="url(#gDark)"/>
+
+  <!-- Depth shadow inner left pillar -->
+  <path d="M 48 56 L 50 54 L 50 70 L 48 72 Z"
+        fill="#0A005A" opacity="0.35"/>
+
+  <!-- =========================================
+       4-POINTED SPARKLE STAR (top right)
+       ========================================= -->
+  <g transform="translate(152, 35)">
+    <!-- Outer tips -->
+    <path d="M 0 -20 L 4 -4 L 20 0 L 4 4 L 0 20 L -4 4 L -20 0 L -4 -4 Z"
+          fill="url(#gStar)" filter="url(#dropGlow)"/>
+  </g>
+
 </svg>
