@@ -2336,7 +2336,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               {/* Scrollable Content Area */}
               <div className="w-full md:flex-1 md:overflow-y-auto p-4 md:p-6 custom-scrollbar relative">
                 {/* Limited Offer Banner */}
-                <div className="mb-6 p-3 bg-[#0b0b0b] rounded-xl flex items-center justify-between text-white relative overflow-hidden group shrink-0">
+                <div className="mb-4 p-2 text-[10px] bg-[#0b0b0b] rounded-xl flex items-center justify-between text-white relative overflow-hidden group shrink-0">
                   <div className="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent" />
                   <div className="relative z-10">
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500 mb-1">Oferta Especial</p>
@@ -2361,7 +2361,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
                 <div className="space-y-4 pb-4">
                   {/* High-End Price Box - Non-sticky on mobile to avoid overlaps */}
-                  <div className="md:sticky md:top-0 z-30 -mx-1 px-1 py-3 bg-white md:bg-white/80 md:backdrop-blur-md rounded-2xl shadow-sm md:shadow-md border border-gray-100 mb-6 p-4 rounded-[1.5rem] space-y-2 relative overflow-hidden group">
+                  <div className="z-10 -mx-1 px-1 py-2 bg-white md:bg-white/80 md:backdrop-blur-md rounded-2xl shadow-sm md:shadow-md border border-gray-100 mb-4 p-4 rounded-[1.5rem] space-y-2 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                       <CreditCard size={100} />
                     </div>
@@ -2459,16 +2459,16 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
                   {/* Extra Info (New) */}
                   {selectedProduct.extra_info && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {selectedProduct.extra_info.technical && (
-                        <div className="space-y-2 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                        <div className="space-y-1 p-3 bg-gray-50 rounded-2xl border border-gray-100">
                           <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Especificações</p>
                           <p className="text-[11px] font-bold text-gray-600 leading-tight whitespace-pre-line">{selectedProduct.extra_info.technical}</p>
                         </div>
                       )}
 
                       {selectedProduct.extra_info.informative && (
-                        <div className="space-y-2 p-4 bg-indigo-50/30 rounded-2xl border border-indigo-100/50">
+                        <div className="space-y-1 p-3 bg-indigo-50/30 rounded-2xl border border-indigo-100/50">
                           <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em]">Informações</p>
                           <p className="text-[11px] font-bold text-gray-600 leading-tight whitespace-pre-line">{selectedProduct.extra_info.informative}</p>
                         </div>
@@ -2481,7 +2481,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                     <div className="border border-gray-100 rounded-3xl p-1 overflow-hidden bg-white/50">
                       <button
                         onClick={() => setShowDescrição(!showDescrição)}
-                        className="w-full flex items-center justify-between p-5 hover:bg-gray-50/50 rounded-2xl transition-all group/desc"
+                        className="w-full flex items-center justify-between p-4 hover:bg-gray-50/50 rounded-2xl transition-all group/desc"
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 group-hover/desc:bg-[#f70]/10 group-hover/desc:text-[#f70] transition-colors">
@@ -2505,7 +2505,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                             exit={{ height: 0, opacity: 0 }}
                             className="overflow-hidden"
                           >
-                            <div className="p-6 pt-0 border-t border-gray-50 mt-1">
+                            <div className="p-4 pt-0 border-t border-gray-50 mt-1">
                               <p className="text-xs text-gray-600 leading-relaxed font-medium whitespace-pre-wrap italic">
                                 {selectedProduct.description}
                               </p>
@@ -2515,7 +2515,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                       </AnimatePresence>
                     </div>
                   )}
-                  <div className="space-y-3 p-6 bg-orange-50/50 rounded-3xl border border-orange-100">
+                  <div className="space-y-2 p-4 bg-orange-50/50 rounded-3xl border border-orange-100">
                     <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
                       <span className="text-orange-600 flex items-center gap-2 italic">
                         {Number(selectedVariation?.estoque || selectedProduct.estoque) <= 10 ? (
@@ -2583,19 +2583,19 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   </div>
 
                   {/* Escolha como pagar Section */}
-                  <div className="p-4 rounded-[1.5rem] bg-gray-50/50 border-2 border-dashed border-gray-200/60">
-                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2 font-black">
+                  <div className="p-3 rounded-[1.5rem] bg-gray-50/50 border-2 border-dashed border-gray-200/60">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2 font-black">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#f70] animate-pulse" />
                       Escolha como pagar
                     </p>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-3">
                       <button
                         onClick={() => {
                           setPaymentMethod('card');
                           setShowInstallments(true);
                         }}
                         className={cn(
-                          "p-5 rounded-3xl text-center space-y-2 transition-all duration-300 relative overflow-hidden group",
+                          "p-4 rounded-2xl text-center space-y-2 transition-all duration-300 relative overflow-hidden group",
                           paymentMethod === 'card'
                             ? 'bg-white border-2 border-[var(--theme-primary)] shadow-xl shadow-[var(--theme-primary)]/10 scale-[1.02] z-10'
                             : 'bg-white border text-gray-400 border-gray-100 hover:border-gray-300 opacity-60 z-0'
@@ -2615,7 +2615,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                           setPaymentMethod('pix');
                           setShowInstallments(false);
                         }}
-                        className={`p-5 rounded-3xl text-center space-y-2 transition-all duration-300 relative overflow-hidden group ${paymentMethod === 'pix'
+                        className={`p-4 rounded-2xl text-center space-y-2 transition-all duration-300 relative overflow-hidden group ${paymentMethod === 'pix'
                           ? 'bg-white border-2 border-emerald-500 shadow-xl shadow-emerald-200/20 scale-[1.02] z-10'
                           : 'bg-white border-1 border-gray-100 hover:border-gray-300 opacity-60 z-0'
                           }`}
@@ -2632,7 +2632,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   </div>
 
                   {/* Address + Shipping Section */}
-                  <div className="mt-4 border-t border-dashed border-gray-100 pt-4 space-y-4">
+                  <div className="mt-4 border-t border-dashed border-gray-100 pt-3 space-y-3">
                     {/* Delivery Mode Toggle */}
                     {canShip ? (
                       <div>
@@ -2649,7 +2649,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                               setShippingOptions([]);
                             }}
                             className={cn(
-                              "p-4 rounded-2xl border-2 text-left transition-all duration-200 relative overflow-hidden",
+                              "p-3 rounded-2xl border-2 text-left transition-all duration-200 relative overflow-hidden",
                               deliveryMode === 'shipping'
                                 ? 'border-[#f70] bg-orange-50 ring-2 ring-orange-100'
                                 : 'border-gray-100 bg-white hover:border-gray-200'
@@ -2671,7 +2671,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                               setShippingOptions([]);
                             }}
                             className={cn(
-                              "p-4 rounded-2xl border-2 text-left transition-all duration-200 relative overflow-hidden",
+                              "p-3 rounded-2xl border-2 text-left transition-all duration-200 relative overflow-hidden",
                               deliveryMode === 'pickup'
                                 ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-100'
                                 : 'border-gray-100 bg-white hover:border-gray-200'
@@ -2884,11 +2884,11 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               </div>
 
               {/* Fixed Footer with Purchase CTA */}
-              <div className="p-4 md:p-6 bg-white border-t border-gray-100 shrink-0 relative z-40 space-y-3">
+              <div className="p-3 md:p-4 bg-white border-t border-gray-100 shrink-0 relative z-40 space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <button
                     onClick={() => (selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? addToCart(selectedProduct, selectedVariation) : handleWhatsAppAlert(selectedProduct)}
-                    className={getButtonStyle(`flex-1 h-14 bg-white border-2 border-[var(--theme-primary)] text-[var(--theme-primary)] hover:bg-[var(--theme-primary)]/5`)}
+                    className={getButtonStyle(`flex-1 h-12 bg-white border-2 border-[var(--theme-primary)] text-[var(--theme-primary)] hover:bg-[var(--theme-primary)]/5`)}
                   >
                     {(selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? (
                       <>
@@ -2934,7 +2934,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                     <button
                       onClick={() => (selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? handleDirectPurchase(finalPrice, paymentMethod) : handleWhatsAppAlert(selectedProduct)}
                       className={cn(
-                        "h-16 text-white rounded-[1.5rem] font-black uppercase tracking-[0.15em] text-[10px] hover:scale-[1.02] active:scale-95 transition-all shadow-lg flex items-center justify-center gap-3 group italic",
+                        "h-14 text-white rounded-[1.25rem] font-black uppercase tracking-[0.15em] text-[10px] hover:scale-[1.02] active:scale-95 transition-all shadow-lg flex items-center justify-center gap-3 group italic",
                         (selectedVariation?.estoque ?? selectedProduct.estoque) > 0 ? "bg-[#25D366] shadow-[#25D366]/20" : "bg-[#0b0b0b] shadow-black/20"
                       )}
                     >

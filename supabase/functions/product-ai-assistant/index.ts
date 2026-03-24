@@ -5,6 +5,80 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+async function generateWithGemini(apiKey: string, systemPrompt: string, signal: AbortSignal): Promise<string> {
+  const model = 'gemini-2.0-flash-lite';
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  
+  const response = await fetch(geminiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: systemPrompt }] }],
+      generationConfig: { temperature: 0.7 }
+    }),
+    signal
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    let parsedError = errText;
+    try {
+      const jp = JSON.parse(errText);
+      parsedError = jp.error?.message || errText;
+    } catch(e) {}
+    throw new Error(`Google API (${model}): ${parsedError}`);
+  }
+
+  const data = await response.json();
+  const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  
+  if (!textResponse) {
+    throw new Error("Google API retornou resposta vazia");
+  }
+  return textResponse;
+}
+
+async function generateWithGroq(apiKey: string, systemPrompt: string, signal: AbortSignal): Promise<string> {
+  const model = 'llama-3.3-70b-versatile';
+  const groqUrl = `https://api.groq.com/openai/v1/chat/completions`;
+
+  const response = await fetch(groqUrl, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: model,
+      messages: [
+        { role: "system", content: "Sempre retorne apenas JSON. Sem markdown ou explicações antes ou depois." },
+        { role: "user", content: systemPrompt }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.5
+    }),
+    signal
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    let parsedError = errText;
+    try {
+      const jp = JSON.parse(errText);
+      parsedError = jp.error?.message || errText;
+    } catch(e) {}
+    throw new Error(`Groq API (${model}): ${parsedError}`);
+  }
+
+  const data = await response.json();
+  const textResponse = data.choices?.[0]?.message?.content || "";
+  
+  if (!textResponse) {
+    throw new Error("Groq API retornou resposta vazia");
+  }
+  return textResponse;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -20,9 +94,11 @@ serve(async (req) => {
       throw new Error("Prompt is required");
     }
 
-    const apiKey = Deno.env.get('GEMINI_API_KEY');
-    if (!apiKey) {
-      throw new Error("A chave GEMINI_API_KEY não está configurada.");
+    const geminiKey = Deno.env.get('GEMINI_API_KEY');
+    const groqKey = Deno.env.get('GROQ_API_KEY');
+
+    if (!geminiKey && !groqKey) {
+      throw new Error("Nenhuma chave de API configurada (GEMINI_API_KEY ou GROQ_API_KEY). Vá nas configurações do Edge Function e insira ao menos uma chave.");
     }
 
     const systemPrompt = `Você é uma Inteligência Artificial especializada em e-commerce e criação de produtos digitais e físicos para lojas online.
@@ -40,46 +116,41 @@ Você deve retornar APENAS um JSON válido e perfeitamente formatado, com as seg
 }
 Lembre-se: Retorne APENAS um bloco puro de código JSON bruto. Sem marcação Markdown ou comentários.`;
 
-    const model = 'gemini-2.0-flash-lite';
-    let lastError = "";
     let textResponse = "";
+    let lastError = "";
 
-    try {
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-      
-      const response = await fetch(geminiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: systemPrompt }] }],
-          generationConfig: { temperature: 0.7 }
-        }),
-        signal: controller.signal
-      });
+    // Fallback Logic
+    // Step 1: Try Gemini if key exists
+    if (geminiKey) {
+      try {
+        textResponse = await generateWithGemini(geminiKey, systemPrompt, controller.signal);
+      } catch (e: any) {
+        lastError = e?.message || "Falha desconhecida no Gemini";
+        console.warn(`Gemini falhou: ${lastError}. Tentando fallback pela Groq...`);
+      }
+    } else {
+      lastError = "Chave GEMINI_API_KEY ausente";
+    }
 
-      if (response.ok) {
-        const data = await response.json();
-        textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      } else {
-        const errText = await response.text();
-        let parsedError = errText;
-        try {
-          const jp = JSON.parse(errText);
-          parsedError = jp.error?.message || errText;
-        } catch(e) {}
-        lastError = parsedError;
+    // Step 2: Try Groq if Gemini failed (or was missing key) AND Groq key exists
+    if (!textResponse && groqKey) {
+      try {
+        textResponse = await generateWithGroq(groqKey, systemPrompt, controller.signal);
+      } catch (e: any) {
+        lastError = `Falha Primária (Gemini): ${lastError} | Falha Fallback (Groq): ${e?.message || "Erro interno"}`;
+        console.error("Ambos os modelos falharam:", lastError);
       }
-    } catch (e: any) {
-      if (e.name === 'AbortError') {
-        throw new Error("O Google AI (Gemini) está demorando muito para responder.");
-      }
-      lastError = e.message;
+    } else if (!textResponse && !groqKey) {
+       lastError = `${lastError} | Aviso: Fallback via Groq desativado pois a GROQ_API_KEY não está configurada no Supabase.`;
     }
 
     clearTimeout(globalTimeout);
 
     if (!textResponse) {
-      throw new Error(`A IA falhou em responder. Erro da API do Google (${model}): ${lastError}`);
+      if (controller.signal.aborted) {
+        throw new Error("A Inteligência Artificial (Gemini/Groq) demorou muito para responder e esgotou o tempo limite de 9s.");
+      }
+      throw new Error(`As IA's falharam em responder. Detalhes: ${lastError}`);
     }
 
     let cleanJson = textResponse.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
@@ -96,12 +167,12 @@ Lembre-se: Retorne APENAS um bloco puro de código JSON bruto. Sem marcação Ma
       });
     } catch (parseError) {
       console.error("Failed to parse AI JSON:", cleanJson);
-      throw new Error("A IA retornou um formato inválido. Tente novamente.");
+      throw new Error("A IA retornou um formato de resposta (JSON) inválido. Tente novamente.");
     }
 
   } catch (error: any) {
     clearTimeout(globalTimeout);
-    console.error("Error:", error?.message || error);
+    console.error("Error Response:", error?.message || error);
     return new Response(JSON.stringify({ error: error?.message || "Internal Server Error" }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
