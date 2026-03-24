@@ -120,12 +120,12 @@ serve(async (req) => {
     }
 
     // Redirect back to dashboard
-    const dashboardUrl = Deno.env.get("DASHBOARD_URL") || "https://nexora.vercel.app";
+    const dashboardUrl = Deno.env.get("DASHBOARD_URL") || "https://nexlyra.vercel.app";
     return Response.redirect(`${dashboardUrl}?me_success=true`, 302);
 
   } catch (error: any) {
     console.error("[OAuth] Fatal Error:", error.message);
-    const dashboardUrl = Deno.env.get("DASHBOARD_URL") || "https://nexora.vercel.app";
+    const dashboardUrl = Deno.env.get("DASHBOARD_URL") || "https://nexlyra.vercel.app";
     // Ensure we always redirect with an error param
     return Response.redirect(`${dashboardUrl}?me_error=true&message=${encodeURIComponent(error.message)}`, 302);
   }

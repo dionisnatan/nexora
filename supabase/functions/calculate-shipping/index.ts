@@ -92,7 +92,7 @@ serve(async (req) => {
         "Accept": "application/json",
         "Content-Type": "application/json",
         "Authorization": `Bearer ${melhorEnvioToken}`,
-        "User-Agent": "Nexora Dashboard Storefront"
+        "User-Agent": "Nexlyra Dashboard Storefront"
       },
       body: JSON.stringify(payload)
     });

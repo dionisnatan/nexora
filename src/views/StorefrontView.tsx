@@ -3660,7 +3660,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
       <div className="min-h-screen bg-[#0b0b0b] flex items-center justify-center">
         <div className="space-y-4 text-center">
           <div className="w-16 h-16 border-4 border-[#f70] border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-white font-black uppercase tracking-widest text-[10px] animate-pulse">Carregando Nexora...</p>
+          <p className="text-white font-black uppercase tracking-widest text-[10px] animate-pulse">Carregando Nexlyra...</p>
         </div>
       </div>
     );
@@ -3758,7 +3758,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             )}
           </div>
           <div className="p-6 text-center text-[9px] font-bold text-gray-300 uppercase tracking-widest pb-12">
-            Powered by Nexora
+            Powered by Nexlyra
           </div>
         </div>
 
@@ -4786,7 +4786,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
             <div className="text-center space-y-2 border-t border-white/5 pt-12">
               <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{store.razao_social || store.name.toUpperCase()} | CNPJ: {store.cnpj || '00.000.000/0001-00'}</p>
-              <p className="text-[9px] font-bold text-gray-600 uppercase tracking-widest">© {new Date().getFullYear()} Todos os direitos reservados. Nexora.Commerce Platform</p>
+              <p className="text-[9px] font-bold text-gray-600 uppercase tracking-widest">© {new Date().getFullYear()} Todos os direitos reservados. Nexlyra.Commerce Platform</p>
             </div>
           </div>
         </footer>
@@ -4977,7 +4977,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                       <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">Tipo de Cliente</p>
                       <div className="border border-gray-100 rounded-xl px-4 py-3 bg-gray-50 flex items-center gap-2">
                         <ShieldCheck size={16} className="text-emerald-500" />
-                        <p className="text-sm font-black text-emerald-600">Verificado Nexora</p>
+                        <p className="text-sm font-black text-emerald-600">Verificado Nexlyra</p>
                       </div>
                     </div>
 

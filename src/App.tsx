@@ -2531,7 +2531,7 @@ const AdminGlobalDashboard = ({ onAction }: { onAction: (msg: string) => void })
     <div className="space-y-8 animate-in fade-in duration-500">
       <div>
         <h1 className="text-2xl font-black text-gray-900 italic uppercase">Visão Geral do Sistema</h1>
-        <p className="text-gray-500">Métricas consolidadas da plataforma Nexora.</p>
+        <p className="text-gray-500">Métricas consolidadas da plataforma Nexlyra.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -2674,7 +2674,7 @@ const AdminStoreList = ({ onAction }: { onAction: (msg: string) => void }) => {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-gray-900 truncate">{s.name}</h3>
-                <p className="text-[10px] text-gray-400 font-medium truncate">{s.slug}.nexora.app</p>
+                <p className="text-[10px] text-gray-400 font-medium truncate">{s.slug}.nexlyra.app</p>
               </div>
               <button onClick={() => window.open(`/loja/${s.slug}`, '_blank')} className="p-2 text-gray-300 hover:text-indigo-600 transition-colors">
                 <ExternalLink size={16} />
@@ -2980,7 +2980,7 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
     <div className="space-y-12 animate-in fade-in duration-500 pb-20">
       <div className="text-center space-y-4 max-w-2xl mx-auto">
         <h1 className="text-4xl font-black text-gray-900 tracking-tight">Escolha o plano ideal para seu negócio</h1>
-        <p className="text-lg text-gray-500 leading-relaxed">Assine e tenha acesso imediato a todas as ferramentas premium da Nexora.</p>
+        <p className="text-lg text-gray-500 leading-relaxed">Assine e tenha acesso imediato a todas as ferramentas premium da Nexlyra.</p>
 
         <div className="flex items-center justify-center pt-4">
           <div className="bg-gray-100 p-1.5 rounded-2xl flex items-center shadow-inner">
@@ -3079,7 +3079,7 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
                     if (plan.kiwifyLink && plan.kiwifyLink !== '#') {
                       const emailParam = session?.user?.email ? `&email=${encodeURIComponent(session.user.email)}` : '';
                       const userIdParam = session?.user?.id ? `&user_id=${session.user.id}` : '';
-                      window.open(`${plan.kiwifyLink}?utm_source=nexora${emailParam}${userIdParam}`, '_blank');
+                      window.open(`${plan.kiwifyLink}?utm_source=nexlyra${emailParam}${userIdParam}`, '_blank');
                       onAction(`Redirecionando para o checkout do plano ${plan.name}...`);
                     } else {
                       onAction('Em breve disponível!');
@@ -3126,7 +3126,7 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
 
         <div className="p-8 bg-gray-900 rounded-3xl text-white space-y-4">
           <h4 className="font-bold flex items-center gap-2">
-            <ShieldCheck size={18} className="text-indigo-400" /> Garantia Nexora
+            <ShieldCheck size={18} className="text-indigo-400" /> Garantia Nexlyra
           </h4>
           <p className="text-xs text-gray-400 leading-relaxed">Oferecemos 7 dias de garantia incondicional. Se não gostar da plataforma, devolvemos 100% do seu investimento sem perguntas.</p>
           <div className="flex gap-4 pt-2">
@@ -3318,11 +3318,9 @@ const AuthView = () => {
   return (
     <div className="flex min-h-screen bg-[#F9FAFB] items-center justify-center p-4">
       <div className="w-full max-w-md bg-white p-8 rounded-3xl border border-gray-100 shadow-xl shadow-indigo-100/20 animate-in fade-in slide-in-from-bottom-8 duration-700">
-        <div className="flex items-center gap-3 mb-8 justify-center">
-          <div className="w-12 h-12 bg-[#5551FF] rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
-            <Zap size={28} fill="currentColor" />
-          </div>
-          <span className="text-2xl font-black tracking-tight text-gray-900">NEXORA</span>
+        <div className="flex items-center gap-4 mb-8 justify-center">
+          <img src="/icon.png" alt="N" className="h-14 w-auto object-contain drop-shadow-md scale-[2.2] ml-4" />
+          <span className="text-[28px] font-black tracking-tighter bg-gradient-to-r from-cyan-500 via-blue-600 to-fuchsia-500 bg-clip-text text-transparent drop-shadow-sm leading-none z-10">NEXLYRA</span>
         </div>
 
         <div className="text-center mb-8">
@@ -3404,7 +3402,7 @@ export default function App() {
   const [orderTab, setOrderTab] = useState('Todos');
   const [storeData, setStoreData] = useState<any>(null);
   const [storesList, setStoresList] = useState<any[]>([]);
-  const [activeStoreId, setActiveStoreId] = useState<string | null>(localStorage.getItem('nexora_active_store_id'));
+  const [activeStoreId, setActiveStoreId] = useState<string | null>(localStorage.getItem('nexlyra_active_store_id'));
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
 
   // Global pending orders counter
@@ -3445,7 +3443,7 @@ export default function App() {
   const notifications = [
     { id: 1, title: 'Novo pedido recebido!', time: 'há 5 min', unread: true },
     { id: 2, title: 'Produto atualizado com sucesso', time: 'há 2 horas', unread: false },
-    { id: 3, title: 'Boas-vindas à Nexora!', time: 'há 1 dia', unread: false },
+    { id: 3, title: 'Boas-vindas à Nexlyra!', time: 'há 1 dia', unread: false },
   ];
 
   useEffect(() => {
@@ -3576,7 +3574,7 @@ export default function App() {
       if (!activeStoreId || !data.find(s => s.id === activeStoreId)) {
         const defaultStoreId = data[0].id;
         setActiveStoreId(defaultStoreId);
-        localStorage.setItem('nexora_active_store_id', defaultStoreId);
+        localStorage.setItem('nexlyra_active_store_id', defaultStoreId);
         setStoreData(data[0]);
         if (data[0].custom_domain) setCustomDomain(data[0].custom_domain);
       }
@@ -3661,11 +3659,9 @@ export default function App() {
         isSidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="p-6 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#5551FF] rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
-              <Zap size={24} fill="currentColor" />
-            </div>
-            <span className="text-xl font-black tracking-tight text-gray-900">NEXORA</span>
+          <div className="flex items-center gap-3 pl-2">
+            <img src="/icon.png" alt="N" className="h-10 w-auto object-contain drop-shadow-md scale-[2.2] ml-2" />
+            <span className="text-2xl font-black tracking-tighter bg-gradient-to-r from-cyan-500 via-blue-600 to-fuchsia-500 bg-clip-text text-transparent drop-shadow-sm leading-none z-10">NEXLYRA</span>
           </div>
           <button
             onClick={() => setIsSidebarOpen(false)}
@@ -3844,7 +3840,7 @@ export default function App() {
                 >
                   <CreditCard size={14} /> Meu Plano
                 </button>
-                {session?.user?.email === 'admin@nexora.app' && (
+                {session?.user?.email === 'admin@nexlyra.app' && (
                   <button
                     onClick={() => setCurrentView('admin-assinaturas')}
                     className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg flex items-center gap-2 transition-colors"
@@ -3888,7 +3884,7 @@ export default function App() {
                     activeStoreId={activeStoreId}
                     onSelectStore={(id) => {
                       setActiveStoreId(id);
-                      localStorage.setItem('nexora_active_store_id', id);
+                      localStorage.setItem('nexlyra_active_store_id', id);
                     }}
                     onUpdateStores={() => fetchStoreData(session.user.id)}
                     userProfile={userProfile}
@@ -3937,7 +3933,7 @@ export default function App() {
                         </div>
                         <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100">
                           <span className="flex-1 font-mono text-sm text-gray-600">
-                            {customDomain || (storeData?.slug ? `${storeData.slug}.nexora.app` : 'suaLoja.nexora.app')}
+                            {customDomain || (storeData?.slug ? `${storeData.slug}.nexlyra.app` : 'suaLoja.nexlyra.app')}
                           </span>
                           <button
                             onClick={() => {

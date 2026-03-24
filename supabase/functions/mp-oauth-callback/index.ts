@@ -6,7 +6,7 @@ const MP_CLIENT_SECRET = Deno.env.get('MERCADO_PAGO_CLIENT_SECRET')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-const DASHBOARD_URL = Deno.env.get('DASHBOARD_URL') || 'https://nexora-dashboard.vercel.app';
+const DASHBOARD_URL = Deno.env.get('DASHBOARD_URL') || 'https://nexlyra-dashboard.vercel.app';
 
 serve(async (req: Request) => {
   const url = new URL(req.url);
