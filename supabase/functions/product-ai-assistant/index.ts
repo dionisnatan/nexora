@@ -10,6 +10,9 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  const controller = new AbortController();
+  const globalTimeout = setTimeout(() => controller.abort(), 9000);
+
   try {
     const { prompt } = await req.json();
 
@@ -19,7 +22,7 @@ serve(async (req) => {
 
     const apiKey = Deno.env.get('GEMINI_API_KEY');
     if (!apiKey) {
-      throw new Error("GEMINI_API_KEY is not configured");
+      throw new Error("A chave GEMINI_API_KEY não está configurada.");
     }
 
     const systemPrompt = `Você é uma Inteligência Artificial especializada em e-commerce e criação de produtos digitais e físicos para lojas online.
@@ -37,67 +40,71 @@ Você deve retornar APENAS um JSON válido e perfeitamente formatado, com as seg
 }
 Lembre-se: Retorne APENAS um bloco puro de código JSON bruto. Sem marcação Markdown ou comentários.`;
 
-    const modelsToTry = [
-      'gemini-1.5-flash',
-      'gemini-1.5-flash-latest',
-      'gemini-pro',
-      'gemini-1.0-pro'
-    ];
-
+    const model = 'gemini-2.0-flash-lite';
     let lastError = "";
     let textResponse = "";
 
-    for (const model of modelsToTry) {
-      try {
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        const response = await fetch(geminiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: systemPrompt }] }],
-            generationConfig: { temperature: 0.7 }
-          })
-        });
+    try {
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      
+      const response = await fetch(geminiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: systemPrompt }] }],
+          generationConfig: { temperature: 0.7 }
+        }),
+        signal: controller.signal
+      });
 
-        if (response.ok) {
-          const data = await response.json();
-          textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (textResponse) {
-            console.log(`Success with model: ${model}`);
-            break;
-          }
-        } else {
-          const errText = await response.text();
-          lastError = `Model ${model} failed: ${errText}`;
-          console.warn(lastError);
-        }
-      } catch (e: any) {
-        console.error(`Error with model ${model}:`, e.message);
+      if (response.ok) {
+        const data = await response.json();
+        textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      } else {
+        const errText = await response.text();
+        let parsedError = errText;
+        try {
+          const jp = JSON.parse(errText);
+          parsedError = jp.error?.message || errText;
+        } catch(e) {}
+        lastError = parsedError;
       }
+    } catch (e: any) {
+      if (e.name === 'AbortError') {
+        throw new Error("O Google AI (Gemini) está demorando muito para responder.");
+      }
+      lastError = e.message;
     }
+
+    clearTimeout(globalTimeout);
 
     if (!textResponse) {
-      throw new Error(`AI failed to respond. ${lastError}`);
+      throw new Error(`A IA falhou em responder. Erro da API do Google (${model}): ${lastError}`);
     }
 
-    // Attempt to extract JSON from potentially markdown-wrapped response
-    textResponse = textResponse.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+    let cleanJson = textResponse.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+    const jsonStart = cleanJson.indexOf('{');
+    const jsonEnd = cleanJson.lastIndexOf('}');
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+      cleanJson = cleanJson.substring(jsonStart, jsonEnd + 1);
+    }
 
     try {
-      const jsonResponse = JSON.parse(textResponse);
+      const jsonResponse = JSON.parse(cleanJson);
       return new Response(JSON.stringify(jsonResponse), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } catch (parseError) {
-      console.error("Failed to parse AI JSON:", textResponse);
-      throw new Error("AI returned invalid JSON format");
+      console.error("Failed to parse AI JSON:", cleanJson);
+      throw new Error("A IA retornou um formato inválido. Tente novamente.");
     }
 
   } catch (error: any) {
-    console.error("Error:", error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
+    clearTimeout(globalTimeout);
+    console.error("Error:", error?.message || error);
+    return new Response(JSON.stringify({ error: error?.message || "Internal Server Error" }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 200,
     });
   }
 });
