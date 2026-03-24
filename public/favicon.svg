@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#9B27D8"/>
+      <stop offset="50%" stop-color="#4040E0"/>
+      <stop offset="100%" stop-color="#00AAFF"/>
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00AAFF"/>
+      <stop offset="100%" stop-color="#9B27D8"/>
+    </linearGradient>
+  </defs>
+  <!-- N letterform left stroke -->
+  <path d="M 15 80 L 15 20 L 28 20 L 65 65 L 65 20 L 78 20 L 78 80 L 65 80 L 28 35 L 28 80 Z" fill="url(#grad1)"/>
+  <!-- Swoosh arc -->
+  <path d="M 10 60 Q 50 10 90 40" stroke="url(#grad2)" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <!-- Star sparkle -->
+  <path d="M 85 18 L 87 13 L 89 18 L 94 20 L 89 22 L 87 27 L 85 22 L 80 20 Z" fill="#00CCFF"/>
+</svg>
