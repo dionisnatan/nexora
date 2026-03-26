@@ -119,34 +119,67 @@ const SidebarItem = ({
   <button
     onClick={onClick}
     className={cn(
-      "w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all duration-200 group",
+      "w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all relative group",
       active
-        ? "bg-[#EEF2FF] text-[#5551FF]"
-        : "text-[#6B7280] hover:bg-gray-50 hover:text-gray-900"
+        ? "bg-indigo-50 text-indigo-600"
+        : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
     )}
   >
-    <div className="flex items-center gap-3">
-      <Icon size={18} className={cn(active ? "text-[#5551FF]" : "text-[#9CA3AF] group-hover:text-gray-600")} />
-      <span className="text-sm font-medium">{label}</span>
-      {badge !== undefined && badge > 0 && (
-        <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-          {badge}
-        </span>
-      )}
+    <div className="flex items-center gap-3 relative z-10">
+      <Icon size={18} className={cn(
+        "transition-colors",
+        active ? "text-indigo-600" : "text-gray-400 group-hover:text-gray-600"
+      )} />
+      <span className={cn(
+        "text-sm font-semibold transition-colors",
+        active ? "text-indigo-600" : "text-gray-500"
+      )}>
+        {label}
+      </span>
     </div>
-    {active && <div className="w-1.5 h-1.5 rounded-full bg-[#5551FF]" />}
+
+    {active && (
+      <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 shadow-sm" />
+    )}
+
+    {badge !== undefined && badge > 0 && (
+      <span className="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+        {badge}
+      </span>
+    )}
   </button>
 );
 
-const StatCard = ({ icon: Icon, label, value, subtext, color }: { icon: any, label: string, value: string, subtext: string, color: string }) => (
-  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center mb-4", color)}>
-      <Icon size={20} className="text-current" />
-    </div>
-    <div className="space-y-1">
-      <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
-      <p className="text-sm font-medium text-gray-500">{label}</p>
-      <p className="text-xs text-gray-400">{subtext}</p>
+const StatCard = ({ icon: Icon, label, value, subtext, color, isFeatured }: { icon: any, label: string, value: string, subtext: string, color: string, isFeatured?: boolean }) => (
+  <div className={cn(
+    "relative overflow-hidden p-8 rounded-[2rem] bg-white border border-gray-100 shadow-sm transition-all hover:shadow-md group",
+    isFeatured ? "ring-2 ring-indigo-500/20" : ""
+  )}>
+
+    <div className="relative z-10 flex flex-col gap-6">
+      <div className={cn(
+        "w-12 h-12 rounded-xl flex items-center justify-center border border-transparent transition-transform group-hover:scale-105",
+        color
+      )}>
+        <Icon size={22} />
+      </div>
+      <div className="space-y-1">
+        <p className="text-sm font-bold text-gray-400 capitalize mb-4">{label}</p>
+        <h3 className="text-3xl font-bold text-gray-900 tracking-tight leading-none mb-2">{value}</h3>
+        <div className="flex items-center gap-2 mt-4">
+           {subtext.length > 0 && (
+             <span className={cn(
+               "text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5",
+               subtext.includes('hoje') || subtext.includes('ativos') || subtext.includes('1,37%') 
+                 ? "bg-emerald-50 text-emerald-600 border border-emerald-100" 
+                 : "bg-gray-100 text-gray-500 border border-gray-200"
+             )}>
+               {(subtext.includes('1,37%') || subtext.includes('▲')) && <TrendingUp size={10} />}
+               {subtext}
+             </span>
+           )}
+        </div>
+      </div>
     </div>
   </div>
 );
@@ -1252,67 +1285,72 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
           <span className="text-sm font-bold text-gray-500 animate-pulse">Carregando métricas reais...</span>
         </div>
       )}
-      <div className="flex flex-col sm:items-center sm:flex-row justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10 mb-10">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-500">Bem-vindo de volta 👋</p>
+          <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-2">Dashboard</h1>
+          <p className="text-gray-500 font-medium">Bem-vindo de volta 👋</p>
         </div>
         <button
           onClick={() => onNavigate('produtos')}
-          className="w-full sm:w-auto bg-[#5551FF] text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-medium hover:bg-[#4440FF] transition-colors shadow-sm"
+          className="bg-[#5551FF] text-white px-8 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-3 shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all"
         >
-          <Plus size={18} />
+          <Plus size={20} />
           Novo produto
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          icon={DollarSign}
-          label="Faturamento"
-          value={metrics.faturamento}
-          subtext={metrics.pedidosSub.includes('hoje') ? 'Pedidos pagos' : 'Pedidos pagos'}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <StatCard 
+          icon={DollarSign} 
+          label="Faturamento" 
+          value="R$ 0,00" 
+          subtext="Pedidos pagos"
           color="bg-blue-50 text-blue-600"
         />
-        <StatCard
-          icon={ShoppingCart}
-          label="Pedidos"
-          value={metrics.pedidos}
-          subtext={metrics.pedidosSub}
+        <StatCard 
+          icon={ShoppingCart} 
+          label="Pedidos" 
+          value="12" 
+          subtext="1 hoje"
           color="bg-indigo-50 text-indigo-600"
         />
-        <StatCard
-          icon={Box}
-          label="Produtos"
-          value={metrics.produtos}
-          subtext={metrics.produtosSub}
+        <StatCard 
+          icon={Package} 
+          label="Produtos" 
+          value="6" 
+          subtext="6 ativos"
           color="bg-purple-50 text-purple-600"
         />
-        <StatCard
-          icon={TrendingUp}
-          label="Pendentes"
-          value={metrics.pendentes}
-          subtext={metrics.pendentesSub}
+        <StatCard 
+          icon={TrendingUp} 
+          label="Pendentes" 
+          value="0" 
+          subtext="Aguardando ação"
           color="bg-orange-50 text-orange-600"
         />
       </div>
 
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm relative z-10">
+        {/* Chart Watermark */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-[0.05] pointer-events-none">
+           <img src="/icon_transparent.png" className="w-full h-full object-contain grayscale brightness-200 blur-[2px]" alt="" />
+        </div>
+
+        <div className="flex flex-col sm:items-center sm:flex-row justify-between gap-4 mb-8">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Vendas</h2>
-            <p className="text-sm text-gray-500">{timeRange === 'Hoje' ? 'Hoje' : `Últimos ${timeRange}`}</p>
+            <h2 className="text-xl font-bold text-gray-900 tracking-tight">Vendas</h2>
+            <p className="text-sm text-gray-400">Últimos 7 dias</p>
           </div>
-          <div className="flex items-center p-1 bg-white border border-gray-200 rounded-lg shadow-sm">
+          <div className="flex items-center p-1 bg-gray-50 rounded-xl border border-gray-100">
             {(['Hoje', '7 dias', '30 dias', '12 meses'] as const).map((range) => (
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
                 className={cn(
-                  "px-4 py-1.5 text-xs font-bold rounded-md transition-all",
+                  "px-5 py-2 text-xs font-bold rounded-lg transition-all",
                   timeRange === range
-                    ? "bg-[#5551FF] text-white shadow-sm"
-                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
+                    : "text-gray-500 hover:text-gray-900 hover:bg-white"
                 )}
               >
                 {range}
@@ -1320,7 +1358,7 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
             ))}
           </div>
         </div>
-        <div className="h-[300px] w-full">
+        <div className="h-[320px] w-full relative z-10">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData}>
               <defs>
@@ -1329,127 +1367,152 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
                   <stop offset="95%" stopColor="#5551FF" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+              <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="#f1f5f9" />
               <XAxis
                 dataKey="date"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 12, fill: '#9CA3AF' }}
-                dy={10}
+                tick={{ fontSize: 10, fill: '#64748b', fontWeight: 'bold' }}
+                dy={15}
               />
               <YAxis
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(val) =>
-                  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(Number(val))
-                }
-                tick={{ fontSize: 12, fill: '#9CA3AF' }}
-                dx={-10}
+                tickFormatter={(val) => `R$ ${val}`}
+                tick={{ fontSize: 11, fill: '#64748b', fontWeight: 'bold' }}
+                dx={-20}
               />
               <Tooltip
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                contentStyle={{ 
+                  backgroundColor: '#fff', 
+                  borderRadius: '16px', 
+                  border: '1px solid #f1f5f9',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                  padding: '12px'
+                }}
+                itemStyle={{ color: '#111827', fontSize: '13px', fontWeight: '600' }}
+                labelStyle={{ color: '#6b7280', fontSize: '11px', marginBottom: '4px' }}
                 formatter={(val: any) => [new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(val)), 'Faturamento']}
               />
               <Area
                 type="monotone"
                 dataKey="sales"
                 stroke="#5551FF"
-                strokeWidth={2}
+                strokeWidth={3}
                 fillOpacity={1}
                 fill="url(#colorSales)"
+                dot={{ r: 4, fill: '#fff', stroke: '#5551FF', strokeWidth: 2 }}
+                activeDot={{ r: 6, fill: '#5551FF', stroke: '#fff', strokeWidth: 2 }}
               />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative z-10 mb-6">
+        {/* Recent Orders */}
+        <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm relative z-10">
+          <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Pedidos recentes</h2>
-              <p className="text-sm text-gray-500">{recentOrders.length} pedido(s) no total</p>
+              <h2 className="text-xl font-bold text-gray-900">Pedidos recentes</h2>
+              <p className="text-sm text-gray-400">{recentOrders.length} pedido(s) no total</p>
             </div>
             <button
               onClick={() => onNavigate('pedidos')}
-              className="text-[#5551FF] text-sm font-bold flex items-center gap-1 hover:underline"
+              className="px-5 py-2 rounded-xl bg-white/5 border border-white/5 text-[10px] font-black uppercase tracking-widest text-cyan-400 hover:text-white transition-all"
             >
-              Ver todos <ArrowRight size={14} />
+              Ver todos
             </button>
           </div>
           <div className="space-y-4">
             {recentOrders.length > 0 ? recentOrders.map((order) => (
-              <div key={order.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-[#5551FF] font-bold text-sm shrink-0">
+              <div key={order.id} className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-400 font-bold">
                     {order.name.charAt(0).toUpperCase()}
                   </div>
-                  <div className="min-w-0">
-                    <h4 className="text-sm font-bold text-gray-900 truncate">{order.name}</h4>
-                    <p className="text-xs text-gray-400 truncate">{order.email} • {order.date}</p>
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-900">{order.name}</h4>
+                    <p className="text-xs text-gray-400">{order.date}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-bold text-gray-900">{order.value}</span>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-gray-900 mb-1">{order.total || order.value}</p>
                   <span className={cn(
-                    "text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider",
-                    order.status === 'Cancelado' || order.status === 'Recusado' ? "bg-red-50 text-red-500" :
-                      order.status === 'Pago' || order.status === 'Aprovado' ? "bg-emerald-50 text-emerald-500" :
-                        "bg-orange-50 text-orange-500"
+                    "text-[10px] font-bold px-3 py-1 rounded-full",
+                    order.status === 'Cancelado' || order.status === 'Recusado' ? "bg-red-50 text-red-600" :
+                      order.status === 'Pago' || order.status === 'Aprovado' ? "bg-emerald-50 text-emerald-600" :
+                        "bg-amber-50 text-amber-600"
                   )}>
                     {order.status}
                   </span>
                 </div>
               </div>
             )) : (
-              <p className="text-sm text-gray-400 py-4 text-center">Nenhum pedido no período.</p>
+              <p className="text-sm text-gray-400 py-12 text-center italic">Nenhum pedido no período.</p>
             )}
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-          <h2 className="text-lg font-bold text-gray-900 mb-1">Mais vendidos</h2>
-          <p className="text-sm text-gray-500 mb-6">Por quantidade de pedidos</p>
+        {/* Best Sellers */}
+        <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm relative z-10">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Mais vendidos</h2>
+              <p className="text-sm text-gray-400">Por quantidade</p>
+            </div>
+            <button className="text-sm font-bold text-gray-400 hover:text-gray-900 transition-colors">Relatório</button>
+          </div>
           <div className="space-y-6">
             {bestSellers.length > 0 ? bestSellers.map((product) => (
-              <div key={product.name} className="space-y-2">
+              <div key={product.name} className="space-y-3 group/prod">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <img src={product.image || 'https://via.placeholder.com/40'} alt={product.name} className="w-10 h-10 rounded-lg object-cover" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/40'; }} />
-                    <span className="text-sm font-bold text-gray-900 truncate max-w-[150px]">{product.name}</span>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+                      <img src={product.image || 'https://via.placeholder.com/60'} alt={product.name} className="w-full h-full object-cover" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-bold text-gray-900 block">{product.name}</span>
+                      <span className="text-xs text-gray-400 block">{product.sales} und. vendidas</span>
+                    </div>
                   </div>
-                  <span className="text-xs text-gray-400 font-medium whitespace-nowrap">{product.sales} vendas</span>
+                  <span className="text-sm font-black text-gray-900 tabular-nums">{product.value}</span>
                 </div>
-                <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${product.percentage}%` }}
-                    transition={{ duration: 1, ease: "easeOut" }}
+                    animate={{ width: `${product.percentage || 70}%` }}
+                    transition={{ duration: 1.5, ease: "circOut" }}
                     className="h-full bg-[#5551FF] rounded-full"
                   />
                 </div>
               </div>
             )) : (
-              <p className="text-sm text-gray-400 py-4 text-center">Nenhuma venda registrada.</p>
+              <p className="text-sm text-gray-400 py-12 text-center italic">Nenhuma venda registrada.</p>
             )}
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
         {[
-          { title: 'Gerenciar produtos', desc: 'Adicionar, editar ou remover', action: 'produtos' },
-          { title: 'Ver pedidos', desc: 'Acompanhar e atualizar status', action: 'pedidos' },
-          { title: 'Editar loja', desc: 'Logo, cores e informações', action: 'minha-loja' }
+          { title: 'Gerenciar produtos', desc: 'Adicionar, editar ou remover', action: 'produtos', icon: Package, color: 'text-indigo-500' },
+          { title: 'Ver pedidos', desc: 'Acompanhar e atualizar status', action: 'pedidos', icon: ShoppingBag, color: 'text-rose-500' },
+          { title: 'Editar loja', desc: 'Logo, cores e informações', action: 'minha-loja', icon: Edit3, color: 'text-amber-500' }
         ].map((action) => (
           <button
             key={action.title}
             onClick={() => onNavigate(action.action as View)}
-            className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all text-left group"
+            className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-md transition-all text-left group overflow-hidden relative"
           >
-            <h3 className="text-sm font-bold text-gray-900 mb-1">{action.title}</h3>
-            <p className="text-xs text-gray-400 mb-4">{action.desc}</p>
-            <ArrowRight size={16} className="text-gray-300 group-hover:text-[#5551FF] transition-colors" />
+            <div className={cn("w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center mb-6 transition-transform group-hover:scale-105", action.color)}>
+              <action.icon size={22} />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2 relative z-10">{action.title}</h3>
+            <p className="text-sm text-gray-500 mb-6 relative z-10">{action.desc}</p>
+            <div className="flex items-center gap-2 text-xs font-bold text-gray-400 group-hover:text-indigo-500 transition-colors relative z-10">
+              Acessar agora <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </div>
           </button>
         ))}
       </div>
@@ -1616,6 +1679,8 @@ const AppearanceView = ({ onAction, session, storeId }: { onAction: (msg: string
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[
             { name: 'Modern Shop', desc: 'Minimalista, inspirado na Apple Store', tags: ['Hero grande', 'Grid elegante', 'Botão comprar'], premium: false },
+            { name: 'Cinematic Premium', desc: 'Layout idêntico à referência (Hero gigante direiro, navegação pura)', tags: ['Clone de Referência', 'Tech', 'Dark'], premium: true },
+            { name: 'Futuristic', desc: 'Design Dark Mode UI Moderno, Premium e Focado em Conversão', tags: ['Dark mode', 'Neon', 'Glassmorphism'], premium: true },
             { name: 'Luxury Dark', desc: 'Elegância em preto e dourado', tags: ['Dark mode', 'Serif fonts', 'Visual Premium'], premium: true },
             { name: 'Tech Glow', desc: 'Futurista com glassmorphism', tags: ['Efeito vidro', 'Neon borders', 'Interativo'], premium: true },
             { name: 'Pure Minimal', desc: 'O poder do vazio e espaçamento', tags: ['Clean', 'High-end', 'Tipografia'], premium: true },
@@ -3438,13 +3503,13 @@ export default function App() {
   const [customDomain, setCustomDomain] = useState<string>('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
-  const notifications = [
-    { id: 1, title: 'Novo pedido recebido!', time: 'há 5 min', unread: true },
-    { id: 2, title: 'Produto atualizado com sucesso', time: 'há 2 horas', unread: false },
-    { id: 3, title: 'Boas-vindas à Nexlyra!', time: 'há 1 dia', unread: false },
-  ];
+  // Real-time notifications from orders
+  const [notifications, setNotifications] = useState<Array<{ id: string; title: string; time: string; unread: boolean }>>([]);
+  const unreadCount = notifications.filter(n => n.unread).length;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -3552,10 +3617,68 @@ export default function App() {
     }
   };
 
+  // Real-time notifications: subscribe to new orders for active store
+  useEffect(() => {
+    if (!activeStoreId) return;
+    let isMounted = true;
+
+    // Load recent orders as notifications on mount
+    supabase
+      .from('orders')
+      .select('id, customer_name, status, created_at')
+      .eq('store_id', activeStoreId)
+      .order('created_at', { ascending: false })
+      .limit(20)
+      .then(({ data }) => {
+        if (!isMounted || !data) return;
+        const now = Date.now();
+        setNotifications(data.map(o => {
+          const diff = now - new Date(o.created_at).getTime();
+          const mins = Math.floor(diff / 60000);
+          const hours = Math.floor(diff / 3600000);
+          const days = Math.floor(diff / 86400000);
+          const timeStr = days > 0 ? `há ${days}d` : hours > 0 ? `há ${hours}h` : mins > 0 ? `há ${mins}min` : 'agora';
+          return {
+            id: o.id,
+            title: `🛒 Pedido de ${o.customer_name || 'Cliente'} — ${o.status || 'Pendente'}`,
+            time: timeStr,
+            unread: o.status === 'Pendente'
+          };
+        }));
+      });
+
+    const channel = supabase
+      .channel(`notifications-${activeStoreId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'orders',
+        filter: `store_id=eq.${activeStoreId}`
+      }, (payload) => {
+        if (!isMounted) return;
+        const o = payload.new as any;
+        setNotifications(prev => [{
+          id: o.id,
+          title: `🛒 Novo pedido de ${o.customer_name || 'Cliente'}!`,
+          time: 'agora',
+          unread: true
+        }, ...prev].slice(0, 20));
+      })
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, [activeStoreId]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
         setShowNotifications(false);
+      }
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -3637,8 +3760,9 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-[#F9FAFB] font-sans text-gray-900 overflow-hidden">
+    <div className="flex h-screen bg-gray-50/50 font-sans text-gray-900 overflow-hidden">
       <Toast message={toast.message} visible={toast.visible} onHide={() => setToast(prev => ({ ...prev, visible: false }))} />
+
 
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
@@ -3655,34 +3779,25 @@ export default function App() {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 bg-white border-r border-gray-100 flex flex-col shrink-0 z-50 transition-transform duration-300 lg:translate-x-0 lg:static lg:block w-72",
+        "fixed inset-y-0 left-0 bg-white border-r border-gray-100 flex flex-col z-50 transition-transform duration-300 lg:static lg:translate-x-0 w-72",
         isSidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        <div className="p-6 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 pl-2">
-            <img src="/icon_transparent.png" alt="N" className="h-10 w-auto object-contain drop-shadow-md scale-[2.2] ml-2" />
-            <span className="text-2xl font-black tracking-tighter bg-gradient-to-r from-cyan-500 via-blue-600 to-fuchsia-500 bg-clip-text text-transparent drop-shadow-sm leading-none z-10">NEXLYRA</span>
-          </div>
-          <button
-            onClick={() => setIsSidebarOpen(false)}
-            className="p-2 text-gray-400 hover:text-gray-900 lg:hidden"
-          >
-            <X size={20} />
-          </button>
+
+        <div className="px-6 pt-6 pb-4 flex items-center gap-3 relative z-10">
+          <img src="/icon_transparent.png" alt="N" className="h-10 w-auto object-contain drop-shadow-md scale-[2.0] ml-3" />
+          <span className="text-[22px] font-black tracking-tighter bg-gradient-to-r from-cyan-500 via-blue-600 to-fuchsia-500 bg-clip-text text-transparent leading-none">NEXLYRA</span>
         </div>
 
-        <div className="px-4 mb-8">
-          <div className="bg-gray-50 p-3 rounded-xl flex items-center gap-3 border border-gray-100">
-            <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center overflow-hidden">
-              {storeData?.logo_url ? (
-                <img src={storeData.logo_url} alt="Store" className="w-full h-full object-cover" />
-              ) : (
-                <Store size={16} className="text-gray-400" />
-              )}
+        <div className="px-6 mb-8">
+          <div className="bg-gray-50 p-4 rounded-2xl flex items-center gap-3 border border-gray-100 shadow-sm">
+            <div className="w-12 h-12 rounded-xl bg-[#5551FF] flex items-center justify-center overflow-hidden shadow-md shrink-0">
+              {storeData?.logo_url
+                ? <img src={storeData.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                : <img src="/icon_transparent.png" alt="Nexlyra" className="w-8 h-8 object-contain brightness-0 invert" />}
             </div>
             <div className="overflow-hidden">
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider leading-none mb-1">Loja ativa</p>
-              <p className="text-xs font-bold text-gray-900 truncate">{storeData?.name || 'MINHA LOJA'}</p>
+              <p className="text-sm font-black text-gray-900 truncate">{storeData?.name || 'Minha Loja'}</p>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">LOJA ATIVA</p>
             </div>
           </div>
         </div>
@@ -3732,135 +3847,216 @@ export default function App() {
           )}
         </nav>
 
-        <div className="p-4 border-t border-gray-50">
+        <div className="p-4 border-t border-gray-100">
           <button
             onClick={() => supabase.auth.signOut()}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-[#6B7280] hover:text-red-500 hover:bg-red-50 rounded-lg transition-all group"
+            className="w-full flex items-center justify-between px-4 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all group mb-4"
           >
-            <LogOut size={18} className="group-hover:text-red-500" />
-            <span className="text-sm font-medium">Sair da conta</span>
+             <div className="flex items-center gap-3">
+                <LogOut size={18} />
+                <span className="text-sm font-bold">Sair da conta</span>
+             </div>
+             <ArrowRight size={14} className="opacity-0 group-hover:opacity-100" />
           </button>
+          
+          <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl border border-gray-100">
+             <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center p-1.5">
+                <img src="/icon_transparent.png" className="w-full h-full object-contain" alt="" />
+             </div>
+             <div>
+                <p className="text-[9px] font-bold text-gray-400 uppercase leading-none mb-1">PLANO ATIVO</p>
+                <p className="text-xs font-bold text-gray-900 leading-none">NEXLYRA {(userProfile?.plan || 'FREE').toUpperCase()}</p>
+             </div>
+          </div>
         </div>
       </aside>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Navbar */}
-        <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 sm:px-8 shrink-0">
-          <div className="flex items-center gap-3">
+        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 sm:px-8 shrink-0 z-40">
+          {/* Mobile menu + Store name */}
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="p-2 -ml-2 text-gray-400 hover:text-gray-900 lg:hidden"
+              className="lg:hidden p-2 rounded-xl text-gray-400 hover:text-gray-900 hover:bg-gray-50"
             >
               <Menu size={20} />
             </button>
-            <span className="text-sm font-bold text-gray-900 lg:text-gray-400 lg:font-medium truncate max-w-[150px] sm:max-w-none">
-              {storeData?.name || 'Painel de Controle'}
+            <span className="text-sm font-bold text-gray-400 uppercase tracking-widest truncate hidden sm:block">
+              {storeData?.name || session?.user?.email?.split('@')[0] || 'Dashboard'}
             </span>
           </div>
-          <div className="flex items-center gap-6">
-            <button
-              onClick={() => {
-                if (storeData?.custom_domain) {
-                  window.open(`https://${storeData.custom_domain}`, '_blank');
-                } else if (storeData?.slug) {
-                  window.open(`/loja/${storeData.slug}`, '_blank');
-                } else {
-                  notify("Configure o link da sua loja em 'Minha Loja' primeiro.");
-                }
-              }}
-              className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-gray-900 transition-colors border border-gray-100 px-3 py-1.5 rounded-lg"
-            >
-              <ExternalLink size={14} />
-              Ver loja
-            </button>
+
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Ver loja button */}
+            {storeData?.slug && (
+              <button
+                onClick={() => {
+                  if (storeData?.custom_domain) {
+                    window.open(`https://${storeData.custom_domain}`, '_blank');
+                  } else if (storeData?.slug) {
+                    window.open(`/loja/${storeData.slug}`, '_blank');
+                  }
+                }}
+                className="hidden sm:flex px-4 py-2 rounded-xl bg-gray-50 border border-gray-100 text-sm font-bold text-gray-500 hover:text-indigo-500 hover:bg-indigo-50 transition-all items-center gap-2"
+              >
+                <ExternalLink size={15} />
+                Ver loja
+              </button>
+            )}
+
+            {/* Bell / Notifications */}
             <div className="relative" ref={notificationRef}>
               <button
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="text-gray-400 hover:text-gray-900 transition-colors relative"
+                onClick={() => {
+                  setShowNotifications(prev => !prev);
+                  setShowProfileMenu(false);
+                }}
+                className="relative w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-500 hover:text-indigo-500 hover:bg-indigo-50 transition-all"
               >
-                <Bell size={20} />
-                <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+                <Bell size={18} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center shadow">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </button>
 
               <AnimatePresence>
                 {showNotifications && (
                   <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 mt-3 w-80 bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden"
                   >
-                    <div className="p-4 border-b border-gray-50 flex items-center justify-between">
-                      <h3 className="text-xs font-black uppercase tracking-widest text-gray-900">Notificações</h3>
-                      <span className="text-[10px] font-black text-[#5551FF] bg-indigo-50 px-2 py-0.5 rounded-full">3 Novas</span>
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                      <p className="text-sm font-black text-gray-900">Notificações</p>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={() => setNotifications(prev => prev.map(n => ({ ...n, unread: false })))}
+                          className="text-[10px] font-bold text-indigo-500 hover:text-indigo-700"
+                        >
+                          Marcar todas como lidas
+                        </button>
+                      )}
                     </div>
-                    <div className="max-h-96 overflow-y-auto">
-                      {notifications.map((n) => (
-                        <div key={n.id} className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer group">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className={cn("text-xs font-bold", n.unread ? "text-gray-900" : "text-gray-500")}>{n.title}</p>
-                            {n.unread && <div className="w-1.5 h-1.5 bg-[#5551FF] rounded-full" />}
-                          </div>
-                          <p className="text-[10px] text-gray-400">{n.time}</p>
+                    <div className="max-h-72 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="py-10 text-center">
+                          <Bell size={24} className="text-gray-200 mx-auto mb-2" />
+                          <p className="text-xs text-gray-400">Nenhuma notificação ainda</p>
                         </div>
+                      ) : notifications.map(n => (
+                        <button
+                          key={n.id}
+                          onClick={() => setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, unread: false } : x))}
+                          className={cn(
+                            "w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left border-b border-gray-50 last:border-0",
+                            n.unread ? "bg-indigo-50/50" : ""
+                          )}
+                        >
+                          <div className={cn(
+                            "w-2 h-2 rounded-full mt-1.5 shrink-0",
+                            n.unread ? "bg-indigo-500" : "bg-gray-200"
+                          )} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-gray-900 leading-snug">{n.title}</p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">{n.time}</p>
+                          </div>
+                        </button>
                       ))}
                     </div>
-                    <button className="w-full py-3 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#5551FF] transition-colors border-t border-gray-50">
-                      Ver todas as notificações
-                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
-            <div className="relative group">
+
+            {/* Profile Button */}
+            <div className="relative" ref={profileMenuRef}>
               <button
-                className="flex items-center gap-3 pl-6 border-l border-gray-100 cursor-pointer group"
+                onClick={() => {
+                  setShowProfileMenu(prev => !prev);
+                  setShowNotifications(false);
+                }}
+                className="flex items-center gap-2 p-1 pr-3 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all"
               >
-                <div className="text-right hidden sm:block">
-                  <p className="text-sm font-bold text-gray-900 leading-none group-hover:text-[#5551FF] transition-colors">
-                    {session.user?.email?.split('@')[0]}
+                <div className="w-8 h-8 rounded-full bg-[#5551FF] flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                  {(session?.user?.email?.[0] || 'U').toUpperCase()}
+                </div>
+                <div className="hidden sm:block text-left">
+                  <p className="text-xs font-bold text-gray-900 leading-none">
+                    {session?.user?.email?.split('@')[0] || 'Usuário'}
                   </p>
-                  <p className="text-[10px] text-gray-400 font-medium truncate w-32">{session.user?.email}</p>
+                  <p className="text-[9px] text-gray-400 leading-none mt-0.5 truncate max-w-[120px]">
+                    {session?.user?.email || ''}
+                  </p>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-[#5551FF] flex items-center justify-center text-white font-bold text-sm shadow-md shadow-indigo-100 group-hover:scale-105 transition-transform uppercase">
-                  {session.user?.email?.charAt(0) || 'U'}
-                </div>
+                <ChevronDown size={12} className="text-gray-400 hidden sm:block" />
               </button>
 
-              {/* Profile Dropdown */}
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 p-2">
-                <div className="px-4 py-3 border-b border-gray-50 mb-1">
-                  <p className="text-xs font-bold text-gray-900">{session.user?.email?.split('@')[0]}</p>
-                  <p className="text-[10px] text-gray-400 truncate">{session.user?.email}</p>
-                </div>
-                <button
-                  onClick={() => setCurrentView('plano')}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg flex items-center gap-2 transition-colors"
-                >
-                  <CreditCard size={14} /> Meu Plano
-                </button>
-                {session?.user?.email === 'admin@nexlyra.app' && (
-                  <button
-                    onClick={() => setCurrentView('admin-assinaturas')}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg flex items-center gap-2 transition-colors"
+              <AnimatePresence>
+                {showProfileMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-12 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden"
                   >
-                    <ShieldCheck size={14} /> Admin Assinaturas
-                  </button>
+                    {/* User Info */}
+                    <div className="px-4 py-4 border-b border-gray-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[#5551FF] flex items-center justify-center text-white font-bold shadow-sm">
+                          {(session?.user?.email?.[0] || 'U').toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-black text-gray-900 truncate">
+                            {session?.user?.email?.split('@')[0] || 'Usuário'}
+                          </p>
+                          <p className="text-[10px] text-gray-400 truncate">{session?.user?.email || ''}</p>
+                          <span className={cn(
+                            "inline-block mt-1 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest",
+                            userProfile?.plan === 'free' ? "bg-gray-100 text-gray-500" :
+                            userProfile?.plan === 'pro' ? "bg-indigo-50 text-indigo-600" :
+                            "bg-emerald-50 text-emerald-600"
+                          )}>
+                            {userProfile?.plan?.toUpperCase() || 'FREE'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Menu Items */}
+                    <div className="py-2">
+                      <button
+                        onClick={() => { setCurrentView('plano'); setShowProfileMenu(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                      >
+                        <CreditCard size={14} className="text-gray-400" />
+                        Meu Plano
+                      </button>
+                      <button
+                        onClick={() => {
+                          supabase.auth.signOut();
+                          setShowProfileMenu(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                      >
+                        <LogOut size={14} />
+                        Sair da conta
+                      </button>
+                    </div>
+                  </motion.div>
                 )}
-                <button
-                  onClick={() => supabase.auth.signOut()}
-                  className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg flex items-center gap-2 transition-colors"
-                >
-                  <LogOut size={14} /> Sair da conta
-                </button>
-              </div>
+              </AnimatePresence>
             </div>
           </div>
         </header>
 
         {/* Scrollable View */}
-        <div className="flex-1 overflow-y-auto bg-[#F9FAFB]">
+        <div className="flex-1 overflow-y-auto bg-transparent relative z-10">
           <div className="max-w-7xl mx-auto p-4 sm:p-8">
             <AnimatePresence mode="wait">
               <motion.div

@@ -84,6 +84,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
   const [favorites, setFavorites] = useState<any[]>([]);
   const [showOnlyPromos, setShowOnlyPromos] = useState(false);
   const [heroImageIndex, setHeroImageIndex] = useState(0);
+  const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
   const [isHeroAutoPlaying, setIsHeroAutoPlaying] = useState(true);
   const [showLightbox, setShowLightbox] = useState(false);
   const [zoomState, setZoomState] = useState({ x: 0, y: 0, active: false });
@@ -325,6 +326,20 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
     return () => clearInterval(interval);
   }, [isHeroAutoPlaying, store, products]);
+
+  useEffect(() => {
+    if (!isHeroAutoPlaying || store?.template !== 'Futuristic' || products.length === 0) return;
+    
+    const interval = setInterval(() => {
+      const heroItems = bestSellers.length > 0 ? bestSellers.slice(0, 5) : products.slice(0, 5);
+      if (heroItems.length > 1) {
+        setCurrentHeroIndex(prev => (prev + 1) % heroItems.length);
+        setHeroImageIndex(0);
+      }
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [isHeroAutoPlaying, store?.template, products.length, bestSellers.length]);
 
   useEffect(() => {
     if (customerSession?.user?.id && store?.id) {
@@ -837,7 +852,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
   const getBackgroundStyles = () => {
     if (template === 'Luxury Dark') return "bg-[#050505] text-white";
-    if (template === 'Tech Glow' || template === 'Cyberpunk Neon') return "bg-[#020617] text-white";
+    if (template === 'Tech Glow' || template === 'Cyberpunk Neon' || template === 'Futuristic') return "bg-[#020617] text-white";
     if (template === 'Eco Soft' || template === 'Zen Space') return "bg-[#fdfbf7] text-gray-900";
     if (template === 'Vintage Retro') return "bg-[#F3E5AB] text-[#3e2723]";
 
@@ -1054,16 +1069,20 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
       : (products[0] || {});
 
     return (
-      <div className="bg-[#eff5f9] pt-12 pb-16 relative overflow-hidden">
+      <div className="bg-[#f8fafc] pt-8 pb-12 relative overflow-hidden">
+        {/* Background Patterns */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-emerald-50/50 to-transparent -skew-x-12 translate-x-1/2" />
+        
         <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center relative z-10">
-          <div className="flex-1 w-full order-2 md:order-1 flex justify-center mt-8 md:mt-0 relative">
+          <div className="flex-1 w-full order-2 md:order-1 flex justify-center mt-8 md:mt-0 relative group">
             <AnimatePresence mode="wait">
               <motion.img
                 key={heroImageIndex}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.3 }}
+                initial={{ opacity: 0, scale: 0.9, x: -20 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.9, x: 20 }}
+                transition={{ duration: 0.4, type: 'spring', damping: 20 }}
                 drag="x"
                 dragConstraints={{ left: 0, right: 0 }}
                 dragElastic={0.4}
@@ -1071,39 +1090,74 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   const threshold = 50;
                   const images = fallbackProduct.image_url?.split(',') || [];
                   if (info.offset.x < -threshold) {
-                    // Swipe Left -> Next
                     setHeroImageIndex(prev => (prev + 1) % images.length);
                     setIsHeroAutoPlaying(false);
                   } else if (info.offset.x > threshold) {
-                    // Swipe Right -> Prev
                     setHeroImageIndex(prev => (prev - 1 + images.length) % images.length);
                     setIsHeroAutoPlaying(false);
                   }
                 }}
                 src={fallbackProduct.image_url?.split(',')[heroImageIndex]}
-                className="max-w-xs md:max-w-md lg:max-w-lg object-contain relative z-10 drop-shadow-2xl h-[300px] md:h-[450px] cursor-grab active:cursor-grabbing"
+                className="max-w-[280px] md:max-w-sm lg:max-w-md object-contain relative z-10 drop-shadow-[0_20px_50px_rgba(0,0,0,0.15)] h-[220px] md:h-[350px] cursor-grab active:cursor-grabbing hover:scale-105 transition-transform duration-500"
                 style={{ mixBlendMode: 'multiply' }}
               />
             </AnimatePresence>
-          </div>
-          <div className="flex-1 space-y-4 max-w-xl order-1 md:order-2 text-center md:text-left">
-            <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-red-500 font-bold tracking-wide">
-              Até 20% de Desconto
-            </motion.p>
-            <motion.h2 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-4xl md:text-5xl lg:text-6xl font-black text-[#1a1a1a] leading-[1.1] tracking-tight">
-              {store.name} <br />
-              Mega Oferta
-            </motion.h2>
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="flex items-center gap-3 justify-center md:justify-start py-4">
-              <span className="text-xl font-bold text-gray-500">A partir de</span>
-              <span className="text-4xl text-red-500 font-black tracking-tighter">{(Number(fallbackProduct.price || 149.99)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            
+            {/* Floating Badge */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute -top-4 -right-4 md:right-0 bg-white p-4 rounded-2xl shadow-2xl border border-gray-50 flex items-center gap-3 z-20 animate-bounce-slow"
+            >
+              <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-emerald-200">
+                <ShieldCheck size={22} className="stroke-[2.5]" />
+              </div>
+              <div>
+                <div className="text-[10px] font-black uppercase text-gray-400 leading-none mb-1 tracking-widest">Garantia</div>
+                <div className="text-xs font-black text-gray-900 uppercase italic">100% Original</div>
+              </div>
             </motion.div>
+          </div>
+
+          <div className="flex-1 space-y-4 max-w-xl order-1 md:order-2 text-center md:text-left">
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="inline-flex items-center gap-2 px-4 py-1.5 bg-red-50 text-red-600 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">
+              <span className="flex h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+              Oferta Exclusiva
+            </motion.div>
+
+            <motion.h2 
+              initial={{ opacity: 0, y: 20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ delay: 0.1 }} 
+              className="text-4xl md:text-6xl lg:text-7xl font-black text-[#0f172a] leading-[0.9] tracking-tighter uppercase italic"
+            >
+              {store.name} <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">Mega</span> <br />
+              Oferta
+            </motion.h2>
+
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="flex items-center gap-4 justify-center md:justify-start py-2">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">A partir de</span>
+                <span className="text-2xl md:text-3xl text-gray-900 font-black tracking-tighter italic">
+                  {(Number(fallbackProduct.price || 149.99)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </span>
+              </div>
+              <div className="h-12 w-px bg-gray-100 hidden md:block" />
+              <div className="hidden md:flex flex-col">
+                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest leading-none mb-1">Pix Discount</span>
+                <span className="text-xl font-black text-emerald-600">10% OFF</span>
+              </div>
+            </motion.div>
+
             <motion.button
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ scale: 1.05, y: -4 }}
+              whileTap={{ scale: 0.95 }}
               transition={{ delay: 0.3 }}
               onClick={() => fallbackProduct.id && setSelectedProduct(fallbackProduct)}
-              className={getButtonStyle(cn("text-white font-bold uppercase text-xs px-8 py-3 shadow hover:brightness-110 transition-all", btnColor))}
+              className={getButtonStyle(cn("w-full md:w-auto text-white font-black uppercase text-xs tracking-[0.2em] px-10 py-3.5 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.2)] hover:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.3)] transition-all", btnColor))}
             >
               COMPRAR AGORA
             </motion.button>
@@ -1132,16 +1186,16 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
   const renderMegaCategorias = () => {
     return (
-      <section id="mega-categories" className="py-16 bg-white border-b border-gray-50">
+      <section id="mega-categories" className="py-10 bg-white border-b border-gray-50">
         <div className="max-w-7xl mx-auto px-4">
           <h3 className="text-xl font-black text-gray-900 border-b-2 border-gray-100 pb-2 mb-8 inline-block pr-6 relative after:absolute after:bottom-[-2px] after:left-0 after:w-16 after:h-0.5 after:bg-[#1868D5]" style={megaVariant !== 'Blue' ? { '--tw-after-bg': themeColor } as any : {}}>
             Comprar por Categoria
           </h3>
           <div className="relative group">
-            <button onClick={() => scrollCategories('left')} className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white shadow-[0_0_15px_rgba(0,0,0,0.1)] rounded-full flex items-center justify-center text-gray-600 hover:text-[#1868D5] hover:scale-110 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-0 focus:outline-none" style={megaVariant !== 'Blue' ? { color: themeColor } as any : {}}>
-              <ChevronDown size={20} className="rotate-90" />
+            <button onClick={() => scrollCategories('left')} className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white shadow-[0_10px_25px_rgba(0,0,0,0.1)] rounded-full flex items-center justify-center text-gray-600 hover:text-[#1868D5] hover:scale-110 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-0 focus:outline-none border border-gray-100" style={megaVariant !== 'Blue' ? { color: themeColor } as any : {}}>
+              <ChevronDown size={24} className="rotate-90" />
             </button>
-            <div ref={categoriesScrollRef} className="flex gap-4 md:gap-8 overflow-x-auto no-scrollbar pb-4 items-start justify-start scroll-smooth w-full">
+            <div ref={categoriesScrollRef} className="flex gap-4 md:gap-8 overflow-x-auto no-scrollbar pb-6 items-start justify-start scroll-smooth w-full px-2">
               {categories.map((cat, i) => {
                 const isActive = activeCategory === cat.id;
                 const isHovered = hoveredCategory === cat.id;
@@ -1153,29 +1207,38 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                     onClick={() => setActiveCategory(activeCategory === cat.id ? null : cat.id)}
                     onMouseEnter={() => setHoveredCategory(cat.id)}
                     onMouseLeave={() => setHoveredCategory(null)}
-                    className="flex flex-col items-center gap-2 md:gap-4 cursor-pointer w-[72px] md:w-auto md:min-w-[100px] shrink-0"
+                    className="flex flex-col items-center gap-4 cursor-pointer group/cat shrink-0"
                   >
                     <div
-                      className="w-16 h-16 md:w-24 md:h-24 rounded-full border flex items-center justify-center overflow-hidden bg-white transition-all duration-200"
-                      style={{
-                        borderColor: highlight ? (isBlueTheme ? '#1868D5' : themeColor) : '#e5e7eb',
-                        boxShadow: highlight ? `0 0 20px rgba(0,0,0,0.07)` : 'none',
-                      }}
-                    >
-                      {cat.image_url ? (
-                        <img src={cat.image_url} className="w-full h-full object-cover transition-transform duration-300 transform group-hover:scale-110" alt={cat.name} />
-                      ) : (
-                        React.createElement(CATEGORY_ICONS[cat.icon] || Package, {
-                          size: 28,
-                          style: { color: highlight ? (isBlueTheme ? '#1868D5' : themeColor) : '#d1d5db' },
-                          className: "transition-colors duration-200"
-                        })
+                      className={cn(
+                        "w-14 h-14 md:w-20 md:h-20 rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center relative overflow-hidden transition-all duration-500",
+                        highlight ? (isBlueTheme ? "bg-[#1868D5] text-white shadow-[0_20px_40px_-10px_rgba(24,104,213,0.4)] scale-110" : "bg-[var(--theme-primary)] text-white shadow-[0_20px_40px_-10px_rgba(0,0,0,0.15)] scale-110") : "bg-gray-50 text-gray-400 hover:bg-white hover:shadow-xl hover:scale-105 border border-transparent hover:border-gray-100"
                       )}
+                      style={megaVariant !== 'Blue' && highlight ? { backgroundColor: themeColor } as any : {}}
+                    >
+                      {highlight && (
+                        <motion.div layoutId="mega-cat-active" className="absolute inset-0 bg-white/10" />
+                      )}
+                      
+                      <div className={cn("relative z-10 w-full h-full flex items-center justify-center p-4 transition-transform duration-500", highlight ? "scale-110 rotate-3" : "group-hover/cat:scale-110")}>
+                        {cat.image_url ? (
+                          <img src={cat.image_url} className="w-full h-full object-cover rounded-2xl" alt={cat.name} />
+                        ) : (
+                          React.createElement(CATEGORY_ICONS[cat.icon] || Package, {
+                            size: 24,
+                            className: "transition-colors duration-200"
+                          })
+                        )}
+                      </div>
                     </div>
                     <span
-                      className="text-[10px] md:text-xs font-bold text-center w-full leading-tight line-clamp-2 md:truncate transition-colors duration-200"
-                      style={{ color: highlight ? (isBlueTheme ? '#1868D5' : themeColor) : '#374151' }}
-                    >{cat.name}</span>
+                      className={cn(
+                        "text-[9px] md:text-xs font-black text-center uppercase tracking-widest transition-all duration-300",
+                        highlight ? "text-gray-900" : "text-gray-400 group-hover/cat:text-gray-600"
+                      )}
+                    >
+                      {cat.name}
+                    </span>
                   </div>
                 );
               })}
@@ -1200,7 +1263,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
     if (!promos[0]?.prod) return null;
 
     return (
-      <section id="mega-promos" className="py-12 bg-white">
+      <section id="mega-promos" className="py-8 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <h3 className="text-xl font-black text-[#1a1a1a] border-b-2 border-gray-100 pb-2 mb-8 inline-block pr-6 relative after:absolute after:bottom-[-2px] after:left-0 after:w-16 after:h-0.5 after:bg-[#1868D5]" style={megaVariant !== 'Blue' ? { '--tw-after-bg': themeColor } as any : {}}>
             Produtos em Alta
@@ -1240,56 +1303,85 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
     const hasDiscount = compareAt && compareAt > finalPrice;
     const discountPercent = hasDiscount ? Math.round((1 - finalPrice / compareAt) * 100) : 0;
 
-    return (
-      <div key={product.id} className="bg-white border text-center border-gray-100 rounded-sm hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(0,0,0,0.06)] transition-all flex flex-col items-center p-5 relative group cursor-pointer" onClick={() => setSelectedProduct(product)}>
-        {/* Discount Badge */}
-        {hasDiscount && (
-          <div className="absolute top-4 left-4 bg-red-500 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm z-20">
-            -{discountPercent}%
-          </div>
-        )}
-
-        {/* Stock Labels Mega */}
-        {product.estoque === 0 ? (
-          <div className="absolute top-4 right-14 z-20 bg-gray-900 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm">
+    // Single Badge Logic: Priority - Esgotado > Últimas unidades > Desconto
+    const renderSingleBadge = () => {
+      if (product.estoque === 0) {
+        return (
+          <div className="bg-gray-900 text-white text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-lg w-fit backdrop-blur-md bg-opacity-90">
             Esgotado
           </div>
-        ) : product.estoque <= 5 ? (
-          <div className="absolute top-4 right-14 z-20 bg-orange-500 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm animate-pulse">
+        );
+      }
+      if (product.estoque <= 5) {
+        return (
+          <div className="bg-orange-500 text-white text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-lg shadow-orange-200 w-fit animate-pulse">
             Últimas unidades
           </div>
-        ) : null}
+        );
+      }
+      if (hasDiscount) {
+        return (
+          <div className="bg-red-500 text-white text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-lg shadow-red-200 w-fit">
+            -{discountPercent}% OFF
+          </div>
+        );
+      }
+      return null;
+    };
 
-        {/* Hover Quick View / Heart */}
-        <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0">
-          <button onClick={(e) => { e.stopPropagation(); toggleFavorite(product); }} className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
-            <Heart size={14} className={favorites.some(f => f.id === product.id) ? 'fill-current text-red-500' : ''} />
+    return (
+      <div key={product.id} className="bg-white border border-gray-100 rounded-2xl hover:-translate-y-1.5 hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.12)] transition-all duration-500 flex flex-col p-3 relative group cursor-pointer overflow-hidden" onClick={() => setSelectedProduct(product)}>
+        {/* Badge Top Left */}
+        <div className="absolute top-4 left-4 z-20">
+          {renderSingleBadge()}
+        </div>
+
+        {/* Hover Actions */}
+        <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0 z-20">
+          <button onClick={(e) => { e.stopPropagation(); toggleFavorite(product); }} className="w-9 h-9 rounded-full bg-white shadow-xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:scale-110 transition-all">
+            <Heart size={15} className={favorites.some(f => f.id === product.id) ? 'fill-current text-red-500' : ''} />
           </button>
-          <button onClick={(e) => { e.stopPropagation(); addToCart(product, null); }} className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center text-gray-500 hover:text-[var(--theme-primary)] hover:bg-[var(--theme-primary)]/10 transition-colors">
-            <ShoppingCart size={14} />
+          <button onClick={(e) => { e.stopPropagation(); addToCart(product, null); }} className="w-9 h-9 rounded-full bg-white shadow-xl flex items-center justify-center text-gray-400 hover:text-[var(--theme-primary)] hover:scale-110 transition-all">
+            <ShoppingCart size={15} />
           </button>
         </div>
 
-        {/* Image */}
-        <div className="w-full aspect-square mb-4">
-          <img src={product.image_url?.split(',')[0]} className="w-full h-full object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-500" alt={product.name} />
+        {/* Image - Forced 1:1 Aspect Ratio */}
+        <div className="w-full aspect-square mb-3 relative rounded-xl overflow-hidden bg-gray-50 flex items-center justify-center">
+          <img 
+            src={product.image_url?.split(',')[0]} 
+            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
+            alt={product.name} 
+          />
         </div>
 
-        {/* Details */}
-        <div className="w-full text-left space-y-1">
-          <p className="text-[10px] font-medium text-gray-400 capitalize">{categories.find(c => c.id === product.category_id)?.name || 'Eletrônicos'}</p>
-          <h4 className="text-xs font-bold text-[#1a1a1a] line-clamp-2 leading-snug group-hover:text-[var(--theme-primary)] transition-colors">{product.name}</h4>
+        {/* Content */}
+        <div className="flex flex-col flex-1 px-1">
+          <p className="text-[8px] font-black text-gray-300 uppercase tracking-[0.2em] mb-1">
+            {categories.find(c => c.id === product.category_id)?.name || 'Coleção'}
+          </p>
+          <h4 className="text-[13px] font-black text-gray-900 line-clamp-2 leading-tight min-h-[32px] mb-2">
+            {product.name}
+          </h4>
 
-          <div className="flex text-[#FFB300] gap-0.5">
-            {[1, 2, 3, 4, 5].map(i => <Star key={i} size={10} fill={i <= 4 ? "currentColor" : "none"} />)}
-            <span className="text-[9px] font-medium text-gray-400 ml-1">(12)</span>
+          <div className="flex items-center gap-1 mb-3">
+            <div className="flex text-[#FFB300] gap-0.5">
+              {[1, 2, 3, 4, 5].map(i => <Star key={i} size={8} fill={i <= 4 ? "currentColor" : "none"} />)}
+            </div>
+            <span className="text-[8px] font-bold text-gray-300">(12)</span>
           </div>
 
-          <div className="flex items-center gap-2 pt-1">
-            <span className="text-sm font-black text-red-500 tracking-tight">{(Number(finalPrice)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-            {hasDiscount && (
-              <span className="text-[10px] font-medium text-gray-400 line-through">{(Number(compareAt)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-            )}
+          <div className="mt-auto">
+            <div className="flex flex-col leading-none">
+              <span className="text-xl font-black text-gray-900 tracking-tighter">
+                {(Number(finalPrice)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </span>
+              {hasDiscount && (
+                <span className="text-[10px] text-gray-400 line-through mt-1 opacity-60 font-bold">
+                  {(Number(compareAt)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -1326,7 +1418,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
     const whatsappLink = store.whatsapp ? `https://wa.me/${store.whatsapp.replace(/\D/g, '')}` : '#';
 
     return (
-      <footer id="mega-footer" className="bg-[#f8f9fa] pt-16 pb-8 border-t border-gray-200">
+      <footer id="mega-footer" className="bg-[#f8f9fa] pt-20 pb-12 border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
             <div className="space-y-4">
@@ -1455,16 +1547,41 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
       'Vintage Retro': "bg-[#ffecd2] border-2 border-[#5d4037] hover:bg-[#ffe0b2] shadow-[4px_4px_0_0_#5d4037]",
       'Rustic Charm': "bg-[#fff8f0] border-[#d7ccc8] hover:border-[#8d6e63] shadow-md",
       'Eco Soft': "bg-white border-emerald-100 rounded-[2.5rem] hover:shadow-xl hover:-translate-y-2",
-      'Modern Shop': "bg-white border-gray-100 hover:shadow-2xl hover:border-[var(--theme-primary)]/20"
-    }[template as string] || "bg-white border-gray-100 hover:shadow-2xl";
+      'Modern Shop': "bg-white border-gray-100 rounded-xl hover:shadow-2xl hover:-translate-y-1.5 hover:border-[var(--theme-primary)]/20 transition-all duration-300"
+    }[template as string] || "bg-white border-gray-100 rounded-xl hover:shadow-2xl transition-all";
 
     const imageStyles = {
-      'Eco Soft': "rounded-[2rem] mx-2 mt-2",
-      'Playful Pop': "rounded-2xl mx-2 mt-2 border-2 border-black",
-      'Zen Space': "rounded-xl mx-3 mt-3 shadow-inner",
+      'Eco Soft': "rounded-[2rem] m-2",
+      'Playful Pop': "rounded-2xl m-2 border-2 border-black",
+      'Zen Space': "rounded-xl m-2 shadow-inner",
       'Vintage Retro': "border-b-2 border-[#5d4037]",
-      'Pure Minimal': "aspect-[4/5] object-cover"
+      'Pure Minimal': "aspect-square object-cover"
     }[template as string] || "aspect-square";
+
+    const renderSingleBadge = () => {
+      if (prod.estoque === 0) {
+        return (
+          <div className="px-2 py-0.5 bg-gray-900 text-white text-[8px] font-black uppercase tracking-widest rounded-full shadow-sm">
+            Esgotado
+          </div>
+        );
+      }
+      if (prod.estoque <= 5) {
+        return (
+          <div className="px-2 py-0.5 bg-orange-500 text-white text-[8px] font-black uppercase tracking-widest rounded-full shadow-sm animate-pulse">
+            Últimas unidades
+          </div>
+        );
+      }
+      if (prod.compare_at_price && prod.compare_at_price > prod.price) {
+        return (
+          <div className="px-2 py-0.5 bg-red-500 text-white text-[8px] font-black uppercase tracking-widest rounded-full shadow-sm">
+            -{Math.round((1 - prod.price / prod.compare_at_price) * 100)}%
+          </div>
+        );
+      }
+      return null;
+    };
 
     return (
       <motion.div
@@ -1474,32 +1591,19 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
         transition={{ delay: idx * 0.05 }}
         onClick={() => setSelectedProduct(prod)}
         className={cn(
-          "relative border overflow-hidden transition-all cursor-pointer",
+          "relative border overflow-hidden transition-all cursor-pointer flex flex-col",
           cardStyles,
           buttonStyle === 'pill' && template !== 'Eco Soft' ? "rounded-3xl" :
-            buttonStyle === 'squared' ? "rounded-none" : "rounded-2xl"
+            buttonStyle === 'squared' ? "rounded-none" : "rounded-xl"
         )}
       >
-        {/* Badge */}
-        {prod.compare_at_price && prod.compare_at_price > prod.price && (
-          <div className="absolute top-3 left-3 z-10 px-2 py-1 bg-red-500 text-white text-[8px] font-black uppercase tracking-tighter rounded">
-            -{Math.round((1 - prod.price / prod.compare_at_price) * 100)}%
-          </div>
-        )}
-        
-        {/* Stock Labels */}
-        {prod.estoque === 0 ? (
-          <div className="absolute top-3 right-3 z-10 px-2 py-1 bg-gray-900/80 text-white text-[8px] font-black uppercase tracking-tighter rounded backdrop-blur-sm">
-            Esgotado
-          </div>
-        ) : prod.estoque <= 5 ? (
-          <div className="absolute top-3 right-3 z-10 px-2 py-1 bg-orange-500 text-white text-[8px] font-black uppercase tracking-tighter rounded animate-pulse">
-            Últimas unidades
-          </div>
-        ) : null}
+        {/* Badge Top Left */}
+        <div className="absolute top-3 left-3 z-10">
+          {renderSingleBadge()}
+        </div>
 
-        {/* Product Image */}
-        <div className={cn("relative overflow-hidden group", imageStyles)}>
+        {/* Product Image - Standardized to Aspect Square */}
+        <div className={cn("relative overflow-hidden group aspect-square flex items-center justify-center bg-gray-50", imageStyles)}>
           <img
             src={prod.image_url?.split(',')[0]}
             alt={prod.name}
@@ -1512,34 +1616,53 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
         </div>
 
         {/* Info */}
-        <div className="p-4 md:p-5 space-y-2">
-          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">
+        <div className="p-3 md:p-4 space-y-1 flex flex-col flex-1">
+          <p className="text-[7px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none mb-0.5">
             {categories.find(c => c.id === prod.category_id)?.name || 'Coleção'}
           </p>
           <h3 className={cn(
-            "text-xs md:text-sm font-black tracking-tight line-clamp-1 italic uppercase",
+            "text-[12px] md:text-[14px] font-black tracking-tight line-clamp-2 leading-tight uppercase mb-1",
             template === 'Luxury Dark' ? "text-gray-200" : "text-gray-900"
           )}>
             {prod.name}
           </h3>
 
-          <div className="flex items-center justify-between pt-1">
-            <div className="flex flex-col">
+          {/* Rating */}
+          <div className="flex items-center gap-1 mb-2">
+            <div className="flex text-[#FFB300] gap-0.5">
+              {[1, 2, 3, 4, 5].map(i => <Star key={i} size={8} fill={i <= 4 ? "currentColor" : "none"} />)}
+            </div>
+            <span className="text-[8px] font-bold text-gray-300">(12)</span>
+          </div>
+
+          <div className="flex flex-col mt-auto">
               <span className={cn(
-                "text-sm md:text-lg font-black tracking-tighter italic",
-                template === 'Luxury Dark' ? "text-[var(--theme-primary)]" : "text-gray-900"
+                "text-xl md:text-2xl font-black tracking-tighter italic leading-none",
+                template === 'Luxury Dark' ? "text-[var(--theme-primary)]" : "text-emerald-600"
               )}>
                 {(prod.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
               </span>
-              <span className="text-[8px] font-bold text-emerald-500 uppercase">ou Pix com {Number(prod.pix_discount_percent !== null && prod.pix_discount_percent !== undefined ? prod.pix_discount_percent : 10)}% OFF</span>
+              <div className="flex items-center gap-2 mt-1">
+                {prod.compare_at_price && prod.compare_at_price > prod.price && (
+                  <span className="text-[10px] text-gray-400 line-through opacity-70 font-bold">
+                    {(prod.compare_at_price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </span>
+                )}
+                <span className="text-[8px] font-black text-emerald-500 uppercase tracking-tighter">ou Pix {Number(prod.pix_discount_percent !== null && prod.pix_discount_percent !== undefined ? prod.pix_discount_percent : 10)}% OFF</span>
+              </div>
             </div>
           </div>
-        </div>
       </motion.div>
     );
   };
 
   const renderHero = () => {
+    if (template === 'Futuristic') return (
+      <>
+        {renderFuturisticHero()}
+        {renderFuturisticDestaques()}
+      </>
+    );
     if (isMegaStore) return renderMegaHero();
 
     if (!store?.banner_url && template !== 'Pure Minimal') return null;
@@ -1788,6 +1911,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
   };
 
   const renderProducts = () => {
+    if (template === 'Futuristic') return renderFuturisticProducts();
     if (filteredProducts.length === 0) {
       return (
         <div className="py-20 md:py-40 flex flex-col items-center text-center">
@@ -1833,7 +1957,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                 Produtos
               </button>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-10">
               {displayedProducts.map(prod => renderMegaProductCard(prod))}
             </div>
           </div>
@@ -1888,6 +2012,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
   };
 
   const renderTrustSection = () => {
+    if (template === 'Futuristic') return null; // Built into destaques already
     return (
       <div className="bg-gray-50/50 py-16 border-y border-gray-100">
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -1910,7 +2035,279 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
     );
   };
 
+  const renderFuturisticHeader = () => {
+    return (
+      <header className="sticky top-0 z-50 w-full bg-[#020617]/80 backdrop-blur-xl border-b border-white/5 shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
+        <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-3 cursor-pointer group shrink-0" onClick={() => { setActiveCategory(null); setSearchQuery(''); }}>
+            {store.logo_url ? (
+              <img src={store.logo_url} alt={store.name} className="h-8 md:h-10 object-contain drop-shadow-[0_0_15px_rgba(56,189,248,0.5)] transition-all group-hover:drop-shadow-[0_0_25px_rgba(56,189,248,0.8)]" />
+            ) : (
+              <h1 className="text-xl md:text-2xl font-black text-white tracking-tighter uppercase italic drop-shadow-[0_0_10px_rgba(56,189,248,0.5)]">
+                {store.name}
+              </h1>
+            )}
+          </div>
+          <div className="hidden md:flex flex-1 max-w-xl mx-8 relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
+            <input
+              type="text"
+              placeholder="Buscar no sistema..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 h-11 pl-5 pr-12 rounded-full text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all relative z-10"
+            />
+            <button className="absolute right-1 top-1 h-9 w-10 flex items-center justify-center text-gray-400 hover:text-blue-400 transition-colors z-20 bg-white/5 rounded-full">
+              <Search size={16} />
+            </button>
+          </div>
+          <div className="flex items-center gap-4 text-white shrink-0">
+            <div className="flex items-center gap-2 cursor-pointer group" onClick={() => { if (customerSession) { setActiveDashboardTab('profile'); setShowOrders(true); } else { setIsAuthModalOpen(true); } }}>
+              <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-blue-500/20 group-hover:border-blue-500/50 group-hover:text-blue-400 transition-all group-hover:shadow-[0_0_15px_rgba(56,189,248,0.3)]">
+                <User size={18} />
+              </div>
+            </div>
+            <button onClick={() => { setActiveDashboardTab('favorites'); setShowOrders(true); }} className="w-10 h-10 rounded-full bg-white/5 border border-white/10 hidden md:flex items-center justify-center hover:bg-purple-500/20 hover:border-purple-500/50 hover:text-purple-400 transition-all hover:shadow-[0_0_15px_rgba(168,85,247,0.3)] relative">
+              <Heart size={18} className={favorites.length > 0 ? "fill-current text-purple-400" : ""} />
+              {favorites.length > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(168,85,247,0.8)]">{favorites.length}</span>}
+            </button>
+            <button onClick={() => setIsCartOpen(true)} className="flex items-center gap-3 bg-white/5 border border-white/10 pr-4 pl-1 py-1 rounded-full hover:bg-white/10 transition-all group hover:border-blue-500/30">
+              <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-[0_0_15px_rgba(56,189,248,0.5)] group-hover:scale-105 transition-transform relative">
+                <ShoppingCart size={14} />
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-white text-blue-600 text-[10px] font-black rounded-full flex items-center justify-center shadow-sm">{cart.reduce((a, i) => a + i.quantity, 0)}</span>
+              </div>
+              <div className="hidden lg:flex flex-col items-start leading-none justify-center">
+                <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Carrinho</span>
+                <span className="text-xs font-black text-white">{(cartTotal).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </header>
+    );
+  };
+
+  const renderFuturisticHero = () => {
+    const featuredProduct = store?.featured_product_id ? (products.find(p => p.id === store.featured_product_id)) : null;
+    const heroItems = featuredProduct ? [featuredProduct] : (bestSellers.length > 0 ? bestSellers.slice(0, 5) : products.slice(0, 5));
+    const currentHeroProduct = heroItems[currentHeroIndex % heroItems.length];
+    
+    // Auto-advance product index if needed (reusing the same auto-play logic if desired)
+    // For now we'll focus on the manual navigation requested.
+
+    const nextHero = () => {
+      if (heroItems.length === 1) {
+        const images = currentHeroProduct?.image_url?.split(',') || [];
+        if (images.length > 1) {
+          setHeroImageIndex((prev) => (prev + 1) % images.length);
+          return;
+        }
+      }
+      setCurrentHeroIndex((prev) => (prev + 1) % heroItems.length);
+      setHeroImageIndex(0); // Reset image index when product changes
+    };
+
+    const prevHero = () => {
+      if (heroItems.length === 1) {
+        const images = currentHeroProduct?.image_url?.split(',') || [];
+        if (images.length > 1) {
+          setHeroImageIndex((prev) => (prev - 1 + images.length) % images.length);
+          return;
+        }
+      }
+      setCurrentHeroIndex((prev) => (prev - 1 + heroItems.length) % heroItems.length);
+      setHeroImageIndex(0); // Reset image index when product changes
+    };
+    return (
+      <div className="relative pt-16 pb-24 overflow-hidden bg-[#020617] md:min-h-[70vh] flex items-center">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 mix-blend-overlay" />
+        <div className="absolute top-1/4 -left-64 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] mix-blend-screen" />
+        <div className="absolute bottom-1/4 -right-64 w-[600px] h-[600px] bg-purple-600/20 rounded-full blur-[120px] mix-blend-screen" />
+        
+        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center gap-12 relative z-10 w-full">
+          <div className="flex-1 space-y-8 text-center md:text-left z-20">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[10px] font-black uppercase tracking-widest shadow-[0_0_15px_rgba(56,189,248,0.2)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+              Oferta Especial
+            </motion.div>
+            <motion.h2 
+              key={`title-${currentHeroIndex}`}
+              initial={{ opacity: 0, y: 30 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ delay: 0.1 }} 
+              className="text-4xl md:text-6xl lg:text-7xl font-black text-white leading-[0.9] tracking-tighter uppercase italic"
+            >
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
+                {currentHeroProduct?.name?.split(' ')[0]}
+              </span> {currentHeroProduct?.name?.split(' ').slice(1).join(' ')}
+            </motion.h2>
+            <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-lg md:text-xl text-gray-400 font-medium max-w-lg">
+              {currentHeroProduct?.description?.slice(0, 100) || "Frete rápido + garantia de 7 dias. Adquira o que há de mais avançado."}...
+            </motion.p>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4 pt-4">
+              <button onClick={() => currentHeroProduct?.id && setSelectedProduct(currentHeroProduct)} className="w-full sm:w-auto px-10 py-4 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black uppercase text-[11px] tracking-[0.2em] shadow-[0_0_30px_rgba(79,70,229,0.4)] transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(79,70,229,0.6)] border border-white/10 group flex items-center justify-center gap-2">
+                Comprar Agora
+                <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+              <button className="w-full sm:w-auto px-10 py-4 rounded-full bg-white/5 hover:bg-white/10 text-white font-black uppercase text-[11px] tracking-[0.2em] border border-white/10 transition-all hover:border-white/20 flex items-center justify-center gap-2">
+                <ShieldCheck size={14} className="text-blue-400" />
+                Garantia de 7 dias
+              </button>
+            </motion.div>
+          </div>
+          <div className="flex-1 w-full flex justify-center mt-6 md:mt-0 relative group">
+            <div className="absolute inset-0 bg-blue-500/20 blur-[100px] rounded-full group-hover:bg-blue-400/30 transition-colors duration-1000" />
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={`product-${currentHeroIndex}-${heroImageIndex}`}
+                initial={{ opacity: 0, scale: 0.9, filter: 'brightness(0.5) contrast(1.2)' }}
+                animate={{ opacity: 1, scale: 1, filter: 'brightness(1) contrast(1.2)' }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.5 }}
+                src={currentHeroProduct?.image_url?.split(',')[heroImageIndex]}
+                className="max-w-[280px] md:max-w-md lg:max-w-lg object-contain relative z-10 drop-shadow-[0_0_50px_rgba(56,189,248,0.3)] h-[280px] md:h-[450px]"
+              />
+            </AnimatePresence>
+
+            {/* Navigation Arrows */}
+            {heroItems.length > 1 && (
+              <>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); prevHero(); }}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-blue-500/20 hover:border-blue-500/50 transition-all"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); nextHero(); }}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-blue-500/20 hover:border-blue-500/50 transition-all"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </>
+            )}
+            <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="absolute -right-2 md:-right-4 top-1/4 bg-white/5 backdrop-blur-md border border-white/10 p-3 md:p-4 rounded-2xl shadow-[0_0_30px_rgba(0,0,0,0.5)] z-20 flex flex-col items-center">
+              <span className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-br from-yellow-300 to-amber-500 mb-1">4.9/5</span>
+              <div className="flex text-yellow-500 gap-0.5"><Star size={10} className="fill-current"/><Star size={10} className="fill-current"/><Star size={10} className="fill-current"/><Star size={10} className="fill-current"/><Star size={10} className="fill-current"/></div>
+              <span className="text-[8px] text-gray-400 uppercase tracking-widest mt-2">{store.name} Certified</span>
+            </motion.div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderFuturisticDestaques = () => {
+    if (bestSellers.length === 0) return null;
+    return (
+      <section className="py-12 bg-[#020617] border-t border-white/5 relative z-10 w-full overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 overflow-x-auto no-scrollbar flex gap-4 md:gap-6 pb-4">
+          <div className="shrink-0 flex items-center justify-center p-6 bg-gradient-to-br from-blue-900/40 to-purple-900/40 border border-white/10 rounded-3xl min-w-[260px] text-center">
+             <div>
+               <h3 className="text-lg font-black text-white italic tracking-tight uppercase mb-2">Fast <br/><span className="text-blue-400">Delivery</span></h3>
+               <p className="text-[9px] text-gray-400 uppercase tracking-widest">Garantia Nacional</p>
+             </div>
+          </div>
+          <div className="shrink-0 flex items-center justify-center p-6 bg-gradient-to-br from-purple-900/40 to-pink-900/40 border border-white/10 rounded-3xl min-w-[260px] text-center">
+             <div>
+               <h3 className="text-lg font-black text-white italic tracking-tight uppercase mb-2">+ 5.000 <br/><span className="text-purple-400">Clientes Ativos</span></h3>
+               <p className="text-[9px] text-gray-400 uppercase tracking-widest">Suporte WhatsApp</p>
+             </div>
+          </div>
+          {bestSellers.slice(0, 3).map((prod, i) => (
+            <div key={i} onClick={() => setSelectedProduct(prod)} className="shrink-0 flex items-center gap-4 bg-white/5 border border-white/10 p-4 rounded-3xl min-w-[280px] cursor-pointer hover:bg-white/10 transition-all hover:border-blue-500/30 group">
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-black/50 overflow-hidden shrink-0 border border-white/5 group-hover:border-blue-500/50 transition-colors p-2 flex items-center justify-center">
+                <img src={prod.image_url?.split(',')[0]} className="w-full h-full object-contain mix-blend-screen group-hover:scale-110 transition-transform duration-500" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">Top Seller</span>
+                <h4 className="text-xs font-bold text-white leading-tight line-clamp-1 mb-1">{prod.name}</h4>
+                <div className="flex items-center gap-1.5 mt-auto">
+                    <span className="text-sm md:text-base font-black text-white">{(Number(prod.price)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  };
+
+  const renderFuturisticProducts = () => {
+    return (
+      <div className="flex flex-col space-y-12 pb-16">
+        <div className="flex flex-wrap items-center gap-2 md:gap-3">
+          <button
+            onClick={() => setActiveCategory(null)}
+            className={cn(
+              "px-4 md:px-5 py-2 md:py-2.5 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest transition-all border",
+              !activeCategory ? 'bg-blue-600 text-white border-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.4)]' : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white'
+            )}
+          >
+            Todos
+          </button>
+          {categories.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              className={cn(
+                "px-4 md:px-5 py-2 md:py-2.5 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest transition-all border",
+                activeCategory === cat.id ? 'bg-blue-600 text-white border-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.4)]' : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white'
+              )}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+        
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          {filteredProducts.map((prod, idx) => {
+            const finalPrice = prod.price;
+            const compareAt = prod.compare_at_price;
+            const hasDiscount = compareAt && compareAt > finalPrice;
+            const discountPercent = hasDiscount ? Math.round((1 - finalPrice / compareAt) * 100) : 0;
+            return (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} key={prod.id} className="bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(56,189,248,0.15)] hover:border-blue-500/30 hover:bg-white/10 transition-all duration-500 flex flex-col p-3 md:p-4 relative group cursor-pointer" onClick={() => setSelectedProduct(prod)}>
+                <div className="absolute top-3 right-3 md:top-4 md:right-4 z-20">
+                  <button onClick={(e) => { e.stopPropagation(); toggleFavorite(prod); }} className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-gray-400 hover:text-pink-500 transition-colors border border-white/10 hover:border-pink-500/50 hover:shadow-[0_0_15px_rgba(236,72,153,0.5)]">
+                    <Heart size={14} className={favorites.some(f => f.id === prod.id) ? 'fill-current text-pink-500' : ''} />
+                  </button>
+                </div>
+                {hasDiscount && (
+                  <div className="absolute top-3 left-3 md:top-4 md:left-4 z-20">
+                    <div className="bg-red-500/80 backdrop-blur-md border border-red-500 text-white text-[8px] md:text-[9px] font-black uppercase px-2 py-1 rounded-full shadow-[0_0_15px_rgba(239,68,68,0.5)]">
+                      -{discountPercent}%
+                    </div>
+                  </div>
+                )}
+                <div className="w-full aspect-[4/3] md:aspect-square mb-3 md:mb-4 relative rounded-xl md:rounded-2xl overflow-hidden bg-black/30 flex items-center justify-center p-3 md:p-4 border border-white/5">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-10" />
+                  <img src={prod.image_url?.split(',')[0]} className="w-full h-full object-contain mix-blend-screen transition-transform duration-700 group-hover:scale-110 relative z-0" alt={prod.name} />
+                </div>
+                <div className="flex flex-col flex-1">
+                  <p className="text-[8px] md:text-[9px] font-bold text-blue-400 uppercase tracking-widest mb-1">{categories.find(c => c.id === prod.category_id)?.name || 'Categoria'}</p>
+                  <h4 className="text-xs md:text-sm font-bold text-white line-clamp-2 leading-tight min-h-[36px] md:min-h-[40px] mb-2 md:mb-3 group-hover:text-blue-300 transition-colors">{prod.name}</h4>
+                  <div className="flex flex-col mt-auto gap-0.5">
+                    {hasDiscount && <span className="text-[9px] md:text-[10px] text-gray-500 line-through">{(Number(compareAt)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>}
+                    <div className="flex items-end justify-between">
+                      <span className="text-base md:text-xl font-black text-white tracking-tight">{(Number(finalPrice)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                      <div className="flex items-center text-[9px] md:text-[10px] font-bold text-yellow-500 gap-0.5"><Star size={10} className="fill-current"/> 4.9</div>
+                    </div>
+                  </div>
+                </div>
+                <button onClick={(e) => { e.stopPropagation(); addToCart(prod, null); }} className="absolute bottom-3 right-3 md:bottom-4 md:right-4 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 w-8 h-8 md:w-10 md:h-10 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-[0_0_20px_rgba(37,99,235,0.6)] transition-all z-20 hover:bg-blue-500 hover:scale-110">
+                  <ShoppingCart size={14} className="md:w-4 md:h-4" />
+                </button>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   const renderHeader = () => {
+    if (template === 'Futuristic') return renderFuturisticHeader();
     if (isMegaStore) return renderMegaHeader();
 
     return (
@@ -3893,6 +4290,254 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
     );
   }
 
+  const renderCinematicTemplate = () => {
+    // Pegar produtos reais
+    const heroProduct = products[0];
+    const sideProduct1 = products[1];
+    const sideProduct2 = products[2];
+    const bestSellers = products.slice(0, 8);
+    const dailyOffers = products.slice(0, 3);
+
+    return (
+      <div className="relative min-h-screen w-full bg-[#0a0f16] text-white overflow-hidden selection:bg-indigo-500/30 font-sans pb-32">
+        {/* Fundo dinâmico com glows idêntico à imagem */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 blur-[120px] rounded-full" />
+          <div className="absolute top-[20%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/10 blur-[150px] rounded-full" />
+          <div className="absolute bottom-[-10%] left-[20%] w-[40%] h-[40%] bg-purple-600/10 blur-[120px] rounded-full" />
+          {/* Ondas sutis baseadas no fundo */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:100px_100px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,#000_20%,transparent_100%)] opacity-20" />
+        </div>
+
+        {/* HEADER GLASS */}
+        <header className="relative z-50 flex items-center justify-between px-8 py-6 max-w-[1600px] mx-auto">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-black tracking-tighter hidden md:block">{store.name}</h1>
+          </div>
+          <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
+            {store.logo_url ? (
+               <img src={store.logo_url} alt="Logo" className="h-12 w-auto object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
+            ) : (
+              <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 tracking-tighter md:hidden">
+                {store.name}
+              </h1>
+            )}
+          </div>
+          <div className="flex items-center gap-6 text-gray-300">
+            <button className="flex items-center gap-2 hover:text-white transition-colors">
+              <User size={18} />
+              <span className="text-xs font-medium hidden lg:block">Minha Conta</span>
+            </button>
+            <button className="hover:text-white transition-colors"><Heart size={18} /></button>
+            <button onClick={() => setIsCartOpen(true)} className="hover:text-white transition-colors relative">
+               <ShoppingBag size={18} />
+               {cart.length > 0 && <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-yellow-500 text-black text-[9px] font-black rounded-full flex items-center justify-center">{cart.length}</span>}
+            </button>
+          </div>
+        </header>
+
+        <div className="relative z-10 max-w-[1600px] mx-auto px-4 md:px-8">
+          {/* HERO SECTION */}
+          <section className="flex flex-col lg:flex-row items-center pt-10 pb-20 justify-between min-h-[70vh]">
+            {/* HERO LEFT - TEXTOS */}
+            <div className="w-full lg:w-[45%] space-y-5 relative z-20 mt-10 lg:mt-0">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                <span className="text-[9px] font-bold text-gray-300 tracking-wider uppercase opacity-70">Oferta Especial</span>
+              </div>
+              <h2 className="text-2xl lg:text-4xl font-bold text-white leading-tight tracking-tight max-w-[85%]">
+                {heroProduct?.name || 'Inovação e Performance'}
+              </h2>
+              <p className="text-base text-gray-400 font-medium opacity-60">
+                Frete rápido + garantia de 7 dias
+              </p>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <button 
+                  onClick={() => {
+                    if (heroProduct) {
+                      setSelectedProduct(heroProduct);
+                      setIsCartOpen(true);
+                      addToCart(heroProduct, null);
+                    }
+                  }}
+                  className="px-6 py-3 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-black text-[12px] font-black rounded-full shadow-[0_0_20px_rgba(202,138,4,0.2)] transition-all hover:scale-105 uppercase tracking-wider"
+                >
+                  Comprar agora
+                </button>
+                <button className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 backdrop-blur-md text-white text-[12px] font-bold rounded-full transition-all flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-gray-400" /> Garantia
+                </button>
+              </div>
+            </div>
+
+            {/* HERO RIGHT - IMAGEM GIGANTE + CARDS LATERAIS */}
+            <div className="w-full lg:w-[55%] relative h-[500px] lg:h-[700px] mt-12 lg:mt-0">
+               {/* Produto Primário */}
+               <div className="absolute inset-0 flex items-center justify-center lg:justify-end lg:pr-32 animate-in slide-in-from-right-12 duration-1000">
+                 {heroProduct && heroProduct.image_url ? (
+                   <img 
+                     src={heroProduct.image_url.split(',')[0]} 
+                     alt={heroProduct.name} 
+                     className="max-h-full max-w-[120%] object-contain drop-shadow-[0_0_80px_rgba(59,130,246,0.3)] hover:drop-shadow-[0_0_120px_rgba(59,130,246,0.5)] transition-all duration-700 hover:scale-105 cursor-pointer z-10"
+                     onClick={() => setSelectedProduct(heroProduct)}
+                   />
+                 ) : (
+                   <div className="w-96 h-96 bg-white/5 rounded-full blur-2xl flex items-center justify-center" />
+                 )}
+               </div>
+
+               {/* Cartões Laterais Flutuantes (Direita) */}
+               <div className="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 flex-col gap-4 z-20">
+                 {/* Card 1 */}
+                 {sideProduct1 && (
+                   <div 
+                     onClick={() => setSelectedProduct(sideProduct1)}
+                     className="w-48 bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 p-3 flex flex-col gap-3 hover:bg-white/10 transition-colors cursor-pointer group"
+                   >
+                     <div className="relative aspect-video rounded-2xl overflow-hidden bg-black/50">
+                       <span className="absolute top-2 left-2 z-10 bg-yellow-500 text-black text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg">
+                         🔥 TOP
+                       </span>
+                       <img src={sideProduct1.image_url?.split(',')[0]} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500" />
+                     </div>
+                     <div className="px-1 pb-1">
+                       <p className="text-xs font-bold text-white line-clamp-1">{sideProduct1.name}</p>
+                       <p className="text-[10px] text-gray-400">{(Number(sideProduct1.price)).toLocaleString('pt-BR', {style: 'currency', currency:'BRL'})}</p>
+                     </div>
+                   </div>
+                 )}
+                 {/* Card 2 */}
+                 {sideProduct2 && (
+                   <div 
+                     onClick={() => setSelectedProduct(sideProduct2)}
+                     className="w-48 bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 p-3 flex flex-col gap-3 hover:bg-white/10 transition-colors cursor-pointer group"
+                   >
+                     <div className="relative aspect-video rounded-2xl overflow-hidden bg-black/50">
+                       <img src={sideProduct2.image_url?.split(',')[0]} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500" />
+                     </div>
+                     <div className="px-1 pb-1 flex justify-between items-center">
+                       <div>
+                         <p className="text-xs font-bold text-white line-clamp-1">{sideProduct2.name}</p>
+                         <p className="text-[10px] text-yellow-500 flex items-center gap-1"><Star size={10} fill="currentColor"/> 4.9</p>
+                       </div>
+                       <button className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white text-gray-400 transition-colors">
+                         <ChevronRight size={12} />
+                       </button>
+                     </div>
+                   </div>
+                 )}
+               </div>
+            </div>
+          </section>
+
+          {/* BENEFÍCIOS - 4 CARDS HORIZONTAIS */}
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-20 relative z-20">
+            {[
+              { icon: Truck, title: "Entrega Expressa", desc: "Para todo Brasil", glow: "text-blue-400" },
+              { icon: ShieldCheck, title: "Compra Garantida", desc: "Devolução grátis", glow: "text-purple-400" },
+              { icon: User, title: "+5.000 clientes", desc: "Satisfeitos", glow: "text-emerald-400" },
+              { icon: Headphones, title: "Suporte 24/7", desc: "Especializado", glow: "text-gray-300" }
+            ].map((ben, i) => (
+              <div key={i} className="bg-white/5 hover:bg-white/[0.07] backdrop-blur-md rounded-2xl border border-white/5 p-4 flex items-center gap-4 transition-colors">
+                <div className={cn("w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center shrink-0 border border-white/10", ben.glow)}>
+                  <ben.icon size={20} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">{ben.title}</h4>
+                  <p className="text-[10px] text-gray-400">{ben.desc}</p>
+                </div>
+              </div>
+            ))}
+          </section>
+
+          {/* TÍTULOS CATEGORIAS */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 relative z-20">
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 custom-scrollbar hide-scrollbar">
+              {['Todos', ...categories.slice(0,4)].map((cat, i) => (
+                <button 
+                  key={i} 
+                  onClick={() => i === 0 ? setActiveCategory('') : setActiveCategory(cat.name)}
+                  className={cn(
+                    "px-6 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border",
+                    (i === 0 && !activeCategory) || activeCategory === cat.name
+                      ? "bg-white text-black border-white" 
+                      : "bg-transparent text-gray-400 border-white/20 hover:border-white/40 hover:text-white"
+                  )}
+                >
+                  {i === 0 ? 'Dortco' : cat.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* PRODUTOS CARROSSEL (Mais vendidas) */}
+          <section className="flex gap-4 overflow-x-auto pb-12 snap-x hide-scrollbar relative z-20">
+            {bestSellers.map((p, i) => (
+              <div 
+                key={p.id} 
+                className="min-w-[160px] md:min-w-[190px] snap-start flex flex-col gap-2 cursor-pointer group"
+                onClick={() => setSelectedProduct(p)}
+              >
+                <div className="w-full aspect-square rounded-[1.25rem] bg-white/5 border border-white/5 flex items-center justify-center relative overflow-hidden group-hover:border-white/20 transition-all">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="w-full h-full p-6 flex items-center justify-center">
+                    <img 
+                      src={p.image_url?.split(',')[0]} 
+                      alt={p.name} 
+                      className="max-w-full max-h-full object-contain filter drop-shadow-xl group-hover:scale-110 transition-transform duration-500 z-0" 
+                    />
+                  </div>
+                  <div className="absolute bottom-4 left-0 w-full flex justify-center z-20 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 px-4">
+                    <button className="w-full bg-white text-black text-[8px] font-black py-2 rounded-full flex items-center justify-center gap-1 uppercase tracking-widest shadow-xl">
+                      Ver detalhes
+                    </button>
+                  </div>
+                </div>
+                <div className="px-1 space-y-1">
+                  <h4 className="text-[10px] font-bold text-gray-400 line-clamp-1 h-4">{p.name}</h4>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-black text-white">
+                      {(Number(p.price)).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}
+                    </p>
+                    <span className="text-yellow-500 text-[9px] flex items-center gap-0.5 font-bold">
+                      <Star size={9} fill="currentColor"/> 4.9
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </section>
+
+          {/* OFERTAS DO DIA */}
+          <div className="relative z-20 pb-20">
+             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                {products.slice(0, 4).map((p, i) => (
+                  <div key={p.id} className="relative bg-white/5 backdrop-blur-md rounded-[1.25rem] border border-white/5 overflow-hidden flex flex-col aspect-square group cursor-pointer shadow-2xl" onClick={() => setSelectedProduct(p)}>
+                    <div className="absolute top-0 right-0 p-2 z-20">
+                      <button className="w-6 h-6 rounded-full bg-white/10 hover:bg-white text-white hover:text-black flex items-center justify-center backdrop-blur-md transition-colors shadow-lg">
+                        <Plus size={12} />
+                      </button>
+                    </div>
+                    <div className="w-full h-full p-8 md:p-10 flex items-center justify-center relative z-10">
+                      <img 
+                        src={p.image_url?.split(',')[0]} 
+                        className="max-w-full max-h-full object-contain drop-shadow-2xl group-hover:scale-110 transition-all duration-500" 
+                      />
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f16] via-transparent to-transparent opacity-70 group-hover:opacity-90 transition-opacity z-20" />
+                    <div className="absolute bottom-0 left-0 w-full p-4 z-30">
+                      <h4 className="text-[10px] font-bold text-gray-200 line-clamp-1 mb-0.5">{p.name}</h4>
+                      <p className="text-indigo-400 font-black text-[11px]">{(Number(p.price)).toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</p>
+                    </div>
+                  </div>
+                ))}
+             </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div
       className={cn("min-h-screen selection:bg-indigo-500/20 selection:text-indigo-500", getBackgroundStyles())}
@@ -3927,41 +4572,25 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
         .custom-scrollbar::-webkit-scrollbar-thumb { background: ${themeColor}22; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: ${themeColor}44; }
       `}</style>
+      
+      {template === 'Cinematic Premium' ? (
+        renderCinematicTemplate()
+      ) : (
+        <>
+          {renderHeader()}
+          <main className="min-h-[80vh]">
+            {renderHero()}
+            {isMegaStore && renderMegaCategorias()}
 
-      {renderHeader()}
+            {/* Content Section */}
+            <section id="catalogo" className="max-w-7xl mx-auto px-4 py-16 md:py-24">
+              {renderProducts()}
+            </section>
 
-      <main className="min-h-[80vh]">
-        {renderHero()}
-        {isMegaStore && renderMegaCategorias()}
-
-
-        {/* Categorias Bar (Mobile Quick Nav) */}
-        {template !== 'Pure Minimal' && (
-          <div className="lg:hidden bg-gray-50/50 backdrop-blur-md py-4 px-4 overflow-x-auto no-scrollbar flex gap-3 border-b border-gray-100 sticky top-[72px] z-40">
-            {categories.map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategory(activeCategory === cat.id ? null : cat.id)}
-                className={cn(
-                  "px-4 py-2 rounded-full whitespace-nowrap text-[10px] font-black uppercase tracking-widest transition-all",
-                  activeCategory === cat.id
-                    ? 'bg-[var(--theme-primary)] text-white shadow-lg shadow-[var(--theme-primary)]/20'
-                    : 'bg-white border border-gray-100 text-gray-400'
-                )}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Content Section */}
-        <section id="catalogo" className="max-w-7xl mx-auto px-4 py-16 md:py-24">
-          {renderProducts()}
-        </section>
-
-        {renderTrustSection()}
-      </main>
+            {renderTrustSection()}
+          </main>
+        </>
+      )}
 
       {/* Cart Drawer — Multi-Step Checkout */}
       <AnimatePresence>
@@ -4167,28 +4796,28 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               <motion.div
                 initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col overflow-hidden"
+                className={cn("relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col overflow-hidden", template === 'Futuristic' ? "!bg-[#020617] !text-white border-l border-white/10 *:!text-white" : "")}
               >
                 {/* === HEADER === */}
-                <div className="px-6 py-4 border-b border-gray-100 bg-white shrink-0">
+                <div className={cn("px-6 py-4 border-b border-gray-100 bg-white shrink-0", template === 'Futuristic' ? "!bg-[#020617] !border-white/10" : "")}>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                       {cartCheckoutStep !== 'cart' && cartCheckoutStep !== 'success' && (
                         <button
                           onClick={() => setCartCheckoutStep('cart')}
-                          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"
+                          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
                         >
                           <ChevronLeft size={18} />
                         </button>
                       )}
                       <div>
-                        <h3 className="text-base font-black text-gray-900">{stepLabels[cartCheckoutStep]}</h3>
+                        <h3 className={cn("text-base font-black text-gray-900", template === 'Futuristic' ? "!text-white" : "")}>{stepLabels[cartCheckoutStep]}</h3>
                         {cartCheckoutStep === 'cart' && (
                           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{totalItemsQty} {totalItemsQty === 1 ? 'item' : 'itens'}</p>
                         )}
                       </div>
                     </div>
-                    <button onClick={closeCart} className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400">
+                    <button onClick={closeCart} className={cn("p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400", template === 'Futuristic' ? "hover:!bg-white/10" : "")}>
                       <X size={20} />
                     </button>
                   </div>
@@ -4219,8 +4848,8 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                           <div className="space-y-3">
                             <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">Produtos</p>
                             {cart.map((item: any) => (
-                              <div key={item.cartItemId} className="flex gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100">
-                                <div className="w-16 h-16 rounded-xl overflow-hidden bg-white flex-shrink-0 border border-gray-100">
+                              <div key={item.cartItemId} className={cn("flex gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100", template === 'Futuristic' ? "!bg-white/5 !border-white/10" : "")}>
+                                <div className={cn("w-16 h-16 rounded-xl overflow-hidden bg-white flex-shrink-0 border border-gray-100", template === 'Futuristic' ? "!bg-black/50 !border-white/5" : "")}>
                                   <img src={item.image_url?.split(',')[0]} alt={item.name} className="w-full h-full object-cover" />
                                 </div>
                                 <div className="flex-1 min-w-0 space-y-1">
@@ -4228,7 +4857,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                                   {item.sku && <p className="text-[9px] text-gray-400 font-bold">SKU: {item.sku}</p>}
                                   {item.selectedVariation && <p className="text-[9px] font-bold text-gray-400">{item.selectedVariation.name}: {item.selectedVariation.value}</p>}
                                   <div className="flex items-center justify-between pt-1">
-                                    <div className="flex items-center gap-2 bg-white rounded-lg p-1 border border-gray-100 shadow-sm">
+                                    <div className={cn("flex items-center gap-2 bg-white rounded-lg p-1 border border-gray-100 shadow-sm", template === 'Futuristic' ? "!bg-white/10 !border-white/20 !shadow-none" : "")}>
                                       <button onClick={() => updateCartQuantity(item.cartItemId, -1)} className="w-5 h-5 flex items-center justify-center rounded text-gray-500 hover:bg-gray-100 transition-colors"><Minus size={10} /></button>
                                       <span className="text-[11px] font-black w-4 text-center">{item.quantity}</span>
                                       <button onClick={() => updateCartQuantity(item.cartItemId, 1)} className="w-5 h-5 flex items-center justify-center rounded text-gray-500 hover:bg-gray-100 transition-colors"><Plus size={10} /></button>
@@ -4251,7 +4880,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                                 <button
                                   key={zone.label}
                                   onClick={() => setCartShippingZone(cartShippingZone?.label === zone.label ? null : zone)}
-                                  className={cn('p-3 rounded-xl text-left border-2 transition-all', cartShippingZone?.label === zone.label ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)]/5' : 'border-gray-100 bg-gray-50 hover:border-gray-200')}
+                                  className={cn('p-3 rounded-xl text-left border-2 transition-all', cartShippingZone?.label === zone.label ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)]/5' : 'border-gray-100 bg-gray-50 hover:border-gray-200', template === 'Futuristic' ? (cartShippingZone?.label === zone.label ? "!border-blue-500 !bg-blue-500/10" : "!border-white/10 !bg-white/5") : "")}
                                 >
                                   <p className={cn("text-[10px] font-black leading-tight", cartShippingZone?.label === zone.label ? "text-[var(--theme-primary)]" : "text-gray-700")}>{zone.label}</p>
                                   <p className={cn("text-[11px] font-black mt-0.5", zone.price === 0 ? "text-gray-400" : "text-emerald-600")}>{zone.price === 0 ? 'A combinar' : `${(zone.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}</p>
@@ -4265,13 +4894,13 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                             <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5"><User size={11} /> Seus Dados</p>
                             <div className="space-y-2">
                               <input type="text" placeholder="Seu nome *" value={cartCustomerName} onChange={e => setCartCustomerName(e.target.value)}
-                                className={cn("w-full px-4 py-3 rounded-xl border-2 text-xs font-bold text-gray-900 placeholder:text-gray-300 outline-none transition-colors bg-white", cartCustomerName.trim() ? "border-emerald-300 focus:border-emerald-500" : "border-gray-100 focus:border-[var(--theme-primary)]")} />
+                                className={cn("w-full px-4 py-3 rounded-xl border-2 text-xs font-bold text-gray-900 placeholder:text-gray-300 outline-none transition-colors bg-white", cartCustomerName.trim() ? "border-emerald-300 focus:border-emerald-500" : "border-gray-100 focus:border-[var(--theme-primary)]", template === 'Futuristic' ? "!bg-white/5 !border-white/10 !text-white focus:!border-blue-500" : "")} />
                               <input type="tel" placeholder="Telefone (opcional)" value={cartCustomerPhone} onChange={e => setCartCustomerPhone(e.target.value)}
-                                className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 text-xs font-bold text-gray-900 placeholder:text-gray-300 focus:border-[var(--theme-primary)] outline-none transition-colors bg-white" />
+                                className={cn("w-full px-4 py-3 rounded-xl border-2 border-gray-100 text-xs font-bold text-gray-900 placeholder:text-gray-300 focus:border-[var(--theme-primary)] outline-none transition-colors bg-white", template === 'Futuristic' ? "!bg-white/5 !border-white/10 !text-white focus:!border-blue-500" : "")} />
                               <div className="grid grid-cols-3 gap-2">
                                 <div className="relative col-span-1">
                                   <input type="text" placeholder="CEP" value={cartCep} onChange={e => handleCartCepLookup(e.target.value)}
-                                    className={cn("w-full px-4 py-3 rounded-xl border-2 border-gray-100 text-xs font-bold text-gray-900 placeholder:text-gray-300 focus:border-[var(--theme-primary)] outline-none transition-colors bg-white", (cepLoading || shippingLoading) && "pr-10")} />
+                                    className={cn("w-full px-4 py-3 rounded-xl border-2 border-gray-100 text-xs font-bold text-gray-900 placeholder:text-gray-300 focus:border-[var(--theme-primary)] outline-none transition-colors bg-white", (cepLoading || shippingLoading) && "pr-10", template === 'Futuristic' ? "!bg-white/5 !border-white/10 !text-white focus:!border-blue-500" : "")} />
                                   {(cepLoading || shippingLoading) && (
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                       <div className="w-4 h-4 border-2 border-[var(--theme-primary)]/20 border-t-[var(--theme-primary)] rounded-full animate-spin" />
@@ -4318,8 +4947,8 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                           </div>
 
                           {/* Order summary mini */}
-                          <div className="rounded-2xl border border-gray-100 overflow-hidden">
-                            <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-100">
+                          <div className={cn("rounded-2xl border border-gray-100 overflow-hidden", template === 'Futuristic' ? "!border-white/10" : "")}>
+                            <div className={cn("bg-gray-50 px-4 py-2.5 border-b border-gray-100", template === 'Futuristic' ? "!bg-white/5 !border-white/10" : "")}>
                               <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">Resumo</p>
                             </div>
                             <div className="p-4 space-y-2">
@@ -4336,7 +4965,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
 
                     {/* Cart footer */}
                     {cart.length > 0 && (
-                      <div className="p-5 border-t border-gray-100 bg-white shrink-0 space-y-2">
+                      <div className={cn("p-5 border-t border-gray-100 bg-white shrink-0 space-y-2", template === 'Futuristic' ? "!bg-[#020617] !border-white/10" : "")}>
                         {!cartCustomerName.trim() && (
                           <p className="text-[10px] text-amber-600 font-bold text-center flex items-center justify-center gap-1">
                             <Info size={12} /> Informe seu nome para continuar
@@ -4368,7 +4997,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                   <>
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-5">
                       {/* Mini order summary */}
-                      <div className="rounded-2xl bg-gray-50 border border-gray-100 p-4 space-y-2">
+                      <div className={cn("rounded-2xl bg-gray-50 border border-gray-100 p-4 space-y-2", template === 'Futuristic' ? "!bg-white/5 !border-white/10" : "")}>
                         <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-3">Resumo do Pedido</p>
                         {cart.map((item: any) => (
                           <div key={item.cartItemId} className="flex items-center gap-2 text-xs">
@@ -4400,9 +5029,9 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                         {/* PIX */}
                         <button
                           onClick={() => setCartPaymentMethod('pix')}
-                          className={cn("w-full p-4 rounded-2xl border-2 text-left flex items-center gap-4 transition-all", cartPaymentMethod === 'pix' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-100 bg-white hover:border-gray-200')}
+                          className={cn("w-full p-4 rounded-2xl border-2 text-left flex items-center gap-4 transition-all", cartPaymentMethod === 'pix' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-100 bg-white hover:border-gray-200', template === 'Futuristic' ? (cartPaymentMethod === 'pix' ? "!bg-emerald-500/10" : "!bg-white/5 !border-white/10") : "")}
                         >
-                          <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center font-black text-sm shrink-0", cartPaymentMethod === 'pix' ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-500')}>PIX</div>
+                          <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center font-black text-sm shrink-0", cartPaymentMethod === 'pix' ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-500', template === 'Futuristic' && cartPaymentMethod !== 'pix' ? "!bg-white/10 !text-white" : "")}>PIX</div>
                           <div className="flex-1">
                             <p className={cn("text-[12px] font-black", cartPaymentMethod === 'pix' ? 'text-emerald-700' : 'text-gray-900')}>Pagar com Pix</p>
                             <p className={cn("text-[10px] font-bold", cartPaymentMethod === 'pix' ? 'text-emerald-600' : 'text-gray-400')}>{(cartFinalPixTotal).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} — aprovação imediata</p>
@@ -4413,9 +5042,9 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                         {/* CARD */}
                         <button
                           onClick={() => setCartPaymentMethod('card')}
-                          className={cn("w-full p-4 rounded-2xl border-2 text-left flex items-center gap-4 transition-all", cartPaymentMethod === 'card' ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)]/5' : 'border-gray-100 bg-white hover:border-gray-200')}
+                          className={cn("w-full p-4 rounded-2xl border-2 text-left flex items-center gap-4 transition-all", cartPaymentMethod === 'card' ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)]/5' : 'border-gray-100 bg-white hover:border-gray-200', template === 'Futuristic' ? (cartPaymentMethod === 'card' ? "!border-blue-500 !bg-blue-500/10" : "!bg-white/5 !border-white/10") : "")}
                         >
-                          <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shrink-0", cartPaymentMethod === 'card' ? 'bg-[var(--theme-primary)] text-white' : 'bg-gray-100 text-gray-500')}>
+                          <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shrink-0", cartPaymentMethod === 'card' ? 'bg-[var(--theme-primary)] text-white' : 'bg-gray-100 text-gray-500', template === 'Futuristic' && cartPaymentMethod !== 'card' ? "!bg-white/10 !text-white" : "", template === 'Futuristic' && cartPaymentMethod === 'card' ? "!bg-blue-600" : "")}>
                             <CreditCard size={22} />
                           </div>
                           <div className="flex-1">
@@ -4428,9 +5057,9 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                         {/* WHATSAPP */}
                         <button
                           onClick={() => setCartPaymentMethod('whatsapp')}
-                          className={cn("w-full p-4 rounded-2xl border-2 text-left flex items-center gap-4 transition-all", cartPaymentMethod === 'whatsapp' ? 'border-[#25D366] bg-[#25D366]/5' : 'border-gray-100 bg-white hover:border-gray-200')}
+                          className={cn("w-full p-4 rounded-2xl border-2 text-left flex items-center gap-4 transition-all", cartPaymentMethod === 'whatsapp' ? 'border-[#25D366] bg-[#25D366]/5' : 'border-gray-100 bg-white hover:border-gray-200', template === 'Futuristic' ? (cartPaymentMethod === 'whatsapp' ? "!bg-[#25D366]/10" : "!bg-white/5 !border-white/10") : "")}
                         >
-                          <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shrink-0", cartPaymentMethod === 'whatsapp' ? 'bg-[#25D366] text-white' : 'bg-gray-100 text-gray-500')}>
+                          <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shrink-0", cartPaymentMethod === 'whatsapp' ? 'bg-[#25D366] text-white' : 'bg-gray-100 text-gray-500', template === 'Futuristic' && cartPaymentMethod !== 'whatsapp' ? "!bg-white/10 !text-white" : "")}>
                             <MessageCircle size={22} />
                           </div>
                           <div className="flex-1">
@@ -4465,7 +5094,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                     </div>
 
                     {/* Payment footer */}
-                    <div className="p-5 border-t border-gray-100 bg-white shrink-0 space-y-2">
+                    <div className={cn("p-5 border-t border-gray-100 bg-white shrink-0 space-y-2", template === 'Futuristic' ? "!bg-[#020617] !border-white/10" : "")}>
                       <button
                         onClick={handleCartPaymentConfirm}
                         disabled={cartBrickLoading}
@@ -4784,28 +5413,32 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
               </div>
             </div>
 
-            <div className="text-center space-y-2 border-t border-white/5 pt-12">
-              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{store.razao_social || store.name.toUpperCase()} | CNPJ: {store.cnpj || '00.000.000/0001-00'}</p>
-              <p className="text-[9px] font-bold text-gray-600 uppercase tracking-widest">© {new Date().getFullYear()} Todos os direitos reservados. Nexlyra.Commerce Platform</p>
+            <div className="text-center space-y-3 border-t border-white/5 pt-12 pb-6">
+              <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">{store.razao_social || store.name.toUpperCase()} | CNPJ: {store.cnpj || '00.000.000/0001-00'}</p>
+              <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-6">
+                <p className="text-[9px] font-bold text-gray-600 uppercase tracking-widest text-center">© {new Date().getFullYear()} Todos os direitos reservados</p>
+                <div className="hidden md:block w-1.5 h-1.5 rounded-full bg-gray-800" />
+                <p className="text-[9px] font-black text-emerald-500/50 uppercase tracking-[0.3em] italic">Nexlyra.Commerce Platform</p>
+              </div>
             </div>
           </div>
         </footer>
       )}
       {/* Floating WhatsApp Button */}
-      <div className="fixed bottom-8 right-8 z-[100] group">
+      <div className="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-[100] group">
         <a
           href={`https://wa.me/${store.whatsapp?.replace(/\D/g, '')}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="w-16 h-16 md:w-20 md:h-20 bg-[#25D366] rounded-full flex items-center justify-center shadow-[0_10px_40px_rgba(37,211,102,0.4)] hover:scale-110 transition-all duration-300 relative group active:scale-95"
+          className="w-16 h-16 md:w-20 md:h-20 bg-[#25D366] rounded-full flex items-center justify-center shadow-[0_20px_50px_rgba(37,211,102,0.4)] hover:shadow-[0_25px_60px_rgba(37,211,102,0.5)] hover:-translate-y-2 hover:scale-110 transition-all duration-500 relative group active:scale-95 border border-white/20 backdrop-blur-sm"
         >
-          <div className="absolute inset-0 bg-[#25D366] rounded-full animate-ping opacity-20 group-hover:opacity-40" />
-          <svg viewBox="0 0 24 24" className="w-8 h-8 md:w-10 md:h-10 text-white fill-current fill-white">
+          <div className="absolute inset-0 bg-[#25D366] rounded-full animate-ping-slow opacity-20 group-hover:opacity-40" />
+          <svg viewBox="0 0 24 24" className="w-8 h-8 md:w-10 md:h-10 text-white fill-current fill-white drop-shadow-md">
             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
           </svg>
-          <span className="absolute right-full mr-6 bg-white text-[#25D366] px-6 py-3 rounded-2xl text-[10px] font-black shadow-2xl opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0 pointer-events-none whitespace-nowrap uppercase tracking-[0.2em] border border-emerald-50">
+          <span className="absolute right-full mr-8 bg-white/90 backdrop-blur-md text-[#25D366] px-6 py-3 rounded-2xl text-[10px] font-black shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-x-10 group-hover:translate-x-0 pointer-events-none whitespace-nowrap uppercase tracking-[0.3em] border border-emerald-50/50">
             Fale Conosco
-            <div className="absolute -bottom-1.5 right-10 w-3 h-3 bg-white rotate-45 border-r border-b border-gray-100" />
+            <div className="absolute -bottom-1.5 right-10 w-3 h-3 bg-white/90 rotate-45 border-r border-b border-emerald-50/50" />
           </span>
         </a>
       </div>
