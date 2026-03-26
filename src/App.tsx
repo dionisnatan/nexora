@@ -167,17 +167,17 @@ const StatCard = ({ icon: Icon, label, value, subtext, color, isFeatured }: { ic
         <p className="text-sm font-bold text-gray-400 capitalize mb-4">{label}</p>
         <h3 className="text-3xl font-bold text-gray-900 tracking-tight leading-none mb-2">{value}</h3>
         <div className="flex items-center gap-2 mt-4">
-           {subtext.length > 0 && (
-             <span className={cn(
-               "text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5",
-               subtext.includes('hoje') || subtext.includes('ativos') || subtext.includes('1,37%') 
-                 ? "bg-emerald-50 text-emerald-600 border border-emerald-100" 
-                 : "bg-gray-100 text-gray-500 border border-gray-200"
-             )}>
-               {(subtext.includes('1,37%') || subtext.includes('▲')) && <TrendingUp size={10} />}
-               {subtext}
-             </span>
-           )}
+          {subtext.length > 0 && (
+            <span className={cn(
+              "text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5",
+              subtext.includes('hoje') || subtext.includes('ativos') || subtext.includes('1,37%')
+                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                : "bg-gray-100 text-gray-500 border border-gray-200"
+            )}>
+              {(subtext.includes('1,37%') || subtext.includes('▲')) && <TrendingUp size={10} />}
+              {subtext}
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -483,7 +483,7 @@ const MercadoPagoSettings = ({ storeId, onAction }: { storeId: string | null, on
       .from('payment_integrations')
       .update({ public_key: publicKey })
       .eq('id', integration.id);
-    
+
     if (error) {
       onAction('Erro ao salvar Public Key');
     } else {
@@ -521,7 +521,7 @@ const MercadoPagoSettings = ({ storeId, onAction }: { storeId: string | null, on
                 <p className="text-[10px] text-gray-400">{integration.mp_email || '-'}</p>
               </div>
             </div>
-            
+
             <div className="pt-2 space-y-2 border-t border-gray-200">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Public Key (Necessário para Checkout Interno)</label>
               <div className="flex gap-2">
@@ -581,7 +581,7 @@ const MelhorEnvioSettings = ({ storeId, onAction }: { storeId: string | null, on
 
   useEffect(() => {
     fetchIntegration();
-    
+
     const params = new URLSearchParams(window.location.search);
     if (params.get('me_success')) {
       onAction('✅ Melhor Envio conectado com sucesso!');
@@ -731,12 +731,12 @@ const MelhorEnvioSettings = ({ storeId, onAction }: { storeId: string | null, on
 };
 
 const STATUS_TRACKING_LABELS: Record<string, string> = {
-  'Pendente':    '📋 Pedido recebido e aguardando confirmação',
-  'Pago':        '✅ Pagamento confirmado com sucesso',
-  'Preparando':  '📦 Pedido em preparação',
-  'Enviado':     '🚚 Pedido saiu para entrega',
-  'Entregue':    '🎉 Pedido entregue ao cliente',
-  'Cancelado':   '❌ Pedido cancelado',
+  'Pendente': '📋 Pedido recebido e aguardando confirmação',
+  'Pago': '✅ Pagamento confirmado com sucesso',
+  'Preparando': '📦 Pedido em preparação',
+  'Enviado': '🚚 Pedido saiu para entrega',
+  'Entregue': '🎉 Pedido entregue ao cliente',
+  'Cancelado': '❌ Pedido cancelado',
 };
 
 const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: string | null, onAction: (msg: string) => void }) => {
@@ -770,9 +770,9 @@ const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: str
     // Subscribe to real-time order updates
     const channel = supabase
       .channel('orders-changes')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
         table: 'orders',
         filter: storeId ? `store_id=eq.${storeId}` : undefined
       }, (payload) => {
@@ -788,7 +788,7 @@ const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: str
       })
       .subscribe();
 
-    return () => { 
+    return () => {
       isMounted = false;
       supabase.removeChannel(channel);
     };
@@ -893,28 +893,28 @@ const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: str
       if (!storeId) return;
       setIsBuyingShipping(prev => ({ ...prev, [order.id]: true }));
       onAction('Gerando etiqueta no Melhor Envio...');
-      
+
       const { data, error } = await supabase.functions.invoke('buy-shipping', {
         body: { orderId: order.id, storeId }
       });
-      
+
       if (error) throw error;
-      
-      setOrders(prev => prev.map(o => o.id === order.id ? { 
-        ...o, 
+
+      setOrders(prev => prev.map(o => o.id === order.id ? {
+        ...o,
         tracking_code: data.tracking_code,
         shipping_label_url: data.shipping_label_url
       } : o));
-      
+
       onAction('Etiqueta gerada com sucesso!');
-      
+
       if (data.tracking_code && order.status !== 'Enviado') {
         updateOrderStatus(order.id, 'Enviado', order.items || []);
       }
     } catch (e: any) {
       console.error('Buy Shipping Error:', e);
       let errorMsg = e.message || 'Erro desconhecido';
-      
+
       // If it's a Supabase Edge Function error with a response
       if (e.context && typeof e.context.json === 'function') {
         try {
@@ -924,7 +924,7 @@ const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: str
           // Fallback if body is not JSON
         }
       }
-      
+
       onAction('Erro ao processar frete: ' + errorMsg);
     } finally {
       setIsBuyingShipping(prev => ({ ...prev, [order.id]: false }));
@@ -969,11 +969,11 @@ const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: str
               const logs = trackingLogs[order.id] || [];
               const statusColor = (
                 order.status === 'Cancelado' || order.status === 'Recusado' ? 'bg-red-50 text-red-600 border-red-100' :
-                order.status === 'Pago' || order.status === 'Aprovado' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                order.status === 'Entregue' ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                order.status === 'Enviado' ? 'bg-sky-50 text-sky-600 border-sky-100' :
-                order.status === 'Preparando' ? 'bg-purple-50 text-purple-600 border-purple-100' :
-                'bg-orange-50 text-orange-600 border-orange-100'
+                  order.status === 'Pago' || order.status === 'Aprovado' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                    order.status === 'Entregue' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                      order.status === 'Enviado' ? 'bg-sky-50 text-sky-600 border-sky-100' :
+                        order.status === 'Preparando' ? 'bg-purple-50 text-purple-600 border-purple-100' :
+                          'bg-orange-50 text-orange-600 border-orange-100'
               );
               return (
                 <div key={order.id} className="rounded-2xl border border-gray-100 hover:border-indigo-100 transition-all overflow-hidden">
@@ -1026,24 +1026,24 @@ const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: str
                         {/* Shipping Integration Buttons */}
                         {order.status === 'Pago' || order.status === 'Preparando' || order.status === 'Aprovado' ? (
                           !order.tracking_code ? (
-                             <button 
-                               onClick={() => handleBuyShipping(order)} 
-                               disabled={isBuyingShipping[order.id]}
-                               className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 bg-amber-400 text-white rounded-lg hover:bg-amber-500 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1"
-                             >
-                               <Package size={12} />
-                               {isBuyingShipping[order.id] ? 'Gerando...' : 'Comprar Frete'}
-                             </button>
+                            <button
+                              onClick={() => handleBuyShipping(order)}
+                              disabled={isBuyingShipping[order.id]}
+                              className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 bg-amber-400 text-white rounded-lg hover:bg-amber-500 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1"
+                            >
+                              <Package size={12} />
+                              {isBuyingShipping[order.id] ? 'Gerando...' : 'Comprar Frete'}
+                            </button>
                           ) : (
-                             <a 
-                               href={order.shipping_label_url || `https://melhorenvio.com.br/painel/envios/aguardando-impressao`}
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors shadow-sm flex items-center gap-1"
-                             >
-                               <ExternalLink size={12} />
-                               Imprimir Etiqueta
-                             </a>
+                            <a
+                              href={order.shipping_label_url || `https://melhorenvio.com.br/painel/envios/aguardando-impressao`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors shadow-sm flex items-center gap-1"
+                            >
+                              <ExternalLink size={12} />
+                              Imprimir Etiqueta
+                            </a>
                           )
                         ) : null}
                         {/* Expand toggle */}
@@ -1300,31 +1300,31 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <StatCard 
-          icon={DollarSign} 
-          label="Faturamento" 
-          value="R$ 0,00" 
+        <StatCard
+          icon={DollarSign}
+          label="Faturamento"
+          value="R$ 0,00"
           subtext="Pedidos pagos"
           color="bg-blue-50 text-blue-600"
         />
-        <StatCard 
-          icon={ShoppingCart} 
-          label="Pedidos" 
-          value="12" 
+        <StatCard
+          icon={ShoppingCart}
+          label="Pedidos"
+          value="12"
           subtext="1 hoje"
           color="bg-indigo-50 text-indigo-600"
         />
-        <StatCard 
-          icon={Package} 
-          label="Produtos" 
-          value="6" 
+        <StatCard
+          icon={Package}
+          label="Produtos"
+          value="6"
           subtext="6 ativos"
           color="bg-purple-50 text-purple-600"
         />
-        <StatCard 
-          icon={TrendingUp} 
-          label="Pendentes" 
-          value="0" 
+        <StatCard
+          icon={TrendingUp}
+          label="Pendentes"
+          value="0"
           subtext="Aguardando ação"
           color="bg-orange-50 text-orange-600"
         />
@@ -1333,7 +1333,7 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
       <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm relative z-10">
         {/* Chart Watermark */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-[0.05] pointer-events-none">
-           <img src="/icon_transparent.png" className="w-full h-full object-contain grayscale brightness-200 blur-[2px]" alt="" />
+          <img src="/icon_transparent.png" className="w-full h-full object-contain grayscale brightness-200 blur-[2px]" alt="" />
         </div>
 
         <div className="flex flex-col sm:items-center sm:flex-row justify-between gap-4 mb-8">
@@ -1383,9 +1383,9 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
                 dx={-20}
               />
               <Tooltip
-                contentStyle={{ 
-                  backgroundColor: '#fff', 
-                  borderRadius: '16px', 
+                contentStyle={{
+                  backgroundColor: '#fff',
+                  borderRadius: '16px',
                   border: '1px solid #f1f5f9',
                   boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                   padding: '12px'
@@ -3820,13 +3820,13 @@ export default function App() {
               {userProfile?.plan !== 'free' && (
                 <>
                   <SidebarItem icon={Package} label="Produtos" active={currentView === 'produtos'} onClick={() => { setCurrentView('produtos'); setIsSidebarOpen(false); }} />
-                  <SidebarItem 
-                icon={ShoppingBag} 
-                label="Pedidos" 
-                active={currentView === 'pedidos'} 
-                badge={pendingOrdersCount}
-                onClick={() => { setCurrentView('pedidos'); setIsSidebarOpen(false); }} 
-              />
+                  <SidebarItem
+                    icon={ShoppingBag}
+                    label="Pedidos"
+                    active={currentView === 'pedidos'}
+                    badge={pendingOrdersCount}
+                    onClick={() => { setCurrentView('pedidos'); setIsSidebarOpen(false); }}
+                  />
                   <SidebarItem icon={Wallet} label="Pagamentos" active={currentView === 'pagamentos'} onClick={() => { setCurrentView('pagamentos'); setIsSidebarOpen(false); }} />
                 </>
               )}
@@ -3852,21 +3852,21 @@ export default function App() {
             onClick={() => supabase.auth.signOut()}
             className="w-full flex items-center justify-between px-4 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all group mb-4"
           >
-             <div className="flex items-center gap-3">
-                <LogOut size={18} />
-                <span className="text-sm font-bold">Sair da conta</span>
-             </div>
-             <ArrowRight size={14} className="opacity-0 group-hover:opacity-100" />
+            <div className="flex items-center gap-3">
+              <LogOut size={18} />
+              <span className="text-sm font-bold">Sair da conta</span>
+            </div>
+            <ArrowRight size={14} className="opacity-0 group-hover:opacity-100" />
           </button>
-          
+
           <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl border border-gray-100">
-             <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center p-1.5">
-                <img src="/icon_transparent.png" className="w-full h-full object-contain" alt="" />
-             </div>
-             <div>
-                <p className="text-[9px] font-bold text-gray-400 uppercase leading-none mb-1">PLANO ATIVO</p>
-                <p className="text-xs font-bold text-gray-900 leading-none">NEXLYRA {(userProfile?.plan || 'FREE').toUpperCase()}</p>
-             </div>
+            <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center p-1.5">
+              <img src="/icon_transparent.png" className="w-full h-full object-contain" alt="" />
+            </div>
+            <div>
+              <p className="text-[9px] font-bold text-gray-400 uppercase leading-none mb-1">PLANO ATIVO</p>
+              <p className="text-xs font-bold text-gray-900 leading-none">NEXLYRA {(userProfile?.plan || 'FREE').toUpperCase()}</p>
+            </div>
           </div>
         </div>
       </aside>
@@ -4020,8 +4020,8 @@ export default function App() {
                           <span className={cn(
                             "inline-block mt-1 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest",
                             userProfile?.plan === 'free' ? "bg-gray-100 text-gray-500" :
-                            userProfile?.plan === 'pro' ? "bg-indigo-50 text-indigo-600" :
-                            "bg-emerald-50 text-emerald-600"
+                              userProfile?.plan === 'pro' ? "bg-indigo-50 text-indigo-600" :
+                                "bg-emerald-50 text-emerald-600"
                           )}>
                             {userProfile?.plan?.toUpperCase() || 'FREE'}
                           </span>
