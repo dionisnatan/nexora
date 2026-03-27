@@ -3760,7 +3760,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-white font-sans text-gray-900 overflow-hidden">
+    <div className="flex h-screen bg-gray-50/50 font-sans text-gray-900 overflow-hidden">
       <Toast message={toast.message} visible={toast.visible} onHide={() => setToast(prev => ({ ...prev, visible: false }))} />
 
 
@@ -3872,7 +3872,7 @@ export default function App() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col bg-[#F9FAFB] overflow-hidden min-w-0">
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Navbar */}
         <header className="h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 sm:px-8 shrink-0 z-40">
           {/* Mobile menu + Store name */}
@@ -4056,7 +4056,7 @@ export default function App() {
         </header>
 
         {/* Scrollable View */}
-        <div className="flex-1 overflow-y-auto bg-[#F9FAFB] relative z-10">
+        <div className="flex-1 overflow-y-auto bg-transparent relative z-10">
           <div className="max-w-7xl mx-auto p-4 sm:p-8">
             <AnimatePresence mode="wait">
               <motion.div
