@@ -22,7 +22,7 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCatalog?: boolean }) => {
+export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: { slug: string, isCatalog?: boolean, hasCheckout?: boolean }) => {
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategorias] = useState<any[]>([]);
@@ -548,6 +548,18 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
   };
 
   const addToCart = (product: any, variation: any) => {
+    if (!hasCheckout) {
+      // If plan doesn't have checkout, redirect to WhatsApp
+      const phone = store?.phone || '';
+      let msg = `Olá! Tenho interesse no produto: *${product.name}*`;
+      if (variation) msg += ` (${variation.name}: ${variation.value})`;
+      msg += `\nPreço: R$ ${(variation?.price || product.price).toFixed(2).replace('.', ',')}`;
+      msg += `\n\nLink: ${window.location.origin}/loja/${slug}`;
+      const whatsappUrl = `https://wa.me/55${phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
+      window.open(whatsappUrl, '_blank');
+      return;
+    }
+
     const cartItemId = variation ? `${product.id}-${variation.id}` : product.id;
     const existingItem = cart.find(item => item.cartItemId === cartItemId);
 

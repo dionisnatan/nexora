@@ -27,6 +27,7 @@ const CATEGORY_ICONS = [
 ];
 import { supabase } from '../lib/supabase';
 import { compressImage } from '../lib/imageCompression';
+import { getPlanConfig } from '../lib/plans';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -35,7 +36,7 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: string) => void, session: any, storeId: string | null }) => {
+export const ProductsView = ({ onAction, session, storeId, userProfile }: { onAction: (msg: string) => void, session: any, storeId: string | null, userProfile: any }) => {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -520,13 +521,22 @@ export const ProductsView = ({ onAction, session, storeId }: { onAction: (msg: s
       <div className="space-y-8 animate-in fade-in duration-300">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Produtos</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900">Produtos</h1>
+              {userProfile?.plan === 'free' && (
+                <div className="px-2.5 py-1 bg-gray-100 rounded-lg text-xs font-bold text-gray-500 border border-gray-200">
+                  {products.length} / {getPlanConfig(userProfile?.plan).maxProducts} disponíveis
+                </div>
+              )}
+            </div>
             <p className="text-gray-500">{products.length} produto(s) cadastrado(s)</p>
           </div>
           <button 
             onClick={() => {
               if (!storeId) {
                 onAction("Crie sua loja na aba 'Minha Loja' antes de adicionar produtos.");
+              } else if (products.length >= getPlanConfig(userProfile?.plan).maxProducts) {
+                onAction("Limite de produtos atingido. Faça upgrade para o plano PRO para adicionar produtos ilimitados!");
               } else {
                 setIsAdding(true);
               }

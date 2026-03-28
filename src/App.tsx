@@ -60,6 +60,7 @@ import {
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { StorefrontView } from './views/StorefrontView';
+import { getPlanConfig } from './lib/plans';
 
 /**
  * Utility for tailwind class merging
@@ -3000,8 +3001,16 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
       planKey: 'free',
       priceMonthly: 0,
       priceYearly: 0,
-      features: ['Até 10 produtos', '1 catálogo digital', 'Link público do catálogo', 'Sem loja online'],
-      color: 'bg-white',
+      tagline: 'Ideal para começar sem risco',
+      cta: 'Perfeito para testar a plataforma',
+      features: [
+        'Até 10 produtos cadastrados',
+        '1 catálogo digital interativo',
+        'Link público para divulgação',
+        'Integração com WhatsApp'
+      ],
+      limitation: 'Sem carrinho e checkout (apenas catálogo)',
+      accent: '#6b7280',
       kiwifyLink: null,
       maxStores: 0
     },
@@ -3010,19 +3019,36 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
       planKey: 'pro',
       priceMonthly: 39.90,
       priceYearly: 399.00,
-      features: ['Produtos ilimitados', 'Catálogo profissional', '2 lojas online', 'Todos os templates', 'Suporte'],
-      color: 'bg-white',
+      tagline: 'Para quem quer vender de forma profissional',
+      cta: 'Ideal para quem vende pelo Instagram e WhatsApp',
+      features: [
+        'Tudo do FREE incluído',
+        'Produtos ilimitados',
+        'Catálogo 100% personalizado',
+        '1 loja online ativa',
+        '1 template profissional de vitrine'
+      ],
+      accent: '#5551FF',
       badge: 'POPULAR',
       kiwifyLink: 'https://pay.kiwify.com.br/5U7m01m',
-      maxStores: 2
+      maxStores: 1
     },
     {
       name: 'LOJA',
       planKey: 'loja',
       priceMonthly: 99.90,
       priceYearly: 999.00,
-      features: ['Loja online completa', 'Checkout integrado', 'Catálogo ilimitado', 'Domínio próprio', 'Relatórios avançados'],
-      color: 'bg-white',
+      tagline: 'Para transformar seguidores em clientes',
+      cta: 'Aqui começa o e-commerce de verdade',
+      features: [
+        'Tudo do PRO incluído',
+        'Loja completa (vitrine + carrinho)',
+        'Checkout com PIX e pagamento integrado',
+        'Catálogo ilimitado',
+        'Relatórios de vendas e visitantes',
+        'Domínio próprio (em breve)'
+      ],
+      accent: '#8b5cf6',
       badge: 'MAIS VENDIDO',
       kiwifyLink: 'https://pay.kiwify.com.br/bKuzC2f',
       maxStores: 1
@@ -3032,8 +3058,16 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
       planKey: 'ultra',
       priceMonthly: 139.00,
       priceYearly: 1390.00,
-      features: ['Multi-lojas (até 5)', 'Loja online completa', 'Automações inteligentes', 'Inteligência Artificial (em breve)', 'Suporte prioritário VIP'],
-      color: 'bg-gray-900',
+      tagline: 'Automação + escala + inteligência',
+      cta: 'Para quem quer escalar e ganhar no automático',
+      features: [
+        'Tudo do LOJA incluído',
+        'Até 5 lojas no mesmo painel',
+        'Automação de marketing e estoque',
+        'Inteligência Artificial (descrições + análise)',
+        'Suporte VIP prioritário'
+      ],
+      accent: '#f59e0b',
       kiwifyLink: '#',
       maxStores: 5
     }
@@ -3116,16 +3150,20 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
 
                 <div className="mb-5">
                   <h3 className={cn("text-lg font-black uppercase tracking-tight mt-2", isUltra ? 'text-white' : 'text-gray-900')}>{plan.name}</h3>
-                  <div className="flex items-baseline gap-1 mt-2">
+                  <p className={cn("text-xs mt-1 leading-snug", isUltra ? 'text-gray-400' : 'text-gray-500')}>{plan.tagline}</p>
+                  <div className="flex items-baseline gap-1 mt-3">
                     {!isFree && <span className={cn("text-xs font-bold opacity-60", isUltra ? 'text-gray-400' : 'text-gray-500')}>R$</span>}
                     <span className={cn("text-4xl font-black italic tracking-tighter", isUltra ? 'text-white' : 'text-gray-900')}>
                       {isFree ? 'Grátis' : price.toFixed(2).replace('.', ',')}
                     </span>
                     {!isFree && <span className={cn("text-[10px] font-bold opacity-40 uppercase ml-1", isUltra ? 'text-gray-400' : 'text-gray-500')}>/{activeTab === 'monthly' ? 'mês' : 'ano'}</span>}
                   </div>
+                  {(plan as any).limitation && (
+                    <p className="text-[10px] text-rose-400 mt-2 font-semibold">❌ {(plan as any).limitation}</p>
+                  )}
                 </div>
 
-                <div className="space-y-3 mb-8 flex-1">
+                <div className="space-y-2.5 mb-6 flex-1">
                   {plan.features.map(f => (
                     <div key={f} className="flex items-start gap-2 text-xs font-medium">
                       <div className={cn("w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5",
@@ -3137,6 +3175,9 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
                     </div>
                   ))}
                 </div>
+                {(plan as any).cta && (
+                  <p className={cn("text-[10px] font-semibold mb-4 leading-snug italic", isUltra ? 'text-gray-400' : 'text-indigo-500')}>👉 {(plan as any).cta}</p>
+                )}
 
                 <button
                   onClick={() => {
@@ -3165,6 +3206,63 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* Comparison Table */}
+      <div className="max-w-5xl mx-auto">
+        <h2 className="text-2xl font-black text-gray-900 text-center mb-6">Comparação rápida</h2>
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left px-6 py-4 text-sm font-black text-gray-500 w-[40%]">Recurso</th>
+                  {plans.map(p => (
+                    <th key={p.planKey} className="px-4 py-4 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-xs font-black uppercase tracking-widest" style={{ color: p.accent }}>{p.name}</span>
+                        {p.priceMonthly === 0
+                          ? <span className="text-[10px] text-gray-400">Grátis</span>
+                          : <span className="text-[10px] text-gray-400">R$ {p.priceMonthly.toFixed(2).replace('.', ',')}/mês</span>
+                        }
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {[
+                  { label: 'Produtos', values: ['10', '∞', '∞', '∞'] },
+                  { label: 'Catálogo digital', values: [true, true, true, true] },
+                  { label: 'Integração WhatsApp', values: [true, true, true, true] },
+                  { label: 'Loja online', values: [false, true, true, true] },
+                  { label: 'Loja completa + carrinho', values: [false, false, true, true] },
+                  { label: 'Checkout integrado (PIX)', values: [false, false, true, true] },
+                  { label: 'Relatórios de vendas', values: [false, false, true, true] },
+                  { label: 'Múltiplas lojas', values: [false, false, false, true] },
+                  { label: 'Automação de marketing', values: [false, false, false, true] },
+                  { label: 'Inteligência Artificial', values: [false, false, false, true] },
+                  { label: 'Suporte VIP', values: [false, false, false, true] },
+                ].map(row => (
+                  <tr key={row.label} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-3.5 text-sm font-semibold text-gray-700">{row.label}</td>
+                    {row.values.map((val, i) => (
+                      <td key={i} className="px-4 py-3.5 text-center">
+                        {typeof val === 'boolean' ? (
+                          val
+                            ? <div className="w-6 h-6 rounded-full bg-emerald-50 flex items-center justify-center mx-auto"><Check size={12} className="text-emerald-500" strokeWidth={3} /></div>
+                            : <div className="w-6 h-6 rounded-full bg-gray-50 flex items-center justify-center mx-auto"><X size={12} className="text-gray-300" strokeWidth={3} /></div>
+                        ) : (
+                          <span className="text-sm font-black text-gray-900">{val}</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -3217,7 +3315,7 @@ const MinhasLojasView = ({ session, onAction, stores, activeStoreId, onSelectSto
   const getMaxStores = () => {
     const plan = userProfile?.plan || 'free';
     if (plan === 'free') return 0; // Wait, plan features list 0 for free but the instructions say free has 0 online store, only catalog. Let's return 0. (Actually free can't open online store).
-    if (plan === 'pro') return 2;
+    if (plan === 'pro') return 1;
     if (plan === 'loja') return 1;
     if (plan === 'ultra') return 5;
     return 1; // Default
@@ -3726,7 +3824,7 @@ export default function App() {
 
   if (storeSlug) {
     const isCatalog = window.location.pathname.startsWith('/catalogo/');
-    return <StorefrontView slug={storeSlug} isCatalog={isCatalog} />;
+    return <StorefrontView slug={storeSlug} isCatalog={isCatalog} hasCheckout={getPlanConfig(userProfile?.plan)?.hasCheckout ?? true} />;
   }
 
   if (!session) {
@@ -4108,7 +4206,7 @@ export default function App() {
                 {currentView === 'admin-assinaturas' && <AdminSubscribersView onAction={notify} session={session} />}
                 {currentView === 'pedidos' && <OrdersView session={session} storeId={activeStoreId} onAction={notify} />}
                 {currentView === 'pagamentos' && <PaymentSettingsView session={session} storeId={activeStoreId} onAction={notify} />}
-                {currentView === 'produtos' && <ProductsView onAction={notify} session={session} storeId={activeStoreId} />}
+                {currentView === 'produtos' && <ProductsView onAction={notify} session={session} storeId={activeStoreId} userProfile={userProfile} />}
                 {currentView === 'dominio' && (
                   <div className="max-w-2xl mx-auto space-y-12 py-12">
                     <div className="text-center space-y-2">
