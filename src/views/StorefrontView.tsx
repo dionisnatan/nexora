@@ -1097,7 +1097,13 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
       : (products[0] || {});
 
     return (
-      <div className="bg-[#f8fafc] pt-8 pb-12 relative overflow-hidden">
+      <div 
+        className="pt-8 pb-12 relative overflow-hidden"
+        style={megaVariant !== 'Blue' 
+          ? { background: `linear-gradient(to bottom, ${themeColor} 0%, ${themeColor} 15%, #f8fafc 100%)` } as any 
+          : { background: `linear-gradient(to bottom, #1868D5 0%, #1868D5 15%, #f8fafc 100%)` }
+        }
+      >
         {/* Background Patterns */}
         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
         <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-emerald-50/50 to-transparent -skew-x-12 translate-x-1/2" />
