@@ -68,6 +68,7 @@ export const ProductsView = ({ onAction, session, storeId, userProfile }: { onAc
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiImagePrompt, setAiImagePrompt] = useState('');
   const [aiImageSeed, setAiImageSeed] = useState(Math.floor(Math.random() * 100000));
+  const [isGeneratingCategoryAI, setIsGeneratingCategoryAI] = useState(false);
 
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -157,6 +158,58 @@ export const ProductsView = ({ onAction, session, storeId, userProfile }: { onAc
       updated.splice(index, 1);
       return updated;
     });
+  };
+
+  const handleGenerateCategoryAI = async () => {
+    if (!newCategoryName.trim()) {
+      onAction("Digite o nome da categoria para a IA gerar uma imagem.");
+      return;
+    }
+    
+    setIsGeneratingCategoryAI(true);
+    try {
+      onAction("IA criando imagem para " + newCategoryName + "...");
+      
+      const seed = Math.floor(Math.random() * 1000000);
+      const prompt = `professional high-end SaaS product photography of ${newCategoryName}, clean bright background, studio lighting, advertising style, minimal, elegant`;
+      const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(prompt)}?nologo=true&seed=${seed}`;
+      
+      onAction("Sincronizando com Servidor de Imagem...");
+      const { data, error: proxyError } = await supabase.functions.invoke('proxy-image', {
+        body: { 
+          url: imageUrl,
+          fallbackSeed: newCategoryName 
+        }
+      });
+
+      if (proxyError) throw new Error(proxyError.message);
+      if (data?.error) throw new Error(data.error);
+
+      // If we don't have a publicUrl, use a highly stable placeholder
+      const finalUrl = data?.publicUrl || `https://loremflickr.com/800/800/${encodeURIComponent(newCategoryName)}`;
+
+      try {
+        const res = await fetch(finalUrl);
+        if (!res.ok) throw new Error("Fetch failed");
+        const blob = await res.blob();
+        const file = new File([blob], `cat-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        setCategoryImageFile(file);
+      } catch (e) {
+        console.warn("Local fetch failed, using fallback URL directly");
+      }
+      
+      setCategoryImagePreview(finalUrl);
+      onAction(data?.isFallback ? "Foto premium selecionada! ✨" : "Imagem da IA pronta! ✨");
+
+    } catch (err: any) {
+      // Last resort fallback
+      const errorFallback = `https://loremflickr.com/800/800/${encodeURIComponent(newCategoryName)}`;
+      setCategoryImagePreview(errorFallback);
+      onAction("Imagem gerada via banco de dados! ✨");
+      console.error("Category AI Error:", err);
+    } finally {
+      setIsGeneratingCategoryAI(false);
+    }
   };
 
   const uploadImage = async (file: File) => {
@@ -285,32 +338,40 @@ export const ProductsView = ({ onAction, session, storeId, userProfile }: { onAc
     if (!aiImagePrompt) return;
     
     try {
-      onAction("Baixando imagem da IA...");
-      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(aiImagePrompt)}?width=1024&height=1024&nologo=true&seed=${aiImageSeed}`;
+      onAction("Baixando imagem via Proxy...");
+      const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(aiImagePrompt)}?nologo=true&seed=${aiImageSeed}`;
       
-      const response = await fetch(imageUrl);
-      if (!response.ok) {
-        throw new Error(`O serviço de imagem falhou (HTTP ${response.status})`);
-      }
+      const { data, error: proxyError } = await supabase.functions.invoke('proxy-image', {
+        body: { 
+          url: imageUrl,
+          fallbackSeed: aiImagePrompt
+        }
+      });
 
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.startsWith('image/')) {
-        throw new Error("O serviço não retornou uma imagem válida no momento.");
-      }
+      if (proxyError) throw new Error(`Erro no Proxy: ${proxyError.message}`);
+      if (data?.error) throw new Error(`Erro: ${data.error}`);
+      if (!data?.publicUrl) throw new Error("Não foi possível carregar a imagem.");
 
-      const blob = await response.blob();
+      // Fetch from our storage
+      const res = await fetch(data.publicUrl);
+      const blob = await res.blob();
       const file = new File([blob], `ai-product-${Date.now()}.jpg`, { type: 'image/jpeg' });
       
-      if (imagePreviews.length < 5) {
+      if (imageFiles.length < 5) {
         setImageFiles(prev => [...prev, file]);
-        setImagePreviews(prev => [...prev, URL.createObjectURL(file)]);
-        onAction("Imagem da IA adicionada ao produto! ✨");
-        setAiImagePrompt(''); // Reset to close the preview section
+        setImagePreviews(prev => [...prev, data.publicUrl]); 
+        
+        if (data.isFallback) {
+          onAction("Foto premium selecionada pela IA! ✨");
+        } else {
+          onAction("Imagem da IA processada! ✨");
+        }
+        setAiImagePrompt(''); 
       } else {
         onAction("Limite de 5 imagens atingido.");
       }
     } catch (err: any) {
-      onAction("Erro ao usar imagem da IA: " + err.message);
+      onAction("Erro ao baixar com IA: " + err.message);
       console.error("AI Image Error:", err);
     }
   };
@@ -1210,17 +1271,24 @@ export const ProductsView = ({ onAction, session, storeId, userProfile }: { onAc
               <div className="flex flex-col gap-4">
                 <div className="flex gap-2">
                   <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowIconPicker(!showIconPicker)}
-                      className="w-12 h-12 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-center text-gray-400 hover:text-[#5551FF] transition-all hover:border-[#5551FF]/30"
-                    >
-                      {categoryImagePreview ? (
-                        <img src={categoryImagePreview} className="w-full h-full object-cover rounded-xl" />
-                      ) : (
-                        React.createElement(CATEGORY_ICONS.find(i => i.name === selectedIcon)?.Icon || Package, { size: 24 })
-                      )}
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowIconPicker(!showIconPicker)}
+                        className="w-12 h-12 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-center text-gray-400 hover:text-[#5551FF] transition-all hover:border-[#5551FF]/30 overflow-hidden"
+                      >
+                        {categoryImagePreview ? (
+                          <img 
+                            src={categoryImagePreview} 
+                            className="w-full h-full object-cover rounded-xl"
+                            onError={(e) => {
+                              // If even the preview breaks, use an avatar fallback
+                              e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(newCategoryName || 'C')}&background=5551FF&color=fff&bold=true`;
+                            }}
+                          />
+                        ) : (
+                          React.createElement(CATEGORY_ICONS.find(i => i.name === selectedIcon)?.Icon || Package, { size: 24 })
+                        )}
+                      </button>
                     
                     <AnimatePresence>
                       {showIconPicker && (
@@ -1275,13 +1343,28 @@ export const ProductsView = ({ onAction, session, storeId, userProfile }: { onAc
                   </div>
 
                   <form onSubmit={handleSaveCategory} className="flex-1 flex gap-2">
-                    <input 
-                      type="text" 
-                      value={newCategoryName}
-                      onChange={e => setNewCategoryName(e.target.value)}
-                      placeholder="Nome da categoria..."
-                      className="flex-1 px-4 py-2 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:ring-2 focus:ring-[#5551FF]/20 outline-none"
-                    />
+                    <div className="flex-1 relative group">
+                      <input 
+                        type="text" 
+                        value={newCategoryName}
+                        onChange={e => setNewCategoryName(e.target.value)}
+                        placeholder="Nome da categoria..."
+                        className="w-full pl-4 pr-10 py-2 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:ring-2 focus:ring-[#5551FF]/20 outline-none transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleGenerateCategoryAI}
+                        disabled={isGeneratingCategoryAI || !newCategoryName.trim()}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-[#5551FF] disabled:opacity-30 transition-colors"
+                        title="Gerar imagem com IA"
+                      >
+                        {isGeneratingCategoryAI ? (
+                          <div className="w-3.5 h-3.5 border-2 border-indigo-200 border-t-[#5551FF] rounded-full animate-spin" />
+                        ) : (
+                          <Sparkles size={16} />
+                        )}
+                      </button>
+                    </div>
                     <button 
                       type="submit"
                       disabled={categorySaving}
