@@ -2904,18 +2904,44 @@ const AdminSubscribersView = ({ onAction, session }: { onAction: (msg: string) =
   const [loading, setLoading] = useState(true);
   const [subscribers, setSubscribers] = useState<any[]>([]);
 
-  useEffect(() => {
-    const fetchSubscribers = async () => {
-      const { data } = await supabase
-        .from('subscriptions')
-        .select('*, users:user_id(email)')
-        .order('created_at', { ascending: false });
+  const fetchSubscribers = async () => {
+    const { data } = await supabase
+      .from('subscriptions')
+      .select('*, users:user_id(email)')
+      .order('created_at', { ascending: false });
 
-      if (data) setSubscribers(data);
-      setLoading(false);
-    };
+    if (data) setSubscribers(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
     fetchSubscribers();
   }, []);
+
+  const handleCancelSubscription = async (userId: string, planName: string) => {
+    if (!window.confirm(`Tem certeza que deseja cancelar a assinatura ${planName} deste usuário?`)) return;
+
+    try {
+      const { error: subError } = await supabase
+        .from('subscriptions')
+        .update({ status: 'canceled' })
+        .eq('user_id', userId);
+
+      if (subError) throw subError;
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ plan: 'free', expires_at: null })
+        .eq('id', userId);
+
+      if (profileError) throw profileError;
+
+      onAction('Assinatura cancelada com sucesso!');
+      fetchSubscribers();
+    } catch (err: any) {
+      onAction('Erro ao cancelar: ' + err.message);
+    }
+  };
 
   if (loading) return <div className="py-12 flex justify-center"><div className="w-8 h-8 rounded-full border-4 border-indigo-100 border-t-[#5551FF] animate-spin" /></div>;
 
@@ -2975,7 +3001,11 @@ const AdminSubscribersView = ({ onAction, session }: { onAction: (msg: string) =
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <button className="text-gray-400 hover:text-red-500 transition-colors">
+                  <button 
+                    onClick={() => handleCancelSubscription(sub.user_id, sub.plan_name)}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                    title="Cancelar Assinatura"
+                  >
                     <Trash2 size={16} />
                   </button>
                 </td>
@@ -2997,6 +3027,7 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
   const [activeTab, setActiveTab] = useState<'monthly' | 'yearly'>('monthly');
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showCancelOptions, setShowCancelOptions] = useState(false);
 
   useEffect(() => {
     const fetchSub = async () => {
@@ -3131,9 +3162,62 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
               <h4 className="text-xl font-bold text-gray-900">Plano {currentSubscription.plan_name}</h4>
             </div>
           </div>
-          <div className="sm:text-right">
-            <p className="text-xs text-gray-400 uppercase font-bold tracking-widest">Próxima renovação</p>
-            <p className="text-sm font-bold text-gray-900">{new Date(currentSubscription.renewal_date).toLocaleDateString()}</p>
+          <div className="flex flex-col items-end gap-2">
+            <div className="sm:text-right">
+              <p className="text-xs text-gray-400 uppercase font-bold tracking-widest">Próxima renovação</p>
+              <p className="text-sm font-bold text-gray-900">{new Date(currentSubscription.renewal_date).toLocaleDateString()}</p>
+            </div>
+            <button 
+              onClick={() => setShowCancelOptions(true)}
+              className="text-[10px] font-bold text-red-500 hover:text-red-700 hover:underline transition-all uppercase tracking-widest"
+            >
+              Gerenciar Assinatura
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Subscription Management Modal */}
+      {showCancelOptions && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] p-8 max-w-lg w-full shadow-2xl space-y-6 animate-in zoom-in-95 duration-300">
+            <div className="w-16 h-16 bg-indigo-50 text-[#5551FF] rounded-2xl flex items-center justify-center mx-auto">
+              <CreditCard size={32} />
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-2xl font-black text-gray-900 italic uppercase tracking-tight">Gerenciar Assinatura</h3>
+              <p className="text-gray-500 text-sm">Sua assinatura Nexlyra {currentSubscription?.plan_name} é processada de forma segura.</p>
+            </div>
+            
+            <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 space-y-4">
+              <div className="flex gap-4">
+                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-bold shadow-sm shrink-0 border border-gray-100">1</div>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  Para assinaturas via <strong>Kiwify</strong>, você deve gerenciar o cancelamento diretamente no portal de compras da Kiwify.
+                </p>
+              </div>
+              <div className="flex gap-4">
+                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-bold shadow-sm shrink-0 border border-gray-100">2</div>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  Acesse o <a href="https://dashboard.kiwify.com.br/" target="_blank" rel="noopener noreferrer" className="text-[#5551FF] font-bold underline">Portal da Kiwify</a>, faça login e vá em "Minhas Compras" para cancelar ou gerenciar a renovação.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 pt-2">
+              <button 
+                onClick={() => setShowCancelOptions(false)}
+                className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold hover:bg-black transition-all"
+              >
+                Entendi, voltar
+              </button>
+              <button 
+                onClick={() => window.open('https://wa.me/5511915951804', '_blank')}
+                className="w-full text-gray-400 text-xs font-bold hover:text-gray-600 py-2 transition-colors uppercase tracking-widest"
+              >
+                Precisa de ajuda? Falar com suporte
+              </button>
+            </div>
           </div>
         </div>
       )}
