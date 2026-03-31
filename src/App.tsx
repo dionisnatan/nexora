@@ -3738,8 +3738,12 @@ export default function App() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [currentView, setCurrentView] = useState<View>(() => {
     const params = new URLSearchParams(window.location.search);
+    const hash = window.location.hash;
     if (params.get('mp_connected') || params.get('mp_error') || params.get('me_success') || params.get('me_error')) {
       return 'pagamentos';
+    }
+    if (hash.includes('type=recovery') || window.location.pathname === '/reset-password') {
+      return 'reset-password';
     }
     return 'dashboard';
   });
@@ -3810,6 +3814,14 @@ export default function App() {
 
     // Basic Routing Logic
     const path = window.location.pathname;
+    const hash = window.location.hash;
+    
+    if (path === '/reset-password' || hash.includes('type=recovery')) {
+      setCurrentView('reset-password');
+      setIsInitializing(false);
+      return;
+    }
+
     if (path.startsWith('/loja/')) {
       const slug = path.split('/loja/')[1];
       if (slug) {
