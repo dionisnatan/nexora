@@ -3047,7 +3047,7 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
       ],
       accent: '#5551FF',
       badge: 'POPULAR',
-      kiwifyLink: 'https://pay.kiwify.com.br/5U7m01m',
+      kiwifyLink: 'https://pay.kiwify.com.br/gBYgS9n',
       maxStores: 1
     },
     {
@@ -3067,25 +3067,25 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
       ],
       accent: '#8b5cf6',
       badge: 'MAIS VENDIDO',
-      kiwifyLink: 'https://pay.kiwify.com.br/bKuzC2f',
+      kiwifyLink: 'https://pay.kiwify.com.br/F0GLsfD',
       maxStores: 1
     },
     {
       name: 'ULTRA',
       planKey: 'ultra',
-      priceMonthly: 139.00,
-      priceYearly: 1390.00,
+      priceMonthly: 139.90,
+      priceYearly: 1399.00,
       tagline: 'Automação + escala + inteligência',
       cta: 'Para quem quer escalar e ganhar no automático',
       features: [
         'Tudo do LOJA incluído',
         'Até 5 lojas no mesmo painel',
         'Automação de marketing e estoque',
-        'Inteligência Artificial (descrições + análise)',
+        'Inteligência IA (descrições + análise)',
         'Suporte VIP prioritário'
       ],
       accent: '#f59e0b',
-      kiwifyLink: '#',
+      kiwifyLink: 'https://pay.kiwify.com.br/0yKAjHp',
       maxStores: 5
     }
   ];
