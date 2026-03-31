@@ -17,6 +17,7 @@ import { supabase } from '../lib/supabase';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { getProductRating } from '../lib/reviews';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -924,7 +925,20 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
           <div className="max-w-7xl mx-auto px-4 flex justify-between items-center w-full">
             <div className="opacity-90"></div>
             <div className="flex items-center gap-6 opacity-90 hidden md:flex">
-              <span className="cursor-pointer hover:opacity-100">Rastrear Pedido</span>
+              <span 
+                className="cursor-pointer hover:opacity-100"
+                onClick={() => {
+                  if (customerSession) {
+                    setActiveDashboardTab('orders');
+                    setShowOrders(true);
+                  } else {
+                    setAuthMode('login');
+                    setIsAuthModalOpen(true);
+                  }
+                }}
+              >
+                Rastrear Pedido
+              </span>
               <a
                 href={store.whatsapp ? `https://wa.me/${store.whatsapp.replace(/\D/g, '')}?text=Olá! Preciso de ajuda.` : '#'}
                 target="_blank"
@@ -933,11 +947,13 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
               >
                 Central de Ajuda
               </a>
+              
               <div className="flex items-center gap-1 cursor-pointer hover:opacity-100">
                 <img src="https://flagcdn.com/w20/br.png" className="w-4 h-3 object-cover rounded-sm" />
                 <span>Português</span>
                 <ChevronDown size={12} />
               </div>
+
               <div className="flex items-center gap-1 cursor-pointer hover:opacity-100">
                 <span>R$ BRL</span>
                 <ChevronDown size={12} />
@@ -1377,10 +1393,17 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
           </h4>
 
           <div className="flex items-center gap-1 mb-3">
-            <div className="flex text-[#FFB300] gap-0.5">
-              {[1, 2, 3, 4, 5].map(i => <Star key={i} size={8} fill={i <= 4 ? "currentColor" : "none"} />)}
-            </div>
-            <span className="text-[8px] font-bold text-gray-300">(12)</span>
+            {(() => {
+              const { rating, count } = getProductRating(product.id);
+              return (
+                <>
+                  <div className="flex text-[#FFB300] gap-0.5">
+                    {[1, 2, 3, 4, 5].map(i => <Star key={i} size={8} fill={i <= Math.round(rating) ? "currentColor" : "none"} />)}
+                  </div>
+                  <span className="text-[8px] font-bold text-gray-300">({count})</span>
+                </>
+              );
+            })()}
           </div>
 
           <div className="mt-auto">
@@ -1641,10 +1664,17 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
 
           {/* Rating */}
           <div className="flex items-center gap-1 mb-2">
-            <div className="flex text-[#FFB300] gap-0.5">
-              {[1, 2, 3, 4, 5].map(i => <Star key={i} size={8} fill={i <= 4 ? "currentColor" : "none"} />)}
-            </div>
-            <span className="text-[8px] font-bold text-gray-300">(12)</span>
+            {(() => {
+              const { rating, count } = getProductRating(prod.id);
+              return (
+                <>
+                  <div className="flex text-[#FFB300] gap-0.5">
+                    {[1, 2, 3, 4, 5].map(i => <Star key={i} size={8} fill={i <= Math.round(rating) ? "currentColor" : "none"} />)}
+                  </div>
+                  <span className="text-[8px] font-bold text-gray-300">({count})</span>
+                </>
+              );
+            })()}
           </div>
 
           <div className="flex flex-col mt-auto">
@@ -2303,7 +2333,7 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
                     {hasDiscount && <span className="text-[9px] md:text-[10px] text-gray-500 line-through">{(Number(compareAt)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>}
                     <div className="flex items-end justify-between">
                       <span className="text-base md:text-xl font-black text-white tracking-tight">{(Number(finalPrice)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-                      <div className="flex items-center text-[9px] md:text-[10px] font-bold text-yellow-500 gap-0.5"><Star size={10} className="fill-current"/> 4.9</div>
+                      <div className="flex items-center text-[9px] md:text-[10px] font-bold text-yellow-500 gap-0.5"><Star size={10} className="fill-current"/> {getProductRating(prod.id).rating}</div>
                     </div>
                   </div>
                 </div>
@@ -2429,7 +2459,7 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
                   <div className="h-0.5 w-full bg-[var(--theme-primary)] group-hover:bg-white transition-colors" />
                   <div className="h-0.5 w-2/3 bg-[var(--theme-primary)] group-hover:bg-white transition-colors" />
                 </div>
-                <span className="hidden sm:inline">DEPARTAMENTOS</span>
+                <span className="hidden sm:inline uppercase">DEPARTAMENTOS</span>
                 <span className="sm:hidden">MENU</span>
               </button>
               <div className="absolute top-full left-0 w-64 bg-white shadow-2xl rounded-b-xl opacity-0 translate-y-2 pointer-events-none group-hover/dept:opacity-100 group-hover/dept:translate-y-0 group-hover/dept:pointer-events-auto transition-all z-[100] border border-gray-100 py-2">
@@ -2824,10 +2854,17 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
                   <div className="space-y-3">
                     <h2 className="text-xl font-black text-gray-900 leading-tight uppercase tracking-tight italic">{selectedProduct.name}</h2>
                     <div className="flex items-center gap-4">
-                      <div className="flex text-orange-400">
-                        {[1, 2, 3, 4, 5].map(i => <Star key={i} size={12} fill="currentColor" />)}
-                      </div>
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest underline decoration-[#f70]/30 underline-offset-4">56 avaliações</span>
+                      {(() => {
+                        const { rating, count } = getProductRating(selectedProduct.id);
+                        return (
+                          <>
+                            <div className="flex text-orange-400">
+                              {[1, 2, 3, 4, 5].map(i => <Star key={i} size={12} fill={i <= Math.round(rating) ? "currentColor" : "none"} />)}
+                            </div>
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest underline decoration-[#f70]/30 underline-offset-4">{count} avaliações</span>
+                          </>
+                        );
+                      })()}
                       <div className="w-1 h-1 bg-gray-200 rounded-full" />
                       <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cód: {selectedVariation?.sku || selectedProduct.sku || '---'}</span>
                     </div>
@@ -3886,10 +3923,17 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
                 <div>
                   <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight italic">{selectedProduct.name}</h2>
                   <div className="flex items-center gap-2 mt-2">
-                    <div className="flex text-yellow-500">
-                      {[1, 2, 3, 4, 5].map(i => <Star key={i} size={12} fill="currentColor" />)}
-                    </div>
-                    <span className="text-[10px] font-bold text-gray-400">4.9 (128 vendas este mês)</span>
+                    {(() => {
+                      const { rating, count, salesCount } = getProductRating(selectedProduct.id);
+                      return (
+                        <>
+                          <div className="flex text-yellow-500">
+                            {[1, 2, 3, 4, 5].map(i => <Star key={i} size={12} fill={i <= Math.round(rating) ? "currentColor" : "none"} />)}
+                          </div>
+                          <span className="text-[10px] font-bold text-gray-400">{rating} ({salesCount} vendas este mês)</span>
+                        </>
+                      );
+                    })()}
                   </div>
                   {selectedProduct.description && (
                     <p className="text-gray-500 text-xs mt-4 leading-relaxed line-clamp-2 hover:line-clamp-none transition-all cursor-pointer">
