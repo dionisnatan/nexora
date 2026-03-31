@@ -3732,6 +3732,10 @@ export default function App() {
         fetchStoreData(session.user.id);
       } else {
         setUserProfile(null);
+        setStoresList([]);
+        setStoreData(null);
+        setActiveStoreId(null);
+        localStorage.removeItem('nexlyra_active_store_id');
       }
     });
 
@@ -3873,6 +3877,8 @@ export default function App() {
     } else {
       setStoresList([]);
       setStoreData(null);
+      setActiveStoreId(null);
+      localStorage.removeItem('nexlyra_active_store_id');
     }
   };
 
