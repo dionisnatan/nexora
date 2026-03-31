@@ -1,12 +1,12 @@
 import sys
 try:
-    from PIL import Image
-    import numpy as np
+    from PIL import Image  # type: ignore
+    import numpy as np  # type: ignore
 except ImportError:
     import subprocess
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'Pillow', 'numpy'])
-    from PIL import Image
-    import numpy as np
+    from PIL import Image  # type: ignore
+    import numpy as np  # type: ignore
 
 def remove_bg():
     img = Image.open('public/icon.png').convert('RGBA')
