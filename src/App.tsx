@@ -1143,6 +1143,23 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
           start.setMonth(now.getMonth() - 12);
         }
 
+        if (!storeId) {
+          setIsLoading(false);
+          setMetrics({
+            faturamento: 'R$ 0,00',
+            pedidos: '0',
+            pedidosSub: '0 hoje',
+            produtos: '0',
+            produtosSub: '0 ativos',
+            pendentes: '0',
+            pendentesSub: 'Aguardando ação'
+          });
+          setChartData([]);
+          setRecentOrders([]);
+          setBestSellers([]);
+          return;
+        }
+
         let ordersQuery = supabase.from('orders').select('*').gte('created_at', start.toISOString());
         let productsQuery = supabase.from('products').select('*');
         let todayOrdersQuery = supabase.from('orders').select('id, created_at');
@@ -1151,11 +1168,9 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
         todayStart.setHours(0, 0, 0, 0);
         todayOrdersQuery = todayOrdersQuery.gte('created_at', todayStart.toISOString());
 
-        if (storeId) {
-          ordersQuery = ordersQuery.eq('store_id', storeId);
-          productsQuery = productsQuery.eq('store_id', storeId);
-          todayOrdersQuery = todayOrdersQuery.eq('store_id', storeId);
-        }
+        ordersQuery = ordersQuery.eq('store_id', storeId);
+        productsQuery = productsQuery.eq('store_id', storeId);
+        todayOrdersQuery = todayOrdersQuery.eq('store_id', storeId);
 
         const [ordersRes, productsRes, todayOrdersRes] = await Promise.all([
           ordersQuery,
