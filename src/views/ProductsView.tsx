@@ -56,6 +56,7 @@ export const ProductsView = ({ onAction, session, storeId, userProfile }: { onAc
 
   // Category Management State
   const [isManagingCategories, setIsManagingCategories] = useState(false);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [categorySaving, setCategorySaving] = useState(false);
   const [selectedIcon, setSelectedIcon] = useState('Package');
@@ -247,22 +248,48 @@ export const ProductsView = ({ onAction, session, storeId, userProfile }: { onAc
       let finalImageUrl = null;
       if (categoryImageFile) {
         finalImageUrl = await uploadImage(categoryImageFile);
+      } else if (editingCategoryId) {
+        finalImageUrl = categoryImagePreview;
       }
 
       const slug = newCategoryName.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
-      const { data, error } = await supabase
-        .from('categories')
-        .insert([{ 
-          store_id: storeId, 
-          name: newCategoryName.trim(), 
-          slug,
-          icon: selectedIcon,
-          image_url: finalImageUrl
-        }])
-        .select();
+      let data, error;
+
+      if (editingCategoryId) {
+        const response = await supabase
+          .from('categories')
+          .update({ 
+            name: newCategoryName.trim(), 
+            slug,
+            icon: selectedIcon,
+            image_url: finalImageUrl
+          })
+          .eq('id', editingCategoryId)
+          .select();
+        error = response.error;
+        data = response.data;
+      } else {
+        const response = await supabase
+          .from('categories')
+          .insert([{ 
+            store_id: storeId, 
+            name: newCategoryName.trim(), 
+            slug,
+            icon: selectedIcon,
+            image_url: finalImageUrl
+          }])
+          .select();
+        error = response.error;
+        data = response.data;
+      }
 
       if (error) throw error;
-      if (data) setCategories([...categories, data[0]]);
+      
+      if (editingCategoryId && data) {
+        setCategories(categories.map(c => c.id === editingCategoryId ? data[0] : c));
+      } else if (data) {
+        setCategories([...categories, data[0]]);
+      }
       
       // Reset form
       setNewCategoryName('');
@@ -270,10 +297,11 @@ export const ProductsView = ({ onAction, session, storeId, userProfile }: { onAc
       setCategoryImageFile(null);
       setCategoryImagePreview(null);
       setShowIconPicker(false);
+      setEditingCategoryId(null);
       
-      onAction("Categoria criada com sucesso!");
+      onAction(editingCategoryId ? "Categoria atualizada com sucesso!" : "Categoria criada com sucesso!");
     } catch (err: any) {
-      onAction("Erro ao criar categoria: " + err.message);
+      onAction("Erro ao salvar categoria: " + err.message);
     } finally {
       setCategorySaving(false);
     }
@@ -1264,7 +1292,19 @@ export const ProductsView = ({ onAction, session, storeId, userProfile }: { onAc
           <div className="bg-white rounded-3xl w-full max-w-md max-h-[80vh] overflow-hidden shadow-2xl flex flex-col">
             <div className="p-6 border-b border-gray-50 flex items-center justify-between">
               <h3 className="text-xl font-bold text-slate-800">Gerenciar Categorias</h3>
-              <button onClick={() => setIsManagingCategories(false)} className="text-gray-400 hover:text-gray-900"><X size={20}/></button>
+              <button 
+                onClick={() => {
+                  setIsManagingCategories(false);
+                  setEditingCategoryId(null);
+                  setNewCategoryName('');
+                  setSelectedIcon('Package');
+                  setCategoryImagePreview(null);
+                  setCategoryImageFile(null);
+                }} 
+                className="text-gray-400 hover:text-gray-900"
+              >
+                <X size={20}/>
+              </button>
             </div>
             
             <div className="p-6 overflow-y-auto flex-1 space-y-4">
@@ -1370,7 +1410,7 @@ export const ProductsView = ({ onAction, session, storeId, userProfile }: { onAc
                       disabled={categorySaving}
                       className="bg-[#5551FF] text-white px-4 py-2 rounded-xl text-sm font-bold disabled:opacity-50 hover:brightness-110 transition-all flex items-center justify-center min-w-[44px]"
                     >
-                      {categorySaving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Plus size={18}/>}
+                      {categorySaving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : (editingCategoryId ? <Check size={18}/> : <Plus size={18}/>)}
                     </button>
                   </form>
                 </div>
@@ -1393,12 +1433,26 @@ export const ProductsView = ({ onAction, session, storeId, userProfile }: { onAc
                         </div>
                         <span className="font-medium text-slate-700">{cat.name}</span>
                       </div>
-                      <button 
-                        onClick={() => handleDeleteCategory(cat.id)}
-                        className="text-gray-300 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 size={16}/>
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button 
+                          onClick={() => {
+                            setEditingCategoryId(cat.id);
+                            setNewCategoryName(cat.name);
+                            setSelectedIcon(cat.icon || 'Package');
+                            setCategoryImagePreview(cat.image_url);
+                            setCategoryImageFile(null);
+                          }}
+                          className="p-1.5 text-gray-300 hover:text-[#5551FF] transition-colors bg-white rounded-lg opacity-0 group-hover:opacity-100 shadow-sm"
+                        >
+                          <Edit size={14}/>
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteCategory(cat.id)}
+                          className="p-1.5 text-gray-300 hover:text-red-500 transition-colors bg-white rounded-lg shadow-sm"
+                        >
+                          <Trash2 size={14}/>
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -1407,7 +1461,14 @@ export const ProductsView = ({ onAction, session, storeId, userProfile }: { onAc
             
             <div className="p-6 bg-gray-50 flex justify-end">
               <button 
-                onClick={() => setIsManagingCategories(false)}
+                onClick={() => {
+                  setIsManagingCategories(false);
+                  setEditingCategoryId(null);
+                  setNewCategoryName('');
+                  setSelectedIcon('Package');
+                  setCategoryImagePreview(null);
+                  setCategoryImageFile(null);
+                }}
                 className="px-6 py-2 bg-white border border-gray-200 rounded-xl font-bold text-gray-600 text-sm"
               >
                 Fechar
