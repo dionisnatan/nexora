@@ -631,7 +631,7 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
 
   const cartTotal = cart.reduce((acc, item) => acc + (Number(item.price) * item.quantity), 0);
   const cartPixTotal = cart.reduce((acc, item) => {
-    const discount = Number(item.pix_discount_percent !== null && item.pix_discount_percent !== undefined ? item.pix_discount_percent : 10) / 100;
+    const discount = Number(item.pix_discount_percent || 0) / 100;
     return acc + (Number(item.price) * item.quantity * (1 - discount));
   }, 0);
 
@@ -1696,7 +1696,9 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
                     {(prod.compare_at_price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </span>
                 )}
-                <span className="text-[8px] font-black text-emerald-500 uppercase tracking-tighter">ou Pix {Number(prod.pix_discount_percent !== null && prod.pix_discount_percent !== undefined ? prod.pix_discount_percent : 10)}% OFF</span>
+                {Number(prod.pix_discount_percent || 0) > 0 && (
+                  <span className="text-[8px] font-black text-emerald-500 uppercase tracking-tighter">ou Pix {Number(prod.pix_discount_percent || 0)}% OFF</span>
+                )}
               </div>
             </div>
           </div>
@@ -2538,7 +2540,7 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
       }
     }
 
-    const pixDiscount = Number(selectedProduct.pix_discount_percent !== null && selectedProduct.pix_discount_percent !== undefined ? selectedProduct.pix_discount_percent : 10) / 100;
+    const pixDiscount = Number(selectedProduct.pix_discount_percent || 0) / 100;
     const priceToUse = method === 'pix' ? price * (1 - pixDiscount) : price;
     const shippingCost = isPickup ? 0 : (selectedShipping?.price || 0);
     const finalPriceWithShipping = priceToUse + shippingCost;
@@ -2639,7 +2641,7 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
   const renderDefaultCheckoutModal = () => {
     if (!selectedProduct) return null;
     const finalPrice = Number(selectedVariation?.price || selectedProduct.price);
-    const pixDiscount = Number(selectedProduct.pix_discount_percent !== null && selectedProduct.pix_discount_percent !== undefined ? selectedProduct.pix_discount_percent : 10) / 100;
+    const pixDiscount = Number(selectedProduct.pix_discount_percent || 0) / 100;
     const pixPrice = finalPrice * (1 - pixDiscount);
     const installmentPrice = finalPrice / 12;
 
@@ -2828,7 +2830,9 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
                           <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-black text-xs italic shrink-0 shadow-sm shadow-emerald-200/50">PIX</div>
                           <div>
                             <p className="text-2xl font-black text-emerald-600 tracking-tight">{(pixPrice).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                            <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest">À vista com {Number(selectedProduct.pix_discount_percent || 10)}% de desconto adicional</p>
+                            {Number(selectedProduct.pix_discount_percent || 0) > 0 && (
+                              <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest">À vista com {Number(selectedProduct.pix_discount_percent || 0)}% de desconto adicional</p>
+                            )}
                           </div>
                         </div>
                       ) : (
@@ -3075,7 +3079,7 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center mx-auto mb-1 font-black text-[10px] transition-all group-hover:scale-110 ${paymentMethod === 'pix' ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
                           {paymentMethod === 'pix' ? <Check size={14} strokeWidth={4} /> : 'P'}
                         </div>
-                        <p className={`text-[10px] font-black uppercase tracking-widest ${paymentMethod === 'pix' ? 'text-gray-900' : 'text-gray-400'}`}>PIX -{Number(selectedProduct.pix_discount_percent || 10)}%</p>
+                        <p className={`text-[10px] font-black uppercase tracking-widest ${paymentMethod === 'pix' ? 'text-gray-900' : 'text-gray-400'}`}>PIX {Number(selectedProduct.pix_discount_percent || 0) > 0 ? `-${Number(selectedProduct.pix_discount_percent || 0)}%` : ''}</p>
                         {paymentMethod === 'pix' && (
                           <div className="absolute -bottom-1 -right-1 px-2 py-1 bg-emerald-500 text-white text-[8px] font-black rounded-tl-xl uppercase tracking-tighter">Melhor Opção</div>
                         )}
@@ -3416,7 +3420,7 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
   const renderMinimalCheckoutModal = () => {
     if (!selectedProduct) return null;
     const finalPrice = Number(selectedVariation?.price || selectedProduct.price);
-    const pixDiscount = Number(selectedProduct.pix_discount_percent || 10) / 100;
+    const pixDiscount = Number(selectedProduct.pix_discount_percent || 0) / 100;
     const pixPrice = finalPrice * (1 - pixDiscount);
 
     return (
@@ -3552,7 +3556,7 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
   const renderPremiumCheckoutModal = () => {
     if (!selectedProduct) return null;
     const finalPrice = Number(selectedVariation?.price || selectedProduct.price);
-    const pixDiscount = Number(selectedProduct.pix_discount_percent || 10) / 100;
+    const pixDiscount = Number(selectedProduct.pix_discount_percent || 0) / 100;
     const pixPrice = finalPrice * (1 - pixDiscount);
 
     return (
@@ -3631,7 +3635,7 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
 
               <div className="p-6 bg-black border-t border-white/5 shrink-0 relative z-40 space-y-4">
                 <div className="flex gap-2">
-                  <button onClick={() => setPaymentMethod('pix')} className={cn("flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded border transition-all", paymentMethod === 'pix' ? 'border-[var(--theme-primary)] text-[var(--theme-primary)] bg-[var(--theme-primary)]/10' : 'border-white/10 text-gray-500 hover:border-white/30')}>Pix -{Number(selectedProduct.pix_discount_percent || 10)}%</button>
+                  <button onClick={() => setPaymentMethod('pix')} className={cn("flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded border transition-all", paymentMethod === 'pix' ? 'border-[var(--theme-primary)] text-[var(--theme-primary)] bg-[var(--theme-primary)]/10' : 'border-white/10 text-gray-500 hover:border-white/30')}>Pix {Number(selectedProduct.pix_discount_percent || 0) > 0 ? `-${Number(selectedProduct.pix_discount_percent || 0)}%` : ''}</button>
                   <button onClick={() => setPaymentMethod('card')} className={cn("flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded border transition-all", paymentMethod === 'card' ? 'border-white text-white bg-white/10' : 'border-white/10 text-gray-500 hover:border-white/30')}>Cartao</button>
                 </div>
                 {preferenceId ? (
@@ -3698,7 +3702,7 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
   const renderGamerCheckoutModal = () => {
     if (!selectedProduct) return null;
     const finalPrice = Number(selectedVariation?.price || selectedProduct.price);
-    const pixDiscount = Number(selectedProduct.pix_discount_percent || 10) / 100;
+    const pixDiscount = Number(selectedProduct.pix_discount_percent || 0) / 100;
     const pixPrice = finalPrice * (1 - pixDiscount);
 
     return (
@@ -3875,7 +3879,7 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
   const renderOfferCheckoutModal = () => {
     if (!selectedProduct) return null;
     const finalPrice = Number(selectedVariation?.price || selectedProduct.price);
-    const pixDiscount = Number(selectedProduct.pix_discount_percent !== null && selectedProduct.pix_discount_percent !== undefined ? selectedProduct.pix_discount_percent : 10) / 100;
+    const pixDiscount = Number(selectedProduct.pix_discount_percent || 0) / 100;
     const pixPrice = finalPrice * (1 - pixDiscount);
 
     return (
