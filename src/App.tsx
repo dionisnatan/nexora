@@ -3037,7 +3037,7 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
       color: 'bg-white',
       badge: 'MAIS VENDIDO',
       kiwifyLinkMonthly: 'https://pay.kiwify.com.br/F0GLsfD',
-      kiwifyLinkYearly: 'https://pay.kiwify.com.br/itidG01',
+      kiwifyLinkYearly: 'https://pay.kiwify.com.br/VpcLhNr',
       maxStores: 1
     },
     {
@@ -3051,7 +3051,7 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
       color: 'bg-gray-900',
       badge: 'TOP',
       kiwifyLinkMonthly: 'https://pay.kiwify.com.br/0yKAjHp',
-      kiwifyLinkYearly: 'https://pay.kiwify.com.br/5GIOdLv',
+      kiwifyLinkYearly: 'https://pay.kiwify.com.br/tTHc0yh',
       maxStores: 5
     }
   ];
