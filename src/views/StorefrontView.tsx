@@ -14,7 +14,7 @@ import {
 const CATEGORY_ICONS: Record<string, any> = {
   Smartphone, Laptop, Watch, Headphones, Gamepad2, Camera, Tv, Speaker, Shirt, Baby, Activity, Home, Car, Wrench, Heart, Grape, Coffee, Zap, Star, Gift, ShoppingBag, Package
 };
-import { supabase } from '../lib/supabase';
+import { customerSupabase as supabase } from '../lib/supabase';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
