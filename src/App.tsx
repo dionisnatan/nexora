@@ -62,6 +62,7 @@ import {
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { StorefrontView } from './views/StorefrontView';
+import { getPlanConfig } from './lib/plans';
 
 /**
  * Utility for tailwind class merging
@@ -3002,7 +3003,9 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
       planKey: 'free',
       priceMonthly: 0,
       priceYearly: 0,
-      features: ['Até 10 produtos', '1 catálogo digital', 'Link público do catálogo', 'Sem loja online'],
+      description: 'Ideal para começar sem risco',
+      features: ['Até 10 produtos cadastrados', '1 catálogo digital interativo', 'Link público para divulgação', 'Integração com WhatsApp', '❌ Sem carrinho e checkout (apenas catálogo)'],
+      footer: 'Perfeito para testar a plataforma',
       color: 'bg-white',
       kiwifyLink: null,
       maxStores: 0
@@ -3012,18 +3015,22 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
       planKey: 'pro',
       priceMonthly: 39.90,
       priceYearly: 399.00,
-      features: ['Produtos ilimitados', 'Catálogo profissional', '2 lojas online', 'Todos os templates', 'Suporte'],
+      description: 'Para quem quer vender de forma profissional',
+      features: ['Tudo do FREE +', 'Produtos ilimitados', 'Catálogo 100% personalizado', '1 loja online ativa', '1 template profissional de vitrine'],
+      footer: 'Ideal para quem vende pelo Instagram e WhatsApp',
       color: 'bg-white',
       badge: 'POPULAR',
       kiwifyLink: 'https://pay.kiwify.com.br/5U7m01m',
-      maxStores: 2
+      maxStores: 1
     },
     {
       name: 'LOJA',
       planKey: 'loja',
       priceMonthly: 99.90,
       priceYearly: 999.00,
-      features: ['Loja online completa', 'Checkout integrado', 'Catálogo ilimitado', 'Domínio próprio', 'Relatórios avançados'],
+      description: 'Para transformar seguidores em clientes',
+      features: ['Tudo do PRO +', 'Loja completa (vitrine + carrinho)', 'Checkout com pagamento integrado (PIX, etc.)', 'Catálogo ilimitado', 'Relatórios de vendas e visitantes', 'Domínio próprio (em breve)'],
+      footer: 'Aqui começa o e-commerce de verdade',
       color: 'bg-white',
       badge: 'MAIS VENDIDO',
       kiwifyLink: 'https://pay.kiwify.com.br/bKuzC2f',
@@ -3034,8 +3041,11 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
       planKey: 'ultra',
       priceMonthly: 139.00,
       priceYearly: 1390.00,
-      features: ['Multi-lojas (até 5)', 'Loja online completa', 'Automações inteligentes', 'Inteligência Artificial (em breve)', 'Suporte prioritário VIP'],
+      description: 'Automação + escala + inteligência',
+      features: ['Tudo do LOJA +', 'Até 5 lojas no mesmo painel', 'Automação de marketing e estoque', 'Inteligência Artificial (descrições + análise)', 'Suporte VIP prioritário'],
+      footer: 'Para quem quer escalar e ganhar dinheiro no automático',
       color: 'bg-gray-900',
+      badge: 'TOP',
       kiwifyLink: '#',
       maxStores: 5
     }
@@ -3118,26 +3128,31 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
 
                 <div className="mb-5">
                   <h3 className={cn("text-lg font-black uppercase tracking-tight mt-2", isUltra ? 'text-white' : 'text-gray-900')}>{plan.name}</h3>
+                  <p className={cn("text-xs md:text-sm font-medium italic mt-1 mb-3 text-blue-600", isUltra && "text-blue-400")}>{plan.description}</p>
                   <div className="flex items-baseline gap-1 mt-2">
                     {!isFree && <span className={cn("text-xs font-bold opacity-60", isUltra ? 'text-gray-400' : 'text-gray-500')}>R$</span>}
                     <span className={cn("text-4xl font-black italic tracking-tighter", isUltra ? 'text-white' : 'text-gray-900')}>
-                      {isFree ? 'Grátis' : price.toFixed(2).replace('.', ',')}
+                      {isFree ? '0,00' : price.toFixed(2).replace('.', ',')}
                     </span>
                     {!isFree && <span className={cn("text-[10px] font-bold opacity-40 uppercase ml-1", isUltra ? 'text-gray-400' : 'text-gray-500')}>/{activeTab === 'monthly' ? 'mês' : 'ano'}</span>}
                   </div>
                 </div>
 
-                <div className="space-y-3 mb-8 flex-1">
+                <div className="space-y-3 mb-6 flex-1">
                   {plan.features.map(f => (
                     <div key={f} className="flex items-start gap-2 text-xs font-medium">
                       <div className={cn("w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5",
-                        isUltra ? 'bg-white/10' : 'bg-[#10b981]/10'
+                        f.startsWith('❌') ? 'bg-red-500/10' : isUltra ? 'bg-white/10' : 'bg-[#10b981]/10'
                       )}>
-                        <Check size={10} className={isUltra ? 'text-white/80' : 'text-[#10b981]'} strokeWidth={4} />
+                        {f.startsWith('❌') ? <X size={10} className="text-red-500" strokeWidth={4} /> : <Check size={10} className={isUltra ? 'text-white/80' : 'text-[#10b981]'} strokeWidth={4} />}
                       </div>
-                      <span className={isUltra ? 'text-gray-300' : 'text-gray-600'}>{f}</span>
+                      <span className={cn(isUltra ? 'text-gray-300' : 'text-gray-600', f.startsWith('❌') && 'text-red-500')}>{f.replace('❌ ', '')}</span>
                     </div>
                   ))}
+                </div>
+
+                <div className={cn("p-3 rounded-xl mb-6 text-center text-xs font-bold", isUltra ? 'bg-white/5 text-gray-300' : 'bg-gray-50 text-gray-500')}>
+                  👉 {plan.footer}
                 </div>
 
                 <button
@@ -3219,7 +3234,7 @@ const MinhasLojasView = ({ session, onAction, stores, activeStoreId, onSelectSto
   const getMaxStores = () => {
     const plan = userProfile?.plan || 'free';
     if (plan === 'free') return 0; // Wait, plan features list 0 for free but the instructions say free has 0 online store, only catalog. Let's return 0. (Actually free can't open online store).
-    if (plan === 'pro') return 2;
+    if (plan === 'pro') return 1;
     if (plan === 'loja') return 1;
     if (plan === 'ultra') return 5;
     return 1; // Default

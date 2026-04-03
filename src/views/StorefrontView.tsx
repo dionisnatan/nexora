@@ -24,8 +24,10 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: { slug: string, isCatalog?: boolean, hasCheckout?: boolean }) => {
+export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCatalog?: boolean }) => {
   const [store, setStore] = useState<any>(null);
+  // Checkout is only available for LOJA and ULTRA plans. Resolved from store owner's profile.
+  const [hasCheckout, setHasCheckout] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategorias] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -776,6 +778,17 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
           if (error || !data) throw new Error('Loja não encontrada');
 
           storeData = data;
+
+          // ✅ Fetch store owner's plan to verify checkout access
+          if (storeData.user_id) {
+            const { data: ownerProfile } = await supabase
+              .from('profiles')
+              .select('plan')
+              .eq('id', storeData.user_id)
+              .single();
+            const ownerPlan = (ownerProfile?.plan || 'free').toLowerCase();
+            setHasCheckout(ownerPlan === 'loja' || ownerPlan === 'ultra');
+          }
 
           const { data: cats } = await supabase.from('categories').select('*').eq('store_id', storeData.id).order('name');
           setCategorias(cats || []);
