@@ -3644,15 +3644,36 @@ export default function App() {
     }
 
     // 2. Hostname-based detection (Subdomains or Custom Domains)
-    // If not main domain/localhost and not on root path without a saved slug
-    const isMainSite = ['localhost', 'nexlyra.com', 'nexlyra.app', 'nexlyra-dashboard.vercel.app'].some(d => hostname === d);
+    const mainDomains = [
+      'localhost',
+      'nexlyra.com',
+      'nexlyra.app',
+      'nexlyra-dashboard.vercel.app',
+      'nexlyra-gamma-ten.vercel.app' // User's specific production domain
+    ];
+    
+    // Improved check: only treat as store if it's NOT a main site AND NOT a nexlyra- prefixed vercel domain (unless it's a known store)
+    const isMainSite = mainDomains.some(d => hostname === d) || 
+                       (hostname.endsWith('.vercel.app') && hostname.startsWith('nexlyra-'));
+
     if (!isMainSite) {
       // Extract subdomain or handle custom domain
       const subdomain = hostname.split('.')[0];
-      if (subdomain && !['www', 'admin'].includes(subdomain)) {
-        setStoreSlug(subdomain);
-        setIsInitializing(false);
-        return;
+      // Only treat as store if it's clearly a subdomain (e.g. store.nexlyra.app) 
+      // or a completely different custom domain
+      if (subdomain && !['www', 'admin', 'dashboard', 'app'].includes(subdomain)) {
+        // If it's a nexlyra.app/com subdomain, it's definitely a store
+        if (hostname.endsWith('.nexlyra.app') || hostname.endsWith('.nexlyra.com')) {
+          setStoreSlug(subdomain);
+          setIsInitializing(false);
+          return;
+        }
+        // If it's a completely different domain, it's likely a custom domain store
+        if (!hostname.includes('vercel.app') && !hostname.includes('nexlyra.')) {
+          setStoreSlug(hostname); // Use full hostname for custom domain lookup
+          setIsInitializing(false);
+          return;
+        }
       }
     }
 
