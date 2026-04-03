@@ -3192,6 +3192,64 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
         </div>
       </div>
 
+      {/* Quick Comparison Table */}
+      <div className="max-w-6xl mx-auto mt-16 px-4 md:px-0">
+        <h3 className="text-xl font-bold text-gray-900 mb-8 text-center flex items-center justify-center gap-3">
+          <div className="w-8 h-px bg-gray-200" />
+          Comparação rápida
+          <div className="w-8 h-px bg-gray-200" />
+        </h3>
+        <div className="bg-white/40 backdrop-blur-3xl border border-white/60 rounded-[2.5rem] overflow-hidden shadow-xl shadow-gray-200/50">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50/50">
+                  <th className="p-6 text-xs font-black uppercase tracking-widest text-gray-400 border-b border-gray-100">Recurso</th>
+                  <th className="p-6 text-xs font-black uppercase tracking-widest text-gray-400 border-b border-gray-100 text-center">FREE</th>
+                  <th className="p-6 text-xs font-black uppercase tracking-widest text-gray-400 border-b border-gray-100 text-center text-blue-600">PRO</th>
+                  <th className="p-6 text-xs font-black uppercase tracking-widest text-gray-400 border-b border-gray-100 text-center">LOJA</th>
+                  <th className="p-6 text-xs font-black uppercase tracking-widest text-white border-b border-gray-100 text-center bg-gray-900">ULTRA</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {[
+                  { name: 'Produtos cadastrados', free: '10', pro: '∞', loja: '∞', ultra: '∞' },
+                  { name: 'Loja completa (Vitrine)', free: false, pro: false, loja: true, ultra: true },
+                  { name: 'Checkout com Pagamento', free: false, pro: false, loja: true, ultra: true },
+                  { name: 'Inteligência Artificial (IA)', free: false, pro: false, loja: false, ultra: true },
+                  { name: 'Relatórios de Vendas', free: false, pro: false, loja: true, ultra: true },
+                  { name: 'Multilojas (até 5)', free: false, pro: false, loja: false, ultra: true }
+                ].map((row, idx) => (
+                  <tr key={row.name} className="hover:bg-white/50 transition-colors">
+                    <td className="p-6 text-sm font-bold text-gray-700">{row.name}</td>
+                    <td className="p-6 text-center">
+                      <div className="flex justify-center">
+                        {typeof row.free === 'string' ? <span className="text-sm font-black text-gray-900">{row.free}</span> : row.free ? <Check className="text-[#10b981]" size={18} strokeWidth={3} /> : <X className="text-gray-200" size={18} strokeWidth={3} />}
+                      </div>
+                    </td>
+                    <td className="p-6 text-center bg-blue-50/10">
+                      <div className="flex justify-center">
+                        {typeof row.pro === 'string' ? <span className="text-sm font-black text-blue-700">{row.pro}</span> : row.pro ? <Check className="text-blue-600" size={18} strokeWidth={3} /> : <X className="text-gray-200" size={18} strokeWidth={3} />}
+                      </div>
+                    </td>
+                    <td className="p-6 text-center">
+                      <div className="flex justify-center">
+                        {typeof row.loja === 'string' ? <span className="text-sm font-black text-gray-900">{row.loja}</span> : row.loja ? <Check className="text-[#10b981]" size={18} strokeWidth={3} /> : <X className="text-gray-200" size={18} strokeWidth={3} />}
+                      </div>
+                    </td>
+                    <td className="p-6 text-center bg-gray-900/5">
+                      <div className="flex justify-center">
+                        {typeof row.ultra === 'string' ? <span className="text-sm font-black text-gray-900">{row.ultra}</span> : row.ultra ? <Check className="text-[#10b981]" size={18} strokeWidth={3} /> : <X className="text-gray-200" size={18} strokeWidth={3} />}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 pt-12">
         <div className="p-8 bg-white rounded-3xl border border-gray-100 space-y-4">
           <h4 className="font-bold text-gray-900 flex items-center gap-2">
