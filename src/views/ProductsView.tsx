@@ -617,13 +617,13 @@ export const ProductsView = ({ onAction, session, storeId, userProfile }: { onAc
               <input type="text" placeholder="Buscar produto..." className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm" disabled />
             </div>
           </div>
-          <div className="bg-white/50 rounded-3xl border border-gray-100 shadow-sm min-h-[400px] mt-8" />
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm min-h-[400px] mt-8" />
         </div>
 
         {/* Modal Overlay */}
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="sticky top-0 bg-white z-10 px-6 py-4 flex items-center justify-between border-b border-gray-50">
+            <div className="sticky top-0 bg-white z-10 px-6 py-4 flex items-center justify-between border-b border-gray-100">
               <h2 className="text-xl font-bold text-slate-800">{editingProductId ? 'Editar produto' : 'Novo produto'}</h2>
               <button 
                 onClick={() => {
@@ -1156,7 +1156,7 @@ export const ProductsView = ({ onAction, session, storeId, userProfile }: { onAc
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden min-h-[400px]">
+      <div className="glass-card shadow-sm min-h-[400px]">
         {products.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-12 h-full text-center space-y-4">
             <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-300">
