@@ -135,8 +135,14 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
       setCustomerSession(session);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setCustomerSession(session);
+      
+      // Auto-open dashboard after Google OAuth or regular login
+      if (event === 'SIGNED_IN' && session) {
+        setShowOrders(true);
+        setIsAuthModalOpen(false);
+      }
     });
 
     return () => subscription.unsubscribe();
