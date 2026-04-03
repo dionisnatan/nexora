@@ -3623,22 +3623,44 @@ export default function App() {
       return;
     }
 
-    // Basic Routing Logic
+    // High-Priority Storefront Detection (Priority vs Admin Dashboard)
     const path = window.location.pathname;
-    if (path.startsWith('/loja/')) {
-      const slug = path.split('/loja/')[1];
+    const hostname = window.location.hostname;
+    const hash = window.location.hash;
+    const isAuthRedirect = hash.includes('access_token=') || hash.includes('type=recovery');
+
+    const isStorePath = path.startsWith('/loja/') || path.startsWith('/catalogo/');
+    const savedStoreSlug = localStorage.getItem('nexlyra_last_store_slug');
+
+    // 1. Path-based detection (Highest Priority)
+    if (isStorePath) {
+      const segments = path.split('/');
+      const slug = segments[2]?.split(/[#?]/)[0];
       if (slug) {
         setStoreSlug(slug);
         setIsInitializing(false);
         return;
       }
-    } else if (path.startsWith('/catalogo/')) {
-      const slug = path.split('/catalogo/')[1];
-      if (slug) {
-        setStoreSlug(slug);
+    }
+
+    // 2. Hostname-based detection (Subdomains or Custom Domains)
+    // If not main domain/localhost and not on root path without a saved slug
+    const isMainSite = ['localhost', 'nexlyra.com', 'nexlyra.app', 'nexlyra-dashboard.vercel.app'].some(d => hostname === d);
+    if (!isMainSite) {
+      // Extract subdomain or handle custom domain
+      const subdomain = hostname.split('.')[0];
+      if (subdomain && !['www', 'admin'].includes(subdomain)) {
+        setStoreSlug(subdomain);
         setIsInitializing(false);
         return;
       }
+    }
+
+    // 3. Redirect Recovery Fallback (If lost context during OAuth)
+    if (isAuthRedirect && savedStoreSlug) {
+      setStoreSlug(savedStoreSlug);
+      setIsInitializing(false);
+      return;
     }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -3816,13 +3838,15 @@ export default function App() {
     setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
   };
 
-  if (isInitializing) {
-    return <div className="min-h-screen flex items-center justify-center bg-[#F9FAFB]"><div className="w-10 h-10 border-4 border-indigo-100 border-t-[#5551FF] rounded-full animate-spin" /></div>;
-  }
-
+  // ROTA DA VITRINE (STOREFRONT) - TEM PRIORIDADE TOTAL
   if (storeSlug) {
     const isCatalog = window.location.pathname.startsWith('/catalogo/');
     return <StorefrontView slug={storeSlug} isCatalog={isCatalog} />;
+  }
+
+  // ROTA DO SISTEMA (ADMIN)
+  if (isInitializing) {
+    return <div className="min-h-screen flex items-center justify-center bg-[#F9FAFB]"><div className="w-10 h-10 border-4 border-indigo-100 border-t-[#5551FF] rounded-full animate-spin" /></div>;
   }
 
   if (!session) {

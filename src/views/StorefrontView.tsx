@@ -130,6 +130,15 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
     setTimeout(() => setNotification(null), 4000);
   };
 
+  // Persist current store slug to help with auth redirects
+  useEffect(() => {
+    if (slug) {
+      localStorage.setItem('nexlyra_last_store_slug', slug);
+      // Also clear any previous auth errors to keep it clean
+      setAuthError(null);
+    }
+  }, [slug]);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setCustomerSession(session);
@@ -138,10 +147,16 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setCustomerSession(session);
       
-      // Auto-open dashboard after Google OAuth or regular login
+      // Quando o usuário faz login (ex: via Google ou e-mail), abre o painel automaticamente
       if (event === 'SIGNED_IN' && session) {
         setShowOrders(true);
         setIsAuthModalOpen(false);
+      }
+      
+      // Quando o usuário sai, garante que o painel seja fechado
+      if (event === 'SIGNED_OUT') {
+        setShowOrders(false);
+        setCustomerSession(null);
       }
     });
 
@@ -419,13 +434,17 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
   };
 
   const handleGoogleAuth = async () => {
+    // Force save slug before redirect
+    if (slug) localStorage.setItem('nexlyra_last_store_slug', slug);
     setAuthLoading(true);
     setAuthError(null);
     try {
+      // Use clean URL for redirect to avoid issues with existing hashes/params
+      const cleanUrl = window.location.origin + window.location.pathname;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin
+          redirectTo: cleanUrl
         }
       });
       if (error) throw error;
