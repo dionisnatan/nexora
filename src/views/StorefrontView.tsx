@@ -434,8 +434,11 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
   };
 
   const handleGoogleAuth = async () => {
-    // Force save slug before redirect
-    if (slug) localStorage.setItem('nexlyra_last_store_slug', slug);
+    // Force save slug and context before redirect
+    if (slug) {
+      localStorage.setItem('nexlyra_last_store_slug', slug);
+      localStorage.setItem('nexlyra_auth_context', 'store');
+    }
     setAuthLoading(true);
     setAuthError(null);
     try {

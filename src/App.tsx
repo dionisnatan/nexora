@@ -3677,11 +3677,19 @@ export default function App() {
       }
     }
 
-    // 3. Redirect Recovery Fallback (If lost context during OAuth)
-    if (isAuthRedirect && savedStoreSlug) {
+    // 3. Redirect Recovery Fallback (Only if explicitly coming from a Storefront login)
+    const authContext = localStorage.getItem('nexlyra_auth_context');
+    if (isAuthRedirect && authContext === 'store' && savedStoreSlug) {
       setStoreSlug(savedStoreSlug);
+      localStorage.removeItem('nexlyra_auth_context'); // Clear to not interfere with next login
       setIsInitializing(false);
       return;
+    }
+    
+    // Clear store context if we are on the root and it's NOT an auth redirect from store
+    if (!isAuthRedirect && !isStorePath && !isMainSite) {
+       // Regular admin navigation or login
+       localStorage.removeItem('nexlyra_auth_context');
     }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
