@@ -4096,6 +4096,8 @@ export default function App() {
             </>
           ) : (
             <>
+              <p className="px-4 text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-3">Geral</p>
+              <SidebarItem icon={LayoutDashboard} label="Dashboard" active={currentView === 'dashboard'} onClick={() => { setCurrentView('dashboard'); setIsSidebarOpen(false); }} />
               <SidebarItem icon={BookOpen} label="Catálogo" active={currentView === 'catalogo'} onClick={() => { setCurrentView('catalogo'); setIsSidebarOpen(false); }} />
               
               {/* Only show Store options if user's plan supports stores (LOJA/ULTRA) */}
