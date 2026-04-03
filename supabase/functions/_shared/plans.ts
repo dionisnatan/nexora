@@ -15,7 +15,7 @@ export const PLAN_CONFIG = {
   },
   pro: {
     maxProducts: Infinity,
-    maxStores: 1,
+    maxStores: 0,
     hasCheckout: false,
     hasAI: false,
     hasAutomation: false,

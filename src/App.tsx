@@ -1110,7 +1110,8 @@ const OrdersView = ({ session, storeId, onAction }: { session: any, storeId: str
   );
 };
 
-const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: string) => void; onNavigate: (view: View) => void; storeId: string | null }) => {
+const DashboardView = ({ onAction, onNavigate, storeId, userProfile }: { onAction: (msg: string) => void; onNavigate: (view: View) => void; storeId: string | null; userProfile: any }) => {
+  const maxStores = getPlanConfig(userProfile?.plan).maxStores;
   const [timeRange, setTimeRange] = useState<'Hoje' | '7 dias' | '30 dias' | '12 meses'>('7 dias');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -1499,10 +1500,10 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
         {[
-          { title: 'Gerenciar produtos', desc: 'Adicionar, editar ou remover', action: 'produtos', icon: Package, color: 'text-indigo-500' },
-          { title: 'Ver pedidos', desc: 'Acompanhar e atualizar status', action: 'pedidos', icon: ShoppingBag, color: 'text-rose-500' },
-          { title: 'Editar loja', desc: 'Logo, cores e informações', action: 'minha-loja', icon: Edit3, color: 'text-amber-500' }
-        ].map((action) => (
+          { title: 'Gerenciar catálogo', desc: 'Editar seu catálogo público', action: 'catalogo', icon: BookOpen, color: 'text-indigo-500', visible: true },
+          { title: 'Ver pedidos', desc: 'Acompanhar e atualizar status', action: 'pedidos', icon: ShoppingBag, color: 'text-rose-500', visible: maxStores > 0 },
+          { title: 'Editar loja', desc: 'Logo, cores e informações', action: 'minha-loja', icon: Edit3, color: 'text-amber-500', visible: maxStores > 0 }
+        ].filter(a => a.visible).map((action) => (
           <button
             key={action.title}
             onClick={() => onNavigate(action.action as View)}
@@ -3016,12 +3017,12 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
       priceMonthly: 39.90,
       priceYearly: 399.00,
       description: 'Para quem quer vender de forma profissional',
-      features: ['Tudo do FREE +', 'Produtos ilimitados', 'Catálogo 100% personalizado', '1 loja online ativa', '1 template profissional de vitrine'],
+      features: ['Tudo do FREE +', 'Produtos ilimitados', 'Catálogo 100% personalizado'],
       footer: 'Ideal para quem vende pelo Instagram e WhatsApp',
       color: 'bg-white',
       badge: 'POPULAR',
       kiwifyLink: 'https://pay.kiwify.com.br/5U7m01m',
-      maxStores: 1
+      maxStores: 0
     },
     {
       name: 'LOJA',
@@ -3233,11 +3234,11 @@ const MinhasLojasView = ({ session, onAction, stores, activeStoreId, onSelectSto
 
   const getMaxStores = () => {
     const plan = userProfile?.plan || 'free';
-    if (plan === 'free') return 0; // Wait, plan features list 0 for free but the instructions say free has 0 online store, only catalog. Let's return 0. (Actually free can't open online store).
-    if (plan === 'pro') return 1;
-    if (plan === 'loja') return 1;
-    if (plan === 'ultra') return 5;
-    return 1; // Default
+    if (plan === 'free') return 0;  // Apenas catálogo digital
+    if (plan === 'pro') return 0;   // PRO: catálogo ilimitado, mas sem loja online
+    if (plan === 'loja') return 1;  // LOJA: 1 vitrine online com checkout
+    if (plan === 'ultra') return 5; // ULTRA: até 5 lojas
+    return 0;
   };
 
   const maxStores = getMaxStores();
@@ -3245,7 +3246,11 @@ const MinhasLojasView = ({ session, onAction, stores, activeStoreId, onSelectSto
   const handleCreateStore = async (e: React.FormEvent) => {
     e.preventDefault();
     if (stores.length >= maxStores) {
-      alert(`Seu plano permite até ${maxStores} loja(s). Faça upgrade para criar mais.`);
+      if (maxStores === 0) {
+        alert('Seu plano atual não inclui loja online. Faça upgrade para o plano LOJA ou ULTRA para criar sua vitrine virtual!');
+      } else {
+        alert(`Seu plano permite até ${maxStores} loja(s). Faça upgrade para criar mais.`);
+      }
       return;
     }
 
@@ -4027,12 +4032,12 @@ export default function App() {
             </>
           ) : (
             <>
-              <p className="px-4 text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-3">Menu</p>
-              <SidebarItem icon={LayoutDashboard} label="Dashboard" active={currentView === 'dashboard'} onClick={() => { setCurrentView('dashboard'); setIsSidebarOpen(false); }} />
-
-              {/* Only show Store options if user is not on FREE plan or has a store */}
-              {userProfile?.plan !== 'free' && (
+              <SidebarItem icon={BookOpen} label="Catálogo" active={currentView === 'catalogo'} onClick={() => { setCurrentView('catalogo'); setIsSidebarOpen(false); }} />
+              
+              {/* Only show Store options if user's plan supports stores (LOJA/ULTRA) */}
+              {userProfile && getPlanConfig(userProfile.plan).maxStores > 0 && (
                 <>
+                  <p className="px-4 text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-3 mt-6">Loja Online</p>
                   <SidebarItem icon={Package} label="Produtos" active={currentView === 'produtos'} onClick={() => { setCurrentView('produtos'); setIsSidebarOpen(false); }} />
                   <SidebarItem
                     icon={ShoppingBag}
@@ -4042,13 +4047,6 @@ export default function App() {
                     onClick={() => { setCurrentView('pedidos'); setIsSidebarOpen(false); }}
                   />
                   <SidebarItem icon={Wallet} label="Pagamentos" active={currentView === 'pagamentos'} onClick={() => { setCurrentView('pagamentos'); setIsSidebarOpen(false); }} />
-                </>
-              )}
-
-              <SidebarItem icon={BookOpen} label="Catálogo" active={currentView === 'catalogo'} onClick={() => { setCurrentView('catalogo'); setIsSidebarOpen(false); }} />
-
-              {userProfile?.plan !== 'free' && (
-                <>
                   <SidebarItem icon={Palette} label="Aparência da loja" active={currentView === 'aparencia'} onClick={() => { setCurrentView('aparencia'); setIsSidebarOpen(false); }} />
                   <SidebarItem icon={Globe} label="Domínio" active={currentView === 'dominio'} onClick={() => { setCurrentView('dominio'); setIsSidebarOpen(false); }} />
                   <SidebarItem icon={Layers} label="Minhas lojas" active={currentView === 'minhas-lojas'} onClick={() => { setCurrentView('minhas-lojas'); setIsSidebarOpen(false); }} />
@@ -4280,7 +4278,7 @@ export default function App() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
               >
-                {currentView === 'dashboard' && <DashboardView onAction={notify} onNavigate={setCurrentView} storeId={activeStoreId} />}
+                {currentView === 'dashboard' && <DashboardView onAction={notify} onNavigate={setCurrentView} storeId={activeStoreId} userProfile={userProfile} />}
                 {currentView === 'admin-dashboard' && <AdminGlobalDashboard onAction={notify} />}
                 {currentView === 'admin-users' && <AdminUserList onAction={notify} />}
                 {currentView === 'admin-stores' && <AdminStoreList onAction={notify} />}

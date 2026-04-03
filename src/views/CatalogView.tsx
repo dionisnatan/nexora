@@ -26,6 +26,8 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+import { getPlanConfig } from '../lib/plans';
+
 interface Props {
   onAction: (msg: string) => void;
   session: any;
@@ -427,6 +429,11 @@ export const CatalogView = ({ onAction, session, userProfile }: Props) => {
           </div>
           <button 
              onClick={() => {
+                const limit = getPlanConfig(userProfile?.plan).maxProducts;
+                if (products.length >= limit) {
+                  alert(`Seu plano atual permite até ${limit} produtos no catálogo. Faça upgrade para adicionar mais!`);
+                  return;
+                }
                 setEditingProduct({ name: '', price: '', description: '', compare_at_price: '', is_active: true });
                 setProductImages([]);
                 setExistingImages([]);
