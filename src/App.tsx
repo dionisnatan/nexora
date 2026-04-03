@@ -3008,7 +3008,8 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
       features: ['Até 10 produtos cadastrados', '1 catálogo digital interativo', 'Link público para divulgação', 'Integração com WhatsApp', '❌ Sem carrinho e checkout (apenas catálogo)'],
       footer: 'Perfeito para testar a plataforma',
       color: 'bg-white',
-      kiwifyLink: null,
+      kiwifyLinkMonthly: null,
+      kiwifyLinkYearly: null,
       maxStores: 0
     },
     {
@@ -3021,7 +3022,8 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
       footer: 'Ideal para quem vende pelo Instagram e WhatsApp',
       color: 'bg-white',
       badge: 'POPULAR',
-      kiwifyLink: 'https://pay.kiwify.com.br/5U7m01m',
+      kiwifyLinkMonthly: 'https://pay.kiwify.com.br/gBYgS9n',
+      kiwifyLinkYearly: 'https://pay.kiwify.com.br/Mhtgs2n',
       maxStores: 0
     },
     {
@@ -3034,20 +3036,22 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
       footer: 'Aqui começa o e-commerce de verdade',
       color: 'bg-white',
       badge: 'MAIS VENDIDO',
-      kiwifyLink: 'https://pay.kiwify.com.br/bKuzC2f',
+      kiwifyLinkMonthly: 'https://pay.kiwify.com.br/F0GLsfD',
+      kiwifyLinkYearly: 'https://pay.kiwify.com.br/itidG01',
       maxStores: 1
     },
     {
       name: 'ULTRA',
       planKey: 'ultra',
-      priceMonthly: 139.00,
-      priceYearly: 1390.00,
+      priceMonthly: 139.90,
+      priceYearly: 1399.00,
       description: 'Automação + escala + inteligência',
       features: ['Tudo do LOJA +', 'Até 5 lojas no mesmo painel', 'Automação de marketing e estoque', 'Inteligência Artificial (descrições + análise)', 'Suporte VIP prioritário'],
       footer: 'Para quem quer escalar e ganhar dinheiro no automático',
       color: 'bg-gray-900',
       badge: 'TOP',
-      kiwifyLink: '#',
+      kiwifyLinkMonthly: 'https://pay.kiwify.com.br/0yKAjHp',
+      kiwifyLinkYearly: 'https://pay.kiwify.com.br/5GIOdLv',
       maxStores: 5
     }
   ];
@@ -3159,10 +3163,12 @@ const PlanView = ({ onAction, onSelectPlan, session }: { onAction: (msg: string)
                 <button
                   onClick={() => {
                     if (isFree || isActive) return;
-                    if (plan.kiwifyLink && plan.kiwifyLink !== '#') {
+                    const checkoutLink = activeTab === 'monthly' ? plan.kiwifyLinkMonthly : plan.kiwifyLinkYearly;
+                    
+                    if (checkoutLink && checkoutLink !== '#') {
                       const emailParam = session?.user?.email ? `&email=${encodeURIComponent(session.user.email)}` : '';
                       const userIdParam = session?.user?.id ? `&user_id=${session.user.id}` : '';
-                      window.open(`${plan.kiwifyLink}?utm_source=nexlyra${emailParam}${userIdParam}`, '_blank');
+                      window.open(`${checkoutLink}?utm_source=nexlyra${emailParam}${userIdParam}`, '_blank');
                       onAction(`Redirecionando para o checkout do plano ${plan.name}...`);
                     } else {
                       onAction('Em breve disponível!');
