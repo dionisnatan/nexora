@@ -3347,10 +3347,12 @@ const MinhasLojasView = ({ session, onAction, stores, activeStoreId, onSelectSto
 
 // --- Auth View ---
 
-const AuthView = () => {
-  const [isLogin, setIsLogin] = useState(true);
+const AuthView = ({ isResetMode, onResetComplete }: { isResetMode?: boolean; onResetComplete?: () => void }) => {
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'reset-password'>(isResetMode ? 'reset-password' : 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -3361,20 +3363,23 @@ const AuthView = () => {
     setError(null);
 
     try {
-      if (isLogin) {
+      if (authMode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-      } else {
+      } else if (authMode === 'signup') {
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-
-        if (data.user) {
-          // No longer auto-creating store for FREE users.
-          // They will only have access to the Catalog until they upgrade or create a store manually (if plan allows).
-        }
-
         alert('Conta criada com sucesso! Faça login para começar.');
-        setIsLogin(true);
+        setAuthMode('login');
+      } else if (authMode === 'reset-password') {
+        if (password !== confirmPassword) {
+          throw new Error('As senhas não coincidem');
+        }
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+        alert('Senha atualizada com sucesso! Você já pode acessar o painel.');
+        if (onResetComplete) onResetComplete();
+        setAuthMode('login');
       }
     } catch (err: any) {
       setError(err.message || 'Ocorreu um erro');
@@ -3405,10 +3410,14 @@ const AuthView = () => {
       setError('Por favor, informe seu e-mail para recuperar a senha.');
       return;
     }
+    
+    // Force context so router knows this is an admin login callback after clicking the reset link
+    localStorage.setItem('nexlyra_auth_context', 'admin');
+
     setLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${window.location.origin}/reset-password?type=admin`,
       });
       if (error) throw error;
       alert('Link de recuperação enviado para o seu e-mail!');
@@ -3429,10 +3438,10 @@ const AuthView = () => {
 
         <div className="text-center mb-8">
           <h1 className="text-xl font-bold text-gray-900 mb-2">
-            {isLogin ? 'Bem-vindo de volta' : 'Crie sua conta'}
+            {authMode === 'login' ? 'Bem-vindo de volta' : authMode === 'signup' ? 'Crie sua conta' : 'Nova senha'}
           </h1>
           <p className="text-sm text-gray-500">
-            {isLogin ? 'Faça login para gerenciar sua loja.' : 'Comece a vender em minutos.'}
+            {authMode === 'login' ? 'Faça login para gerenciar sua loja.' : authMode === 'signup' ? 'Comece a vender em minutos.' : 'Defina sua nova senha de acesso.'}
           </p>
         </div>
 
@@ -3443,60 +3452,91 @@ const AuthView = () => {
         )}
 
         <form onSubmit={handleAuth} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">E-mail</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5551FF]/20 focus:border-[#5551FF] transition-all"
-              placeholder="seu@email.com"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Senha</label>
-              {isLogin && (
-                <button
-                  type="button"
-                  onClick={handleForgotPassword}
-                  className="text-[10px] font-bold text-[#5551FF] hover:underline"
-                >
-                  Esqueceu a senha?
-                </button>
-              )}
+          {authMode === 'reset-password' ? (
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nova Senha</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5551FF]/20 focus:border-[#5551FF] transition-all pr-12"
+                    placeholder="Mínimo 6 caracteres"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Confirmar Nova Senha</label>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5551FF]/20 focus:border-[#5551FF] transition-all"
+                  placeholder="Repita a nova senha"
+                />
+              </div>
             </div>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5551FF]/20 focus:border-[#5551FF] transition-all pr-12"
-                placeholder="••••••••"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 transition-colors"
-                title={showPassword ? "Ocultar senha" : "Ver senha"}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-          </div>
+          ) : (
+            <>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">E-mail</label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5551FF]/20 focus:border-[#5551FF] transition-all"
+                  placeholder="seu@email.com"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Senha</label>
+                  {authMode === 'login' && (
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      className="text-[10px] font-bold text-[#5551FF] hover:underline"
+                    >
+                      Esqueceu a senha?
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5551FF]/20 focus:border-[#5551FF] transition-all pr-12"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 transition-colors"
+                    title={showPassword ? "Ocultar senha" : "Ver senha"}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
 
           <button
             type="submit"
             disabled={loading}
             className="w-full bg-[#5551FF] text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#4440FF] transition-all shadow-lg shadow-indigo-100 disabled:opacity-70 mt-6"
           >
-            {loading ? 'Aguarde...' : isLogin ? 'Entrar na conta' : 'Criar minha loja'}
+            {loading ? 'Aguarde...' : authMode === 'login' ? 'Entrar na conta' : authMode === 'signup' ? 'Criar minha loja' : 'Atualizar senha'}
           </button>
         </form>
 
-        {isLogin && (
+        {authMode === 'login' && (
           <>
             <div className="my-6 flex items-center gap-4">
               <div className="flex-1 h-px bg-gray-100" />
@@ -3532,15 +3572,17 @@ const AuthView = () => {
           </>
         )}
 
-        <div className="mt-8 text-center">
-          <button
-            type="button"
-            onClick={() => { setIsLogin(!isLogin); setError(null); }}
-            className="text-sm font-medium text-gray-500 hover:text-[#5551FF] transition-colors"
-          >
-            {isLogin ? 'Não tem uma conta? Crie agora' : 'Já tem uma conta? Faça login'}
-          </button>
-        </div>
+        {authMode !== 'reset-password' && (
+          <div className="mt-8 text-center">
+            <button
+              type="button"
+              onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setError(null); }}
+              className="text-sm font-medium text-gray-500 hover:text-[#5551FF] transition-colors"
+            >
+              {authMode === 'login' ? 'Não tem uma conta? Crie agora' : 'Já tem uma conta? Faça login'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -3550,6 +3592,8 @@ const AuthView = () => {
 
 export default function App() {
   const [session, setSession] = useState<any>(null);
+  const [isResetMode, setIsResetMode] = useState(false);
+
   const [isInitializing, setIsInitializing] = useState(true);
   const [currentView, setCurrentView] = useState<View>(() => {
     const params = new URLSearchParams(window.location.search);
@@ -3677,9 +3721,11 @@ export default function App() {
       }
     }
 
-    // 3. Redirect Recovery Fallback (Only if explicitly coming from a Storefront login)
+    // 3. Redirect Recovery Fallback (Only if explicitly coming from a Storefront login or customer reset link)
     const authContext = localStorage.getItem('nexlyra_auth_context');
-    if (isAuthRedirect && authContext === 'store' && savedStoreSlug) {
+    const isCustomerReset = params.get('type') === 'customer';
+    
+    if (isAuthRedirect && (authContext === 'store' || isCustomerReset) && savedStoreSlug) {
       setStoreSlug(savedStoreSlug);
       localStorage.removeItem('nexlyra_auth_context'); // Clear to not interfere with next login
       setIsInitializing(false);
@@ -3703,13 +3749,17 @@ export default function App() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       if (session) {
         fetchUserProfile(session.user);
         fetchStoreData(session.user.id);
       } else {
         setUserProfile(null);
+      }
+
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsResetMode(true);
       }
     });
 
@@ -3879,7 +3929,7 @@ export default function App() {
   }
 
   if (!session) {
-    return <AuthView />;
+    return <AuthView isResetMode={isResetMode} />;
   }
 
   if (userProfile?.status === 'blocked') {

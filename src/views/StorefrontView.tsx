@@ -72,13 +72,15 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [customerSession, setCustomerSession] = useState<any>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'reset-password'>('login');
   const [showOrders, setShowOrders] = useState(false);
   const [customerOrders, setCustomerOrders] = useState<any[]>([]);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   const [showAuthPassword, setShowAuthPassword] = useState(false);
   const [showDescrição, setShowDescrição] = useState(false);
   const [deliveryMode, setDeliveryMode] = useState<'shipping' | 'pickup'>('shipping');
@@ -148,17 +150,22 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
       setCustomerSession(session);
       
       // Quando o usuário faz login (ex: via Google ou e-mail), abre o painel automaticamente
-      if (event === 'SIGNED_IN' && session) {
-        setShowOrders(true);
-        setIsAuthModalOpen(false);
-      }
-      
-      // Quando o usuário sai, garante que o painel seja fechado
       if (event === 'SIGNED_OUT') {
         setShowOrders(false);
         setCustomerSession(null);
       }
+
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsAuthModalOpen(true);
+        setAuthMode('reset-password');
+      }
     });
+
+    // Fallback caso o evento acorra antes do componente inscrever-se e monte os estados
+    if (window.location.hash.includes('type=recovery')) {
+      setIsAuthModalOpen(true);
+      setAuthMode('reset-password');
+    }
 
     return () => subscription.unsubscribe();
   }, []);
@@ -419,13 +426,22 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
       if (authMode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
         if (error) throw error;
-      } else {
+        setIsAuthModalOpen(false);
+      } else if (authMode === 'signup') {
         const { error } = await supabase.auth.signUp({ email: authEmail, password: authPassword });
         if (error) throw error;
         showNotification('Confirme seu e-mail para ativar sua conta.', 'info');
         setAuthMode('login');
+      } else if (authMode === 'reset-password') {
+        if (authPassword !== confirmPassword) {
+          throw new Error('As senhas não coincidem');
+        }
+        const { error } = await supabase.auth.updateUser({ password: authPassword });
+        if (error) throw error;
+        showNotification('Senha atualizada com sucesso!', 'success');
+        setIsAuthModalOpen(false);
+        setAuthMode('login');
       }
-      setIsAuthModalOpen(false);
     } catch (err: any) {
       setAuthError(err.message);
     } finally {
@@ -463,11 +479,20 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
       setAuthError('Informe seu e-mail para recuperar a senha.');
       return;
     }
+    
+    // Force save context so router knows where to redirect after clicking the email link
+    if (slug) {
+      localStorage.setItem('nexlyra_last_store_slug', slug);
+      localStorage.setItem('nexlyra_auth_context', 'store');
+    }
+
     setAuthLoading(true);
     setAuthError(null);
     try {
+      // Redireciona sempre para a URL exata da vitrine na qual o cliente está agora
+      const cleanUrl = window.location.origin + window.location.pathname;
       const { error } = await supabase.auth.resetPasswordForEmail(authEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: cleanUrl,
       });
       if (error) throw error;
       showNotification('Link de recuperação enviado!', 'info');
@@ -5600,56 +5625,94 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
                     <User size={32} className="text-[var(--theme-primary)]" />
                   </div>
                   <h2 className="text-2xl font-black uppercase tracking-tight">
-                    {authMode === 'login' ? 'Entrar na conta' : 'Criar conta'}
+                    {authMode === 'login' ? 'Entrar na conta' : authMode === 'signup' ? 'Criar conta' : 'Nova Senha'}
                   </h2>
                   <p className="text-gray-400 text-xs mt-2 font-medium">
-                    {authMode === 'login' ? 'Acesse sua conta para ver seus pedidos' : 'Junte-se e acompanhe seus pedidos'}
+                    {authMode === 'login' ? 'Acesse sua conta para ver seus pedidos' : authMode === 'signup' ? 'Junte-se e acompanhe seus pedidos' : 'Crie uma nova senha de acesso'}
                   </p>
                 </div>
 
                 <form onSubmit={handleAuth} className="space-y-4">
-                  <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1.5">E-mail</label>
-                    <input
-                      type="email"
-                      value={authEmail}
-                      onChange={(e) => setAuthEmail(e.target.value)}
-                      placeholder="seu@email.com"
-                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]/20 focus:border-[var(--theme-primary)]"
-                      required
-                    />
-                  </div>
-                   <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block">Senha</label>
-                      {authMode === 'login' && (
-                        <button
-                          type="button"
-                          onClick={handleForgotPassword}
-                          className="text-[10px] font-black text-[var(--theme-primary)] hover:underline uppercase tracking-widest"
-                        >
-                          Esqueceu a senha?
-                        </button>
-                      )}
-                    </div>
-                    <div className="relative">
-                      <input
-                        type={showAuthPassword ? "text" : "password"}
-                        value={authPassword}
-                        onChange={(e) => setAuthPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full border border-gray-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]/20 focus:border-[var(--theme-primary)] bg-gray-50 focus:bg-white transition-all pr-12"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowAuthPassword(!showAuthPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 transition-colors"
-                      >
-                        {showAuthPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
+                  {authMode === 'reset-password' ? (
+                    <>
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1.5">Nova Senha</label>
+                        <input
+                          type={showAuthPassword ? "text" : "password"}
+                          value={authPassword}
+                          onChange={(e) => setAuthPassword(e.target.value)}
+                          placeholder="Mínimo 6 caracteres"
+                          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]/20 focus:border-[var(--theme-primary)]"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1.5">Confirmar Nova Senha</label>
+                        <div className="relative">
+                          <input
+                            type={showAuthPassword ? "text" : "password"}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="Repita a nova senha"
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]/20 focus:border-[var(--theme-primary)]"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowAuthPassword(!showAuthPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            {showAuthPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1.5">E-mail</label>
+                        <input
+                          type="email"
+                          value={authEmail}
+                          onChange={(e) => setAuthEmail(e.target.value)}
+                          placeholder="seu@email.com"
+                          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]/20 focus:border-[var(--theme-primary)]"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block">Senha</label>
+                          {authMode === 'login' && (
+                            <button
+                              type="button"
+                              onClick={handleForgotPassword}
+                              className="text-[10px] font-black text-[var(--theme-primary)] hover:underline uppercase tracking-widest"
+                            >
+                              Esqueceu a senha?
+                            </button>
+                          )}
+                        </div>
+                        <div className="relative">
+                          <input
+                            type={showAuthPassword ? "text" : "password"}
+                            value={authPassword}
+                            onChange={(e) => setAuthPassword(e.target.value)}
+                            placeholder="••••••••"
+                            className="w-full border border-gray-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]/20 focus:border-[var(--theme-primary)] bg-gray-50 focus:bg-white transition-all pr-12"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowAuthPassword(!showAuthPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            {showAuthPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   {authError && (
                     <div className="bg-red-50 border border-red-100 text-red-600 text-xs font-bold p-3 rounded-xl">
@@ -5663,7 +5726,7 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
                     className="w-full h-14 bg-[var(--theme-primary)] text-white font-black uppercase tracking-widest text-xs rounded-xl hover:brightness-90 transition-all shadow-lg shadow-[var(--theme-primary)]/10 disabled:opacity-60 flex items-center justify-center gap-2"
                   >
                     {authLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                    {authMode === 'login' ? 'Entrar' : 'Criar conta'}
+                    {authMode === 'login' ? 'Entrar' : authMode === 'signup' ? 'Criar conta' : 'Atualizar Senha'}
                   </button>
                 </form>
 
@@ -5703,15 +5766,17 @@ export const StorefrontView = ({ slug, isCatalog = false, hasCheckout = true }: 
                   </>
                 )}
 
-                <p className="text-center text-xs text-gray-400 mt-6 font-medium">
-                  {authMode === 'login' ? 'Não tem conta?' : 'Já tem conta?'}{' '}
-                  <button
-                    onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setAuthError(null); }}
-                    className="text-[var(--theme-primary)] font-black hover:underline"
-                  >
-                    {authMode === 'login' ? 'Cadastre-se' : 'Entrar'}
-                  </button>
-                </p>
+                {authMode !== 'reset-password' && (
+                  <p className="text-center text-xs text-gray-400 mt-6 font-medium">
+                    {authMode === 'login' ? 'Não tem conta?' : 'Já tem conta?'}{' '}
+                    <button
+                      onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setAuthError(null); }}
+                      className="text-[var(--theme-primary)] font-black hover:underline"
+                    >
+                      {authMode === 'login' ? 'Cadastre-se' : 'Entrar'}
+                    </button>
+                  </p>
+                )}
               </div>
             </motion.div>
           </div>
