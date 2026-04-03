@@ -24,6 +24,15 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Robust Pix Logo component to avoid broken external links
+const PixLogo = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 600 200" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M120 40c-6 0-12 2.3-16.5 6.8L34.3 115.1c-9.1 9.1-9.1 23.8 0 32.9l69.2 69.2c4.5 4.5 10.5 6.8 16.5 6.8s12-2.3 16.5-6.8l69.2-69.2c9.1-9.1 9.1-23.8 0-32.9L136.5 46.8c-4.5-4.5-10.5-6.8-16.5-6.8zm0 24c2.1 0 4.2.8 5.7 2.3l69.2 69.2c3.1 3.1 3.1 8.2 0 11.3l-69.2 69.2c-1.6 1.6-3.6 2.3-5.7 2.3s-4.2-.8-5.7-2.3l-69.2-69.2c-3.1-3.1-3.1-8.2 0-11.3L114.3 66.3c1.5-1.5 3.6-2.3 5.7-2.3zm0 43.8l-37.5 37.5 37.5 37.5 37.5-37.5-37.5-37.5z" fill="#32BCAD" transform="scale(0.85) translate(40, -10)"/>
+    <path d="M280 70h-20v80h20v-25c7 12 18 14 28 14 24 0 42-18 42-42s-18-42-42-42c-12 0-21 2-28 15V70zm0 27c0-14 10-24 22-24s22 10 22 24-10 24-22 24-22-10-22-24zM390 70h-20v80h20V70zM390 50c0 6-4 10-10 10s-10-4-10-10 4-10 10-10 10 4 10 10zM460 70l-15 22-15-22h-22l28 40-28 40h22l15-22 15 22h22l-28-40 28-40h-22z" fill="#4B4B4B" transform="scale(1.1) translate(-20, -5)"/>
+  </svg>
+);
+
+
 export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCatalog?: boolean }) => {
   const [store, setStore] = useState<any>(null);
   // Checkout is only available for LOJA and ULTRA plans. Resolved from store owner's profile.
@@ -1658,10 +1667,10 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3 grayscale opacity-60">
-                <img src="https://raw.githubusercontent.com/gilbarbara/logos/master/logos/visa.svg" className="h-3.5" alt="Visa" />
-                <img src="https://raw.githubusercontent.com/gilbarbara/logos/master/logos/mastercard.svg" className="h-5" alt="Mastercard" />
-                <img src="https://logodownload.org/wp-content/uploads/2020/02/pix-logo-1.png" className="h-3.5" alt="Pix" />
+              <div className="flex items-center gap-4">
+                <img src="https://raw.githubusercontent.com/gilbarbara/logos/master/logos/visa.svg" className="h-4 object-contain" alt="Visa" />
+                <img src="https://raw.githubusercontent.com/gilbarbara/logos/master/logos/mastercard.svg" className="h-6 object-contain" alt="Mastercard" />
+                <PixLogo className="h-[1.1rem] w-auto" />
               </div>
             </div>
           </div>
@@ -5530,15 +5539,7 @@ export const StorefrontView = ({ slug, isCatalog = false }: { slug: string, isCa
                       alt="Nubank"
                       onError={(e) => (e.currentTarget.style.display = 'none')}
                     />
-                    <img
-                      src="https://www.lojasbecker.com.br/arquivos/logo-pix-branco-poweredby.png?v=637512347230000000"
-                      className="h-7 object-contain ml-3"
-                      alt="Pix powered by Banco Central"
-                      onError={(e) => {
-                        e.currentTarget.src = "https://logodownload.org/wp-content/uploads/2020/02/pix-logo-1.png";
-                        e.currentTarget.className = "h-4 object-contain ml-3 brightness-0 invert opacity-80";
-                      }}
-                    />
+                    <PixLogo className="h-7 w-auto ml-3" />
                   </div>
                 </div>
               </div>
