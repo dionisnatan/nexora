@@ -1303,29 +1303,29 @@ const DashboardView = ({ onAction, onNavigate, storeId }: { onAction: (msg: stri
         <StatCard
           icon={DollarSign}
           label="Faturamento"
-          value="R$ 0,00"
+          value={metrics.faturamento}
           subtext="Pedidos pagos"
           color="bg-blue-50 text-blue-600"
         />
         <StatCard
           icon={ShoppingCart}
           label="Pedidos"
-          value="12"
-          subtext="1 hoje"
+          value={metrics.pedidos}
+          subtext={metrics.pedidosSub}
           color="bg-indigo-50 text-indigo-600"
         />
         <StatCard
           icon={Package}
           label="Produtos"
-          value="6"
-          subtext="6 ativos"
+          value={metrics.produtos}
+          subtext={metrics.produtosSub}
           color="bg-purple-50 text-purple-600"
         />
         <StatCard
           icon={TrendingUp}
           label="Pendentes"
-          value="0"
-          subtext="Aguardando ação"
+          value={metrics.pendentes}
+          subtext={metrics.pendentesSub}
           color="bg-orange-50 text-orange-600"
         />
       </div>
@@ -4108,7 +4108,7 @@ export default function App() {
                 {currentView === 'admin-assinaturas' && <AdminSubscribersView onAction={notify} session={session} />}
                 {currentView === 'pedidos' && <OrdersView session={session} storeId={activeStoreId} onAction={notify} />}
                 {currentView === 'pagamentos' && <PaymentSettingsView session={session} storeId={activeStoreId} onAction={notify} />}
-                {currentView === 'produtos' && <ProductsView onAction={notify} session={session} storeId={activeStoreId} />}
+                {currentView === 'produtos' && <ProductsView onAction={notify} session={session} storeId={activeStoreId} userProfile={userProfile} />}
                 {currentView === 'dominio' && (
                   <div className="max-w-2xl mx-auto space-y-12 py-12">
                     <div className="text-center space-y-2">
