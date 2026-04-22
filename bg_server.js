@@ -8,7 +8,19 @@ const server = http.createServer((req, res) => {
     let body = '';
     req.on('data', chunk => { body += chunk.toString(); });
     req.on('end', () => {
+      // Basic validation: must be a string and have a minimum length
+      if (typeof body !== 'string' || body.length < 50) {
+        res.writeHead(400);
+        res.end('Invalid body');
+        return;
+      }
       const base64Data = body.replace(/^data:image\/png;base64,/, "");
+      // Check if it's actually base64
+      if (!/^[A-Za-z0-9+/=]+$/.test(base64Data)) {
+        res.writeHead(400);
+        res.end('Invalid base64');
+        return;
+      }
       fs.writeFileSync('public/icon_transparent.png', base64Data, 'base64');
       console.log('Saved public/icon_transparent.png');
       res.writeHead(200);
@@ -49,4 +61,4 @@ const server = http.createServer((req, res) => {
     `);
   }
 });
-server.listen(8080, () => console.log('Listening on 8080'));
+server.listen(8080, '127.0.0.1', () => console.log('Listening on 127.0.0.1:8080'));

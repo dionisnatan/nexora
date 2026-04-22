@@ -27,7 +27,7 @@ const CATEGORY_ICONS = [
 ];
 import { supabase } from '../lib/supabase';
 import { compressImage } from '../lib/imageCompression';
-import { getPlanConfig } from '../lib/plans';
+import { getPlanConfig, canAddProduct } from '../lib/plans';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -494,6 +494,11 @@ export const ProductsView = ({ onAction, session, storeId, userProfile }: { onAc
     e.preventDefault();
     if (!storeId) {
       onAction("Crie sua loja primeiro acessando a aba 'Minha Loja'.");
+      return;
+    }
+
+    if (!editingProductId && !canAddProduct(userProfile?.plan, products.length)) {
+      onAction("Limite de produtos atingido para seu plano atual. Faça upgrade para adicionar mais!");
       return;
     }
 

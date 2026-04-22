@@ -3885,6 +3885,22 @@ export default function App() {
           // Try to persist this to DB as well
           supabase.from('profiles').update({ role: 'admin' }).eq('id', user.id).then();
         }
+
+        if (profile.expires_at) {
+          const now = new Date();
+          const expiry = new Date(profile.expires_at);
+
+          if (expiry < now && profile.plan !== 'free') {
+            console.log('[Auth] Plan expired. Downgrading to free.');
+            profile.plan = 'free';
+            profile.expires_at = null;
+
+            // Persist to DB
+            await supabase.from('profiles').update({ plan: 'free', expires_at: null }).eq('id', user.id);
+            // Also update subscription status if exists
+            await supabase.from('subscriptions').update({ status: 'expired' }).eq('user_id', user.id);
+          }
+        }
       }
 
       setUserProfile(profile as UserProfile);

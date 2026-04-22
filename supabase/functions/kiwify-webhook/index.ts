@@ -23,8 +23,44 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const body = await req.json();
-    console.log("[kiwify-webhook] received:", JSON.stringify(body, null, 2));
+    const signature = req.headers.get("x-kiwify-signature");
+    const secret = Deno.env.get("KIWIFY_SECRET_TOKEN");
+
+    const bodyText = await req.text();
+    
+    if (!signature || !secret) {
+      console.error("[kiwify-webhook] Missing signature or secret token");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, 
+        status: 401 
+      });
+    }
+
+    // Verify HMAC SHA1 signature
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(secret);
+    const key = await crypto.subtle.importKey(
+      "raw",
+      keyData,
+      { name: "HMAC", hash: "SHA-1" },
+      false,
+      ["sign"]
+    );
+    const hmac = await crypto.subtle.sign("HMAC", key, encoder.encode(bodyText));
+    const digest = Array.from(new Uint8Array(hmac))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    if (digest !== signature) {
+      console.error("[kiwify-webhook] Invalid signature");
+      return new Response(JSON.stringify({ error: "Invalid signature" }), { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, 
+        status: 401 
+      });
+    }
+
+    const body = JSON.parse(bodyText);
+    console.log("[kiwify-webhook] received verified payload:", JSON.stringify(body, null, 2));
 
     const order_status: string = body.order_status ?? body.status ?? "";
     const customer = body.customer ?? {};

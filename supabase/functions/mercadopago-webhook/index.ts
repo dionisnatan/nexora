@@ -21,6 +21,18 @@ serve(async (req: Request) => {
   }
 
   try {
+    const url = new URL(req.url);
+    const secret = url.searchParams.get("secret");
+    const expectedSecret = Deno.env.get('MERCADO_PAGO_WEBHOOK_SECRET');
+
+    if (expectedSecret && secret !== expectedSecret) {
+      console.error('[mercadopago-webhook] Invalid secret token');
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     const body = await req.json();
     console.log('Webhook received:', JSON.stringify(body, null, 2));
 

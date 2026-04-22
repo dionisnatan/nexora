@@ -13,6 +13,28 @@ serve(async (req) => {
     const { url, fallbackSeed } = await req.json();
     if (!url) throw new Error("URL is required");
 
+    // SSRF Protection: Whitelist allowed domains
+    const allowedDomains = [
+      'pollinations.ai',
+      'image.pollinations.ai',
+      'loremflickr.com',
+    ];
+
+    try {
+      const parsedUrl = new URL(url);
+      const isAllowed = allowedDomains.some(domain => 
+        parsedUrl.hostname === domain || parsedUrl.hostname.endsWith('.' + domain)
+      );
+
+      if (!isAllowed) {
+        console.warn("[proxy-image] Blocked unauthorized domain:", parsedUrl.hostname);
+        throw new Error("Domain not allowed");
+      }
+    } catch (e) {
+      if (e.message === "Domain not allowed") throw e;
+      throw new Error("Invalid URL format");
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     
