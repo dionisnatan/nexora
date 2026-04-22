@@ -1,3 +1,4 @@
+// NexLyra Dashboard - Plan Enforcement v1.0
 import {
   LayoutDashboard,
   Package,
